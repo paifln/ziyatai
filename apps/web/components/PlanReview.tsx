@@ -1,0 +1,606 @@
+"use client";
+import { useEffect, useState, useCallback } from "react";
+import {
+  ArrowRight,
+  Plus,
+  Save,
+  Check,
+  Trash2,
+  AlertTriangle,
+  Download,
+  ChevronDown,
+  Split,
+  Merge,
+  Search,
+} from "lucide-react";
+import { api } from "../lib/client";
+import type { Texts, UiLocale } from "../lib/i18n";
+import type { KtpRow } from "../../../packages/contracts";
+import { Jobs } from "./Workspace";
+export default function PlanReview({
+  id,
+  t,
+  locale,
+  onError,
+  onSaved,
+  onGenerate,
+  jobs,
+  refresh,
+}: {
+  id: string;
+  t: Texts;
+  locale: UiLocale;
+  onError: (s: string) => void;
+  onSaved: () => void;
+  onGenerate: () => void;
+  jobs: any[];
+  refresh: () => Promise<void>;
+}) {
+  const [plan, setPlan] = useState<any>(),
+    [rows, setRows] = useState<KtpRow[]>([]),
+    [grade, setGrade] = useState<number | null>(null),
+    [year, setYear] = useState(""),
+    [busy, setBusy] = useState(false),
+    [query, setQuery] = useState(""),
+    [quarter, setQuarter] = useState(""),
+    [sort, setSort] = useState("original"),
+    [dirty, setDirty] = useState(false),
+    [showWarnings, setShowWarnings] = useState(false);
+  const [previewPage, setPreviewPage] = useState(0);
+  const load = useCallback(async () => {
+    try {
+      const p = await api(`ktp/${id}`);
+      setPlan(p);
+      setRows(p.rows ?? []);
+      setGrade(p.grade);
+      setYear(p.school_year ?? "");
+      setDirty(false);
+    } catch (e) {
+      onError((e as Error).message);
+    }
+  }, [id, onError]);
+  useEffect(() => {
+    void load();
+  }, [load]);
+  useEffect(() => {
+    if (plan?.status === "extracting") {
+      const timer = setInterval(() => void load(), 2000);
+      return () => clearInterval(timer);
+    }
+  }, [plan?.status, load]);
+  useEffect(() => {
+    if (!dirty) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [dirty]);
+  function update(index: number, key: keyof KtpRow, value: string) {
+    setRows(
+      rows.map((r, i) =>
+        i === index
+          ? {
+              ...r,
+              [key]: value,
+              ...(key === "goals"
+                ? {
+                    objectiveCodes:
+                      value.match(/\b\d{1,2}\.\d+\.\d+\.\d+\b/g) ?? [],
+                  }
+                : {}),
+              source: { ...r.source, method: "manual", confidence: 0.5 },
+            }
+          : r,
+      ),
+    );
+    setDirty(true);
+  }
+  function add(after?: number) {
+    const r: KtpRow = {
+      id: crypto.randomUUID(),
+      sourceOrder: rows.length + 1,
+      lessonNumberRaw: "",
+      section: "",
+      quarter: "",
+      topic: "",
+      goals: "",
+      objectiveCodes: [],
+      lessonGoals: "",
+      hours: "",
+      dateRaw: "",
+      dateStart: null,
+      dateEnd: null,
+      notes: "",
+      warnings: [],
+      source: {
+        page: null,
+        sheet: null,
+        range: "manual",
+        fragment: "",
+        method: "manual",
+        confidence: 0.5,
+      },
+    };
+    const copy = [...rows];
+    copy.splice(after === undefined ? copy.length : after + 1, 0, r);
+    setRows(copy);
+    setDirty(true);
+  }
+  async function save(confirm = false) {
+    setBusy(true);
+    try {
+      await api(
+        `ktp/${id}/${confirm ? "confirm" : "rows"}`,
+        confirm ? "POST" : "PATCH",
+        { revision: plan.revision, rows, grade, schoolYear: year },
+      );
+      await load();
+      onSaved();
+    } catch (e) {
+      onError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  if (!plan)
+    return (
+      <div className="inline-loading">
+        <span className="spinner" /> {t.loading}
+      </div>
+    );
+  const related = jobs.filter((j) => j.resource_id === id);
+  if (!plan.rows)
+    return (
+      <>
+        <div className="page-heading">
+          <div>
+            <h1>{plan.title}</h1>
+            <p>{t.importing}</p>
+          </div>
+        </div>
+        <Jobs t={t} jobs={related} refresh={refresh} />
+        {["failed", "cancelled"].includes(plan.status) && (
+          <div className="notice error">
+            {t.failed}.{" "}
+            {locale === "ru"
+              ? "Загрузите исправленную копию файла."
+              : "Түзетілген файл көшірмесін жүктеңіз."}
+          </div>
+        )}
+      </>
+    );
+  const quarterOptions = [
+    ...new Set(rows.map((r) => r.quarter).filter(Boolean)),
+  ];
+  const visible = rows
+    .map((r, index) => ({ r, index }))
+    .filter(
+      ({ r }) =>
+        (r.topic + " " + r.goals + " " + r.section)
+          .toLowerCase()
+          .includes(query.toLowerCase()) &&
+        (!quarter || r.quarter === quarter),
+    )
+    .sort((a, b) =>
+      sort === "date"
+        ? a.r.dateRaw.localeCompare(b.r.dateRaw) || a.index - b.index
+        : a.index - b.index,
+    );
+  const warning = (w: string) =>
+    (
+      ({
+        missing_date:
+          locale === "ru" ? "Дата не указана" : "Күні көрсетілмеген",
+        date_requires_year_or_review:
+          locale === "ru"
+            ? "Уточните год или диапазон даты"
+            : "Жылды немесе күн аралығын нақтылаңыз",
+        missing_objective_text:
+          locale === "ru" ? "Нет текста цели" : "Мақсат мәтіні жоқ",
+        objective_code_only:
+          locale === "ru"
+            ? "Указан только код: добавьте текст цели"
+            : "Тек код берілген: мақсат мәтінін қосыңыз",
+        ocr_requires_review:
+          locale === "ru"
+            ? "Строка распознана OCR: сверяйте с оригиналом"
+            : "OCR арқылы танылған: түпнұсқамен салыстырыңыз",
+      }) as Record<string, string>
+    )[w] ?? t.warningCode;
+  return (
+    <>
+      <div className="page-heading">
+        <div>
+          <span className="small-label">
+            {t.plans} · {t.versions} {plan.revision}
+          </span>
+          <h1 style={{ fontSize: 26, marginTop: 8 }}>{plan.title}</h1>
+          <span
+            className={`badge ${plan.status === "confirmed" ? "green" : "gold"}`}
+          >
+            {plan.status === "confirmed" && !dirty ? t.confirmed : t.review}
+          </span>
+          {dirty && (
+            <span className="status-bar" style={{ marginLeft: 12 }}>
+              {locale === "ru"
+                ? "Есть несохранённые изменения"
+                : "Сақталмаған өзгерістер бар"}
+            </span>
+          )}
+        </div>
+        <div className="actions">
+          {plan.file_id && (
+            <a
+              className="button secondary"
+              href={`/api/uploads/${plan.file_id}`}
+            >
+              <Download size={16} />
+              {t.sourceDownload}
+            </a>
+          )}
+          <button
+            className="button primary"
+            disabled={plan.status !== "confirmed" || dirty}
+            onClick={onGenerate}
+          >
+            {t.create}
+            <ArrowRight size={16} />
+          </button>
+        </div>
+      </div>
+      {previewPage > 0 && (
+        <section className="card source-preview">
+          <div className="card-heading">
+            <h2>
+              {t.source} · {locale === "ru" ? "Страница" : "Бет"} {previewPage}
+            </h2>
+            <button className="text-button" onClick={() => setPreviewPage(0)}>
+              {t.cancel}
+            </button>
+          </div>
+          <img
+            src={`/api/ktp/${id}/preview?page=${previewPage}`}
+            alt={`${t.source} ${previewPage}`}
+            style={{ maxWidth: "100%", height: "auto" }}
+          />
+        </section>
+      )}
+      <section className="card">
+        <div className="plan-settings">
+          <label>
+            {t.grade}
+            <select
+              aria-label={t.grade}
+              value={grade ?? ""}
+              onChange={(e) => {
+                setGrade(e.target.value ? Number(e.target.value) : null);
+                setDirty(true);
+              }}
+            >
+              <option value="">{t.select}</option>
+              {Array.from({ length: 11 }, (_, i) => (
+                <option key={i} value={i + 1}>
+                  {i + 1}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            {t.year}
+            <input
+              value={year}
+              placeholder="2026–2027"
+              maxLength={20}
+              onChange={(e) => {
+                setYear(e.target.value);
+                setDirty(true);
+              }}
+            />
+          </label>
+          <button
+            className="button secondary"
+            onClick={() => save()}
+            disabled={busy}
+          >
+            <Save size={16} />
+            {t.save}
+          </button>
+          <button
+            className="button primary"
+            onClick={() => save(true)}
+            disabled={
+              busy ||
+              !grade ||
+              !rows.length ||
+              rows.some((r) => !r.topic.trim() || !r.goals.trim())
+            }
+          >
+            <Check size={16} />
+            {t.confirm}
+          </button>
+        </div>
+        {rows.some((r) => r.warnings.length) && (
+          <div className="notice warning">{t.missing}</div>
+        )}
+        {!rows.length && <div className="notice warning">{t.noRows}</div>}
+      </section>
+      <section className="card">
+        <div className="toolbar">
+          <label className="search-field">
+            <span className="sr-only">{t.search}</span>
+            <Search size={16} />
+            <input
+              placeholder={t.search}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </label>
+          <label>
+            <span className="sr-only">{t.quarter}</span>
+            <select
+              value={quarter}
+              onChange={(e) => setQuarter(e.target.value)}
+            >
+              <option value="">
+                {t.quarter}: {t.all}
+              </option>
+              {quarterOptions.map((q) => (
+                <option key={q}>{q}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span className="sr-only">{t.sort}</span>
+            <select value={sort} onChange={(e) => setSort(e.target.value)}>
+              <option value="original">{t.originalOrder}</option>
+              <option value="date">{t.dateOrder}</option>
+            </select>
+          </label>
+        </div>
+        <div className="table-scroll">
+          <table className="ktp-table">
+            <thead>
+              <tr>
+                <th>{t.number}</th>
+                <th>{t.date}</th>
+                <th>{t.topic}</th>
+                <th>{t.goals}</th>
+                <th>{t.hours}</th>
+                <th>{t.source}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visible.map(({ r, index }) => (
+                <tr key={r.id}>
+                  <td data-label={t.number}>
+                    <input
+                      aria-label={`${t.number} ${index + 1}`}
+                      value={r.lessonNumberRaw}
+                      onChange={(e) =>
+                        update(index, "lessonNumberRaw", e.target.value)
+                      }
+                      style={{ minWidth: 45, maxWidth: 55 }}
+                    />
+                  </td>
+                  <td data-label={t.date}>
+                    <input
+                      aria-label={`${t.date} ${index + 1}`}
+                      value={r.dateRaw}
+                      onChange={(e) => update(index, "dateRaw", e.target.value)}
+                      placeholder="—"
+                    />
+                    {r.warnings
+                      .filter((w) => w.includes("date"))
+                      .map((w) => (
+                        <div key={w} className="source-warning">
+                          <AlertTriangle size={12} />
+                          {warning(w)}
+                        </div>
+                      ))}
+                  </td>
+                  <td data-label={t.topic} className="topic-cell">
+                    <textarea
+                      aria-label={`${t.topic} ${index + 1}`}
+                      value={r.topic}
+                      maxLength={2000}
+                      onChange={(e) => update(index, "topic", e.target.value)}
+                    />
+                    <details className="row-details">
+                      <summary>
+                        {t.section} / {t.notes}
+                      </summary>
+                      <label>
+                        {t.section}
+                        <input
+                          value={r.section}
+                          onChange={(e) =>
+                            update(index, "section", e.target.value)
+                          }
+                        />
+                      </label>
+                      <label className="mt-20">
+                        {t.quarter}
+                        <input
+                          value={r.quarter}
+                          onChange={(e) =>
+                            update(index, "quarter", e.target.value)
+                          }
+                        />
+                      </label>
+                      <label className="mt-20">
+                        {t.notes}
+                        <textarea
+                          value={r.notes}
+                          onChange={(e) =>
+                            update(index, "notes", e.target.value)
+                          }
+                        />
+                      </label>
+                      <label className="mt-20">
+                        {t.lessonGoals}
+                        <textarea
+                          value={r.lessonGoals}
+                          onChange={(e) =>
+                            update(index, "lessonGoals", e.target.value)
+                          }
+                        />
+                      </label>
+                    </details>
+                  </td>
+                  <td data-label={t.goals} className="goal-cell">
+                    <textarea
+                      aria-label={`${t.goals} ${index + 1}`}
+                      value={r.goals}
+                      maxLength={8000}
+                      onChange={(e) => update(index, "goals", e.target.value)}
+                    />
+                    {r.warnings
+                      .filter((w) => !w.includes("date"))
+                      .map((w) => (
+                        <div key={w} className="source-warning">
+                          <AlertTriangle size={12} />
+                          {warning(w)}
+                        </div>
+                      ))}
+                  </td>
+                  <td data-label={t.hours}>
+                    <input
+                      aria-label={`${t.hours} ${index + 1}`}
+                      value={r.hours}
+                      onChange={(e) => update(index, "hours", e.target.value)}
+                      style={{ minWidth: 45, maxWidth: 55 }}
+                    />
+                  </td>
+                  <td data-label={t.source}>
+                    <details className="row-details">
+                      <summary>
+                        {r.source.sheet ||
+                          (r.source.page
+                            ? `${locale === "ru" ? "Стр." : "Бет"} ${r.source.page}`
+                            : t.source)}{" "}
+                        <ChevronDown
+                          size={12}
+                          style={{ verticalAlign: "middle" }}
+                        />
+                      </summary>
+                      {r.source.page && (
+                        <button
+                          className="text-button"
+                          onClick={() => setPreviewPage(r.source.page!)}
+                        >
+                          {locale === "ru"
+                            ? "Показать оригинальную страницу"
+                            : "Түпнұсқа бетті көрсету"}
+                        </button>
+                      )}
+                      <p>{r.source.range}</p>
+                      <p>{r.source.fragment || "—"}</p>
+                      <small>
+                        {r.source.method === "ocr"
+                          ? "OCR"
+                          : r.source.method === "manual"
+                            ? locale === "ru"
+                              ? "Ручная редакция"
+                              : "Қолмен өңдеу"
+                            : locale === "ru"
+                              ? "Цифровой файл"
+                              : "Цифрлық файл"}
+                      </small>
+                    </details>
+                    <div className="row-actions">
+                      <button
+                        className="icon-button"
+                        aria-label={t.split}
+                        title={t.split}
+                        onClick={() => add(index)}
+                      >
+                        <Split size={14} />
+                      </button>
+                      {index < rows.length - 1 && (
+                        <button
+                          className="icon-button"
+                          aria-label={t.merge}
+                          title={t.merge}
+                          onClick={() => {
+                            const next = rows[index + 1];
+                            setRows(
+                              rows.flatMap((row, i) =>
+                                i === index
+                                  ? [
+                                      {
+                                        ...row,
+                                        topic: `${row.topic}\n${next.topic}`,
+                                        goals: `${row.goals}\n${next.goals}`,
+                                        objectiveCodes: [
+                                          ...row.objectiveCodes,
+                                          ...next.objectiveCodes,
+                                        ],
+                                        notes: `${row.notes}\n${next.notes}`,
+                                        warnings: [
+                                          ...row.warnings,
+                                          ...next.warnings,
+                                        ],
+                                        source: {
+                                          ...row.source,
+                                          method: "manual" as const,
+                                          fragment: `${row.source.fragment}\n${next.source.fragment}`,
+                                        },
+                                      },
+                                    ]
+                                  : i === index + 1
+                                    ? []
+                                    : [row],
+                              ),
+                            );
+                            setDirty(true);
+                          }}
+                        >
+                          <Merge size={14} />
+                        </button>
+                      )}
+                      <button
+                        className="icon-button"
+                        onClick={() => {
+                          setRows(rows.filter((_, i) => i !== index));
+                          setDirty(true);
+                        }}
+                        aria-label={t.remove}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <button className="button secondary mt-20" onClick={() => add()}>
+          <Plus size={16} />
+          {t.addRow}
+        </button>
+      </section>
+      {plan.unrecognized?.length > 0 && (
+        <section className="card">
+          <button
+            className="text-button"
+            onClick={() => setShowWarnings(!showWarnings)}
+          >
+            {t.unrecognized} ({plan.unrecognized.length}){" "}
+            <ChevronDown size={14} style={{ verticalAlign: "middle" }} />
+          </button>
+          {showWarnings &&
+            plan.unrecognized.map((s: string, i: number) => (
+              <p
+                key={i}
+                style={{ whiteSpace: "pre-wrap", fontSize: 12, marginTop: 16 }}
+              >
+                {s}
+              </p>
+            ))}
+        </section>
+      )}
+    </>
+  );
+}

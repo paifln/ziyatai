@@ -1,0 +1,834 @@
+{
+  "origin": "synthetic",
+  "officialCurriculum": false,
+  "cases": [
+    {
+      "id": "a400a2a3-3f73-474b-8bd9-2a308ee379de",
+      "grade": 5,
+      "topic": "Ақпараттың өлшем бірліктері",
+      "goals": "1 байт = 8 бит қатынасы берілгенде ақпарат көлемін байттан битке түрлендіру.",
+      "objectiveCodes": [
+        "manual"
+      ],
+      "subject": "informatics",
+      "locale": "kk",
+      "count": 1,
+      "minutes": 30,
+      "constraints": "All required data must be included. Synthetic corpus; not an official curriculum mapping.",
+      "format": "mixed",
+      "expertScores": {
+        "alignment": null,
+        "correctness": null,
+        "levels": null,
+        "clarity": null,
+        "language": null
+      },
+      "expertReview": "not performed"
+    },
+    {
+      "id": "aea7204c-e42f-4eab-aa7f-dffaa627170b",
+      "grade": 5,
+      "topic": "Ақпараттың өлшем бірліктері",
+      "goals": "1 байт = 8 бит қатынасы берілгенде ақпарат көлемін байттан битке түрлендіру.",
+      "objectiveCodes": [
+        "manual"
+      ],
+      "subject": "informatics",
+      "locale": "kk",
+      "count": 3,
+      "minutes": 30,
+      "constraints": "All required data must be included. Synthetic corpus; not an official curriculum mapping.",
+      "format": "mixed",
+      "expertScores": {
+        "alignment": null,
+        "correctness": null,
+        "levels": null,
+        "clarity": null,
+        "language": null
+      },
+      "expertReview": "not performed"
+    },
+    {
+      "id": "8a90fb20-1fed-4ed3-aadd-cf8b7bd7156a",
+      "grade": 5,
+      "topic": "Единицы измерения информации",
+      "goals": "Переводить количество информации из байтов в биты при заданном соотношении 1 байт = 8 бит.",
+      "objectiveCodes": [
+        "manual"
+      ],
+      "subject": "informatics",
+      "locale": "ru",
+      "count": 1,
+      "minutes": 30,
+      "constraints": "All required data must be included. Synthetic corpus; not an official curriculum mapping.",
+      "format": "mixed",
+      "expertScores": {
+        "alignment": null,
+        "correctness": null,
+        "levels": null,
+        "clarity": null,
+        "language": null
+      },
+      "expertReview": "not performed"
+    },
+    {
+      "id": "7616f67d-bd1d-48f1-bb4f-80d08ffc1513",
+      "grade": 5,
+      "topic": "Единицы измерения информации",
+      "goals": "Переводить количество информации из байтов в биты при заданном соотношении 1 байт = 8 бит.",
+      "objectiveCodes": [
+        "manual"
+      ],
+      "subject": "informatics",
+      "locale": "ru",
+      "count": 3,
+      "minutes": 30,
+      "constraints": "All required data must be included. Synthetic corpus; not an official curriculum mapping.",
+      "format": "mixed",
+      "expertScores": {
+        "alignment": null,
+        "correctness": null,
+        "levels": null,
+        "clarity": null,
+        "language": null
+      },
+      "expertReview": "not performed"
+    },
+    {
+      "id": "390cb61f-c55e-4c16-9655-92ddbfc3e588",
+      "grade": 5,
+      "topic": "Ақпараттың өлшем бірліктері",
+      "goals": "1 байт = 8 бит қатынасы берілгенде ақпарат көлемін байттан битке түрлендіру.",
+      "objectiveCodes": [
+        "manual"
+      ],
+      "subject": "informatics",
+      "locale": "kk+ru",
+      "count": 1,
+      "minutes": 30,
+      "constraints": "All required data must be included. Synthetic corpus; not an official curriculum mapping.",
+      "format": "mixed",
+      "expertScores": {
+        "alignment": null,
+        "correctness": null,
+        "levels": null,
+        "clarity": null,
+        "language": null
+      },
+      "expertReview": "not performed"
+    },
+    {
+      "id": "e784f322-f120-41a8-919c-72b7a94967ec",
+      "grade": 5,
+      "topic": "Ақпараттың өлшем бірліктері",
+      "goals": "1 байт = 8 бит қатынасы берілгенде ақпарат көлемін байттан битке түрлендіру.",
+      "objectiveCodes": [
+        "manual"
+      ],
+      "subject": "informatics",
+      "locale": "kk+ru",
+      "count": 3,
+      "minutes": 30,
+      "constraints": "All required data must be included. Synthetic corpus; not an official curriculum mapping.",
+      "format": "mixed",
+      "expertScores": {
+        "alignment": null,
+        "correctness": null,
+        "levels": null,
+        "clarity": null,
+        "language": null
+      },
+      "expertReview": "not performed"
+    },
+    {
+      "id": "4347dcf6-52e6-4cd6-88ed-ff2c5d3529d5",
+      "grade": 6,
+      "topic": "Сызықтық алгоритмдер",
+      "goals": "Әрекеттер тізбегін құру және түсіндіру.",
+      "objectiveCodes": [
+        "manual"
+      ],
+      "subject": "informatics",
+      "locale": "kk",
+      "count": 1,
+      "minutes": 30,
+      "constraints": "All required data must be included. Synthetic corpus; not an official curriculum mapping.",
+      "format": "mixed",
+      "expertScores": {
+        "alignment": null,
+        "correctness": null,
+        "levels": null,
+        "clarity": null,
+        "language": null
+      },
+      "expertReview": "not performed"
+    },
+    {
+      "id": "1afd5994-5ba3-4dd0-8b28-fcdc69a2e0b5",
+      "grade": 6,
+      "topic": "Сызықтық алгоритмдер",
+      "goals": "Әрекеттер тізбегін құру және түсіндіру.",
+      "objectiveCodes": [
+        "manual"
+      ],
+      "subject": "informatics",
+      "locale": "kk",
+      "count": 3,
+      "minutes": 30,
+      "constraints": "All required data must be included. Synthetic corpus; not an official curriculum mapping.",
+      "format": "mixed",
+      "expertScores": {
+        "alignment": null,
+        "correctness": null,
+        "levels": null,
+        "clarity": null,
+        "language": null
+      },
+      "expertReview": "not performed"
+    },
+    {
+      "id": "b8d3714e-99f8-4ef0-a53b-b2ab66f7a6d0",
+      "grade": 6,
+      "topic": "Линейные алгоритмы",
+      "goals": "Составлять и объяснять последовательность действий.",
+      "objectiveCodes": [
+        "manual"
+      ],
+      "subject": "informatics",
+      "locale": "ru",
+      "count": 1,
+      "minutes": 30,
+      "constraints": "All required data must be included. Synthetic corpus; not an official curriculum mapping.",
+      "format": "mixed",
+      "expertScores": {
+        "alignment": null,
+        "correctness": null,
+        "levels": null,
+        "clarity": null,
+        "language": null
+      },
+      "expertReview": "not performed"
+    },
+    {
+      "id": "24b17697-bd8c-4dda-a5ad-99f5871d0743",
+      "grade": 6,
+      "topic": "Линейные алгоритмы",
+      "goals": "Составлять и объяснять последовательность действий.",
+      "objectiveCodes": [
+        "manual"
+      ],
+      "subject": "informatics",
+      "locale": "ru",
+      "count": 3,
+      "minutes": 30,
+      "constraints": "All required data must be included. Synthetic corpus; not an official curriculum mapping.",
+      "format": "mixed",
+      "expertScores": {
+        "alignment": null,
+        "correctness": null,
+        "levels": null,
+        "clarity": null,
+        "language": null
+      },
+      "expertReview": "not performed"
+    },
+    {
+      "id": "0a4ef8f4-d084-4304-89d5-5ae15945c92d",
+      "grade": 6,
+      "topic": "Сызықтық алгоритмдер",
+      "goals": "Әрекеттер тізбегін құру және түсіндіру.",
+      "objectiveCodes": [
+        "manual"
+      ],
+      "subject": "informatics",
+      "locale": "kk+ru",
+      "count": 1,
+      "minutes": 30,
+      "constraints": "All required data must be included. Synthetic corpus; not an official curriculum mapping.",
+      "format": "mixed",
+      "expertScores": {
+        "alignment": null,
+        "correctness": null,
+        "levels": null,
+        "clarity": null,
+        "language": null
+      },
+      "expertReview": "not performed"
+    },
+    {
+      "id": "128b42f5-0511-4bd1-91b2-232ecb1ae045",
+      "grade": 6,
+      "topic": "Сызықтық алгоритмдер",
+      "goals": "Әрекеттер тізбегін құру және түсіндіру.",
+      "objectiveCodes": [
+        "manual"
+      ],
+      "subject": "informatics",
+      "locale": "kk+ru",
+      "count": 3,
+      "minutes": 30,
+      "constraints": "All required data must be included. Synthetic corpus; not an official curriculum mapping.",
+      "format": "mixed",
+      "expertScores": {
+        "alignment": null,
+        "correctness": null,
+        "levels": null,
+        "clarity": null,
+        "language": null
+      },
+      "expertReview": "not performed"
+    },
+    {
+      "id": "451cf5fd-87c8-49b9-8d33-56f9ef316fee",
+      "grade": 7,
+      "topic": "Python шартты операторы",
+      "goals": "Толық берілген сандық деректерге if/else қолдану.",
+      "objectiveCodes": [
+        "manual"
+      ],
+      "subject": "informatics",
+      "locale": "kk",
+      "count": 1,
+      "minutes": 30,
+      "constraints": "All required data must be included. Synthetic corpus; not an official curriculum mapping.",
+      "format": "mixed",
+      "expertScores": {
+        "alignment": null,
+        "correctness": null,
+        "levels": null,
+        "clarity": null,
+        "language": null
+      },
+      "expertReview": "not performed"
+    },
+    {
+      "id": "491fd074-80cb-408a-8714-1984ba46668d",
+      "grade": 7,
+      "topic": "Python шартты операторы",
+      "goals": "Толық берілген сандық деректерге if/else қолдану.",
+      "objectiveCodes": [
+        "manual"
+      ],
+      "subject": "informatics",
+      "locale": "kk",
+      "count": 3,
+      "minutes": 30,
+      "constraints": "All required data must be included. Synthetic corpus; not an official curriculum mapping.",
+      "format": "mixed",
+      "expertScores": {
+        "alignment": null,
+        "correctness": null,
+        "levels": null,
+        "clarity": null,
+        "language": null
+      },
+      "expertReview": "not performed"
+    },
+    {
+      "id": "2414c0c1-8a20-4f41-8ac3-542339204753",
+      "grade": 7,
+      "topic": "Условный оператор Python",
+      "goals": "Применять if/else к полностью заданным числовым данным.",
+      "objectiveCodes": [
+        "manual"
+      ],
+      "subject": "informatics",
+      "locale": "ru",
+      "count": 1,
+      "minutes": 30,
+      "constraints": "All required data must be included. Synthetic corpus; not an official curriculum mapping.",
+      "format": "mixed",
+      "expertScores": {
+        "alignment": null,
+        "correctness": null,
+        "levels": null,
+        "clarity": null,
+        "language": null
+      },
+      "expertReview": "not performed"
+    },
+    {
+      "id": "20a95bf7-1b10-46f3-9c64-fd7a919f0850",
+      "grade": 7,
+      "topic": "Условный оператор Python",
+      "goals": "Применять if/else к полностью заданным числовым данным.",
+      "objectiveCodes": [
+        "manual"
+      ],
+      "subject": "informatics",
+      "locale": "ru",
+      "count": 3,
+      "minutes": 30,
+      "constraints": "All required data must be included. Synthetic corpus; not an official curriculum mapping.",
+      "format": "mixed",
+      "expertScores": {
+        "alignment": null,
+        "correctness": null,
+        "levels": null,
+        "clarity": null,
+        "language": null
+      },
+      "expertReview": "not performed"
+    },
+    {
+      "id": "883f6ab1-5be3-4111-b073-7537e623f9dd",
+      "grade": 7,
+      "topic": "Python шартты операторы",
+      "goals": "Толық берілген сандық деректерге if/else қолдану.",
+      "objectiveCodes": [
+        "manual"
+      ],
+      "subject": "informatics",
+      "locale": "kk+ru",
+      "count": 1,
+      "minutes": 30,
+      "constraints": "All required data must be included. Synthetic corpus; not an official curriculum mapping.",
+      "format": "mixed",
+      "expertScores": {
+        "alignment": null,
+        "correctness": null,
+        "levels": null,
+        "clarity": null,
+        "language": null
+      },
+      "expertReview": "not performed"
+    },
+    {
+      "id": "7e40d5f7-1895-4351-812f-95a9033b8a22",
+      "grade": 7,
+      "topic": "Python шартты операторы",
+      "goals": "Толық берілген сандық деректерге if/else қолдану.",
+      "objectiveCodes": [
+        "manual"
+      ],
+      "subject": "informatics",
+      "locale": "kk+ru",
+      "count": 3,
+      "minutes": 30,
+      "constraints": "All required data must be included. Synthetic corpus; not an official curriculum mapping.",
+      "format": "mixed",
+      "expertScores": {
+        "alignment": null,
+        "correctness": null,
+        "levels": null,
+        "clarity": null,
+        "language": null
+      },
+      "expertReview": "not performed"
+    },
+    {
+      "id": "dd145db2-29b2-4696-98f7-bed086682a1d",
+      "grade": 8,
+      "topic": "Кестелердегі формулалар",
+      "goals": "Сыртқы файлдарсыз берілген кесте бойынша қосынды мен орташа мәнді есептеу.",
+      "objectiveCodes": [
+        "manual"
+      ],
+      "subject": "informatics",
+      "locale": "kk",
+      "count": 1,
+      "minutes": 30,
+      "constraints": "All required data must be included. Synthetic corpus; not an official curriculum mapping.",
+      "format": "mixed",
+      "expertScores": {
+        "alignment": null,
+        "correctness": null,
+        "levels": null,
+        "clarity": null,
+        "language": null
+      },
+      "expertReview": "not performed"
+    },
+    {
+      "id": "35a663fb-2acd-4eea-8b80-95dcdb70402e",
+      "grade": 8,
+      "topic": "Кестелердегі формулалар",
+      "goals": "Сыртқы файлдарсыз берілген кесте бойынша қосынды мен орташа мәнді есептеу.",
+      "objectiveCodes": [
+        "manual"
+      ],
+      "subject": "informatics",
+      "locale": "kk",
+      "count": 3,
+      "minutes": 30,
+      "constraints": "All required data must be included. Synthetic corpus; not an official curriculum mapping.",
+      "format": "mixed",
+      "expertScores": {
+        "alignment": null,
+        "correctness": null,
+        "levels": null,
+        "clarity": null,
+        "language": null
+      },
+      "expertReview": "not performed"
+    },
+    {
+      "id": "9ea8b705-0d50-49f2-8035-9b11a768946a",
+      "grade": 8,
+      "topic": "Формулы в таблицах",
+      "goals": "Вычислять сумму и среднее по приведённой таблице без внешних файлов.",
+      "objectiveCodes": [
+        "manual"
+      ],
+      "subject": "informatics",
+      "locale": "ru",
+      "count": 1,
+      "minutes": 30,
+      "constraints": "All required data must be included. Synthetic corpus; not an official curriculum mapping.",
+      "format": "mixed",
+      "expertScores": {
+        "alignment": null,
+        "correctness": null,
+        "levels": null,
+        "clarity": null,
+        "language": null
+      },
+      "expertReview": "not performed"
+    },
+    {
+      "id": "a3c557f6-2b72-44eb-a7d0-3bde6bec4ca7",
+      "grade": 8,
+      "topic": "Формулы в таблицах",
+      "goals": "Вычислять сумму и среднее по приведённой таблице без внешних файлов.",
+      "objectiveCodes": [
+        "manual"
+      ],
+      "subject": "informatics",
+      "locale": "ru",
+      "count": 3,
+      "minutes": 30,
+      "constraints": "All required data must be included. Synthetic corpus; not an official curriculum mapping.",
+      "format": "mixed",
+      "expertScores": {
+        "alignment": null,
+        "correctness": null,
+        "levels": null,
+        "clarity": null,
+        "language": null
+      },
+      "expertReview": "not performed"
+    },
+    {
+      "id": "4d8587aa-466a-4f4a-a16c-e7812986269b",
+      "grade": 8,
+      "topic": "Кестелердегі формулалар",
+      "goals": "Сыртқы файлдарсыз берілген кесте бойынша қосынды мен орташа мәнді есептеу.",
+      "objectiveCodes": [
+        "manual"
+      ],
+      "subject": "informatics",
+      "locale": "kk+ru",
+      "count": 1,
+      "minutes": 30,
+      "constraints": "All required data must be included. Synthetic corpus; not an official curriculum mapping.",
+      "format": "mixed",
+      "expertScores": {
+        "alignment": null,
+        "correctness": null,
+        "levels": null,
+        "clarity": null,
+        "language": null
+      },
+      "expertReview": "not performed"
+    },
+    {
+      "id": "c6c0f315-f3d7-4d50-81b1-559d92248313",
+      "grade": 8,
+      "topic": "Кестелердегі формулалар",
+      "goals": "Сыртқы файлдарсыз берілген кесте бойынша қосынды мен орташа мәнді есептеу.",
+      "objectiveCodes": [
+        "manual"
+      ],
+      "subject": "informatics",
+      "locale": "kk+ru",
+      "count": 3,
+      "minutes": 30,
+      "constraints": "All required data must be included. Synthetic corpus; not an official curriculum mapping.",
+      "format": "mixed",
+      "expertScores": {
+        "alignment": null,
+        "correctness": null,
+        "levels": null,
+        "clarity": null,
+        "language": null
+      },
+      "expertReview": "not performed"
+    },
+    {
+      "id": "0c4eba16-7001-4f97-912a-cf09fd65e3f1",
+      "grade": 9,
+      "topic": "Логикалық өрнектер",
+      "goals": "Берілген AND, OR, NOT үшін ақиқат кестелерін құру.",
+      "objectiveCodes": [
+        "manual"
+      ],
+      "subject": "informatics",
+      "locale": "kk",
+      "count": 1,
+      "minutes": 30,
+      "constraints": "All required data must be included. Synthetic corpus; not an official curriculum mapping.",
+      "format": "mixed",
+      "expertScores": {
+        "alignment": null,
+        "correctness": null,
+        "levels": null,
+        "clarity": null,
+        "language": null
+      },
+      "expertReview": "not performed"
+    },
+    {
+      "id": "67f181d6-a35a-4089-8fdf-33f473f6bc47",
+      "grade": 9,
+      "topic": "Логикалық өрнектер",
+      "goals": "Берілген AND, OR, NOT үшін ақиқат кестелерін құру.",
+      "objectiveCodes": [
+        "manual"
+      ],
+      "subject": "informatics",
+      "locale": "kk",
+      "count": 3,
+      "minutes": 30,
+      "constraints": "All required data must be included. Synthetic corpus; not an official curriculum mapping.",
+      "format": "mixed",
+      "expertScores": {
+        "alignment": null,
+        "correctness": null,
+        "levels": null,
+        "clarity": null,
+        "language": null
+      },
+      "expertReview": "not performed"
+    },
+    {
+      "id": "d6fb1c68-e368-4b8f-98df-a51da7bebfb3",
+      "grade": 9,
+      "topic": "Логические выражения",
+      "goals": "Строить таблицы истинности для заданных AND, OR, NOT.",
+      "objectiveCodes": [
+        "manual"
+      ],
+      "subject": "informatics",
+      "locale": "ru",
+      "count": 1,
+      "minutes": 30,
+      "constraints": "All required data must be included. Synthetic corpus; not an official curriculum mapping.",
+      "format": "mixed",
+      "expertScores": {
+        "alignment": null,
+        "correctness": null,
+        "levels": null,
+        "clarity": null,
+        "language": null
+      },
+      "expertReview": "not performed"
+    },
+    {
+      "id": "89746bf3-13a6-43d5-bf02-0927a055eceb",
+      "grade": 9,
+      "topic": "Логические выражения",
+      "goals": "Строить таблицы истинности для заданных AND, OR, NOT.",
+      "objectiveCodes": [
+        "manual"
+      ],
+      "subject": "informatics",
+      "locale": "ru",
+      "count": 3,
+      "minutes": 30,
+      "constraints": "All required data must be included. Synthetic corpus; not an official curriculum mapping.",
+      "format": "mixed",
+      "expertScores": {
+        "alignment": null,
+        "correctness": null,
+        "levels": null,
+        "clarity": null,
+        "language": null
+      },
+      "expertReview": "not performed"
+    },
+    {
+      "id": "7bcdcea2-7dad-40c1-8e96-60cc6ad03f76",
+      "grade": 9,
+      "topic": "Логикалық өрнектер",
+      "goals": "Берілген AND, OR, NOT үшін ақиқат кестелерін құру.",
+      "objectiveCodes": [
+        "manual"
+      ],
+      "subject": "informatics",
+      "locale": "kk+ru",
+      "count": 1,
+      "minutes": 30,
+      "constraints": "All required data must be included. Synthetic corpus; not an official curriculum mapping.",
+      "format": "mixed",
+      "expertScores": {
+        "alignment": null,
+        "correctness": null,
+        "levels": null,
+        "clarity": null,
+        "language": null
+      },
+      "expertReview": "not performed"
+    },
+    {
+      "id": "049674df-f357-40c2-9936-7fb528ab9f7f",
+      "grade": 9,
+      "topic": "Логикалық өрнектер",
+      "goals": "Берілген AND, OR, NOT үшін ақиқат кестелерін құру.",
+      "objectiveCodes": [
+        "manual"
+      ],
+      "subject": "informatics",
+      "locale": "kk+ru",
+      "count": 3,
+      "minutes": 30,
+      "constraints": "All required data must be included. Synthetic corpus; not an official curriculum mapping.",
+      "format": "mixed",
+      "expertScores": {
+        "alignment": null,
+        "correctness": null,
+        "levels": null,
+        "clarity": null,
+        "language": null
+      },
+      "expertReview": "not performed"
+    },
+    {
+      "id": "660b981d-41c7-4ebd-b6df-6a28c40c3f64",
+      "grade": 10,
+      "topic": "Қарапайым SQL сұраулары",
+      "goals": "Берілген кесте сұлбасы мен жолдарына SELECT және WHERE қолдану.",
+      "objectiveCodes": [
+        "manual"
+      ],
+      "subject": "informatics",
+      "locale": "kk",
+      "count": 1,
+      "minutes": 30,
+      "constraints": "All required data must be included. Synthetic corpus; not an official curriculum mapping.",
+      "format": "mixed",
+      "expertScores": {
+        "alignment": null,
+        "correctness": null,
+        "levels": null,
+        "clarity": null,
+        "language": null
+      },
+      "expertReview": "not performed"
+    },
+    {
+      "id": "a34724d9-cbb6-4e88-971d-8ccdf99c22d5",
+      "grade": 10,
+      "topic": "Қарапайым SQL сұраулары",
+      "goals": "Берілген кесте сұлбасы мен жолдарына SELECT және WHERE қолдану.",
+      "objectiveCodes": [
+        "manual"
+      ],
+      "subject": "informatics",
+      "locale": "kk",
+      "count": 3,
+      "minutes": 30,
+      "constraints": "All required data must be included. Synthetic corpus; not an official curriculum mapping.",
+      "format": "mixed",
+      "expertScores": {
+        "alignment": null,
+        "correctness": null,
+        "levels": null,
+        "clarity": null,
+        "language": null
+      },
+      "expertReview": "not performed"
+    },
+    {
+      "id": "8ae77934-9830-4038-aaac-2b58b85b6e86",
+      "grade": 10,
+      "topic": "Простые запросы SQL",
+      "goals": "Применять SELECT и WHERE к приведённой схеме и строкам таблицы.",
+      "objectiveCodes": [
+        "manual"
+      ],
+      "subject": "informatics",
+      "locale": "ru",
+      "count": 1,
+      "minutes": 30,
+      "constraints": "All required data must be included. Synthetic corpus; not an official curriculum mapping.",
+      "format": "mixed",
+      "expertScores": {
+        "alignment": null,
+        "correctness": null,
+        "levels": null,
+        "clarity": null,
+        "language": null
+      },
+      "expertReview": "not performed"
+    },
+    {
+      "id": "6e9cfa99-6a26-4c2a-ac69-4bc36948f180",
+      "grade": 10,
+      "topic": "Простые запросы SQL",
+      "goals": "Применять SELECT и WHERE к приведённой схеме и строкам таблицы.",
+      "objectiveCodes": [
+        "manual"
+      ],
+      "subject": "informatics",
+      "locale": "ru",
+      "count": 3,
+      "minutes": 30,
+      "constraints": "All required data must be included. Synthetic corpus; not an official curriculum mapping.",
+      "format": "mixed",
+      "expertScores": {
+        "alignment": null,
+        "correctness": null,
+        "levels": null,
+        "clarity": null,
+        "language": null
+      },
+      "expertReview": "not performed"
+    },
+    {
+      "id": "0db69794-d8c8-4b92-b7e2-56c6229f9c25",
+      "grade": 10,
+      "topic": "Қарапайым SQL сұраулары",
+      "goals": "Берілген кесте сұлбасы мен жолдарына SELECT және WHERE қолдану.",
+      "objectiveCodes": [
+        "manual"
+      ],
+      "subject": "informatics",
+      "locale": "kk+ru",
+      "count": 1,
+      "minutes": 30,
+      "constraints": "All required data must be included. Synthetic corpus; not an official curriculum mapping.",
+      "format": "mixed",
+      "expertScores": {
+        "alignment": null,
+        "correctness": null,
+        "levels": null,
+        "clarity": null,
+        "language": null
+      },
+      "expertReview": "not performed"
+    },
+    {
+      "id": "480dca98-3667-42ea-bdd6-d9c1f0183ba6",
+      "grade": 10,
+      "topic": "Қарапайым SQL сұраулары",
+      "goals": "Берілген кесте сұлбасы мен жолдарына SELECT және WHERE қолдану.",
+      "objectiveCodes": [
+        "manual"
+      ],
+      "subject": "informatics",
+      "locale": "kk+ru",
+      "count": 3,
+      "minutes": 30,
+      "constraints": "All required data must be included. Synthetic corpus; not an official curriculum mapping.",
+      "format": "mixed",
+      "expertScores": {
+        "alignment": null,
+        "correctness": null,
+        "levels": null,
+        "clarity": null,
+        "language": null
+      },
+      "expertReview": "not performed"
+    }
+  ]
+}

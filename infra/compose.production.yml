@@ -1,0 +1,100 @@
+# Run on the chosen Kazakhstan host. Provision managed private S3 separately.
+name: ziyatai-production
+services:
+  postgres:
+    image: postgres:18@sha256:74935e72241653ca55e0414067e6d8763aceb8a810eb51b452253ec3dcfc4336
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ziyatai
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?required}
+      POSTGRES_DB: ziyatai
+    volumes: ["postgres:/var/lib/postgresql"]
+    networks: [data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ziyatai -d ziyatai"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+  web:
+    image: ziyatai-web:${RELEASE:?required}
+    build: {context: .., dockerfile: infra/Dockerfile, target: web}
+    restart: unless-stopped
+    env_file: ../.env.production
+    environment:
+      NODE_ENV: production
+      APP_ENV: production
+      SCAN_REQUIRED: "true"
+      ALLOW_DEMO: "false"
+      PARSER_CONTAINER_IMAGE: ""
+      RENDER_CONTAINER_IMAGE: ""
+    depends_on: {postgres: {condition: service_healthy}}
+    volumes: ["clam-db:/var/lib/clamav:ro"]
+    tmpfs: ["/tmp:size=512m,mode=1777"]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 1g
+    cpus: 1.0
+    pids_limit: 128
+    networks: [data,egress,edge,render,av]
+  worker:
+    image: ziyatai-worker:${RELEASE:?required}
+    build: {context: .., dockerfile: infra/Dockerfile, target: worker}
+    restart: unless-stopped
+    env_file: ../.env.production
+    environment:
+      NODE_ENV: production
+      APP_ENV: production
+      SCAN_REQUIRED: "true"
+      ALLOW_DEMO: "false"
+      PARSER_CONTAINER_IMAGE: ""
+      RENDER_CONTAINER_IMAGE: ""
+    depends_on: {postgres: {condition: service_healthy}}
+    tmpfs: ["/tmp:size=512m,mode=1777"]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 2g
+    cpus: 2.0
+    pids_limit: 128
+    networks: [data,egress,render]
+  renderer:
+    image: ziyatai-renderer:${RELEASE:?required}
+    build: {context: .., dockerfile: infra/Dockerfile.renderer}
+    restart: unless-stopped
+    environment:
+      RENDERER_TOKEN: ${RENDERER_TOKEN:?required}
+    volumes:
+      - ${LICENSED_FONT_DIR:?required}:/usr/local/share/fonts/licensed:ro
+    tmpfs: ["/tmp:size=512m,mode=1777"]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 1g
+    cpus: 1.0
+    pids_limit: 128
+    networks: [render]
+  clam-update:
+    image: clamav/clamav:1.4@sha256:b5b910ce43d595bf8a2fe401e34db56434602b2c755b7c2b07f00c917d04d469
+    restart: unless-stopped
+    volumes: ["clam-db:/var/lib/clamav"]
+    networks: [egress,av]
+  proxy:
+    image: caddy:2.11.7@sha256:685ae3d7c34d9b5f8caeddc5d14051db7bbd88ff1f5a2fa0c16bd8ca328fb7af
+    restart: unless-stopped
+    ports: ["80:80","443:443"]
+    environment:
+      APP_HOST: ${APP_HOST:?required}
+    volumes: ["./Caddyfile:/etc/caddy/Caddyfile:ro","caddy-data:/data","caddy-config:/config"]
+    networks: [edge]
+volumes:
+  postgres:
+  clam-db:
+  caddy-data:
+  caddy-config:
+networks:
+  data: {internal: true}
+  edge:
+  egress:
+  render: {internal: true}
+  av: {internal: true}

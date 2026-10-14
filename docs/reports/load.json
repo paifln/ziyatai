@@ -1,0 +1,10 @@
+{
+  "environment": "localhost, development build, real PostgreSQL; not production benchmark",
+  "teachers": 10,
+  "requests": 100,
+  "failures": 0,
+  "p50ms": 180,
+  "p95ms": 846,
+  "maxMs": 852,
+  "externalOperations": "AI/OCR/export measured separately; AI unavailable"
+}

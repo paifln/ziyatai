@@ -1,2 +1,8 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Preserve document fixtures byte for byte.
+*.pdf binary
+*.docx binary
+*.xlsx binary
+*.xls binary

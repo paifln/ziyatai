@@ -1,0 +1,10 @@
+{
+  "environment": "local PostgreSQL container",
+  "date": "2026-10-14",
+  "backupBytes": 62409,
+  "sourceVersions": 32,
+  "restoredVersions": 32,
+  "durationMs": 683,
+  "verified": true,
+  "limits": "This verifies local restore, not production backup scheduling or storage encryption"
+}

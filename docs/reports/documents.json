@@ -1,0 +1,13 @@
+{
+  "environment": "local LibreOffice container and licensed locally installed Windows Times New Roman",
+  "schema": "AST 1.0",
+  "docxValidOOXML": true,
+  "timesNewRoman14": true,
+  "a4": true,
+  "pdfPages": 4,
+  "answersBeginOnPage": 3,
+  "studentAnswersExcluded": true,
+  "kazakhCharactersPreserved": "Ә Ғ Қ Ң Ө Ұ Ү Һ І",
+  "visualInspection": "all four pages viewed; no clipping, overlaps, blank accidental pages or missing characters observed",
+  "limits": "representative synthetic export, not all possible documents or production rendering"
+}

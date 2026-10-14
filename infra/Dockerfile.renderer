@@ -1,0 +1,12 @@
+FROM python:3.13.8-slim-trixie
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends libreoffice-writer fontconfig tesseract-ocr tesseract-ocr-kaz tesseract-ocr-rus fonts-dejavu-core && rm -rf /var/lib/apt/lists/*
+COPY apps/worker/requirements.lock.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
+COPY infra/render.sh /scripts/render.sh
+RUN chmod 755 /scripts/render.sh
+COPY apps/worker/parser.py /scripts/parser.py
+COPY apps/renderer/server.py /scripts/server.py
+ENV HOME=/tmp
+USER 1000:1000
+EXPOSE 8090
+CMD ["python","/scripts/server.py"]

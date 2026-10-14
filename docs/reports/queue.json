@@ -1,0 +1,9 @@
+{
+  "environment": "local real PostgreSQL + worker + private S3",
+  "leaseRecovery": true,
+  "attempts": 2,
+  "idempotentJob": true,
+  "cancelledJobNotClaimed": true,
+  "concurrentQuota": true,
+  "thirdReservationRolledBack": true
+}

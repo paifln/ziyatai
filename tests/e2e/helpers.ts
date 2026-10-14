@@ -1,0 +1,67 @@
+import { expect, type APIRequestContext } from "@playwright/test";
+import { randomBytes } from "node:crypto";
+export const origin = "http://localhost:3000";
+export const headers = { Origin: origin };
+export async function emailLink(
+  request: APIRequestContext,
+  email: string,
+  subject?: string,
+) {
+  let link = "";
+  await expect
+    .poll(
+      async () => {
+        const data = await (
+          await request.get("http://127.0.0.1:8025/api/v1/messages")
+        ).json();
+        const msg = data.messages?.find(
+          (m: any) =>
+            (!subject || m.Subject.includes(subject)) &&
+            m.To.some((to: any) => to.Address === email),
+        );
+        if (!msg) return false;
+        const detail = await (
+          await request.get(`http://127.0.0.1:8025/api/v1/message/${msg.ID}`)
+        ).json();
+        link = detail.Text.match(/https?:\/\/[^\s]+/)?.[0] ?? "";
+        return !!link;
+      },
+      { timeout: 15000 },
+    )
+    .toBe(true);
+  return link;
+}
+export async function verifiedUser(
+  request: APIRequestContext,
+  name = "Synthetic Teacher",
+) {
+  const email = `teacher-${randomBytes(5).toString("hex")}@example.test`,
+    password = randomBytes(16).toString("hex");
+  const signup = await request.post("/api/auth/sign-up/email", {
+    headers,
+    data: { email, password, name, callbackURL: "/" },
+  });
+  expect(signup.ok(), await signup.text()).toBeTruthy();
+  const link = await emailLink(request, email);
+  const verified = await request.get(link);
+  expect(verified.ok(), await verified.text()).toBeTruthy();
+  const login = await request.post("/api/auth/sign-in/email", {
+    headers,
+    data: { email, password },
+  });
+  if(login.status()===429){await expect.poll(async()=> (await request.post('/api/auth/sign-in/email',{headers,data:{email,password}})).status(),{timeout:20000,intervals:[2000,3000,5000]}).toBe(200);}else expect(login.ok(), await login.text()).toBeTruthy();
+  return { email, password };
+}
+export async function jobDone(request: APIRequestContext, id: string) {
+  let job: any;
+  await expect
+    .poll(
+      async () => {
+        job = await (await request.get(`/api/jobs/${id}`)).json();
+        return job.status;
+      },
+      { timeout: 90000, intervals: [500, 1000, 2000] },
+    )
+    .toBe("succeeded");
+  return job;
+}
