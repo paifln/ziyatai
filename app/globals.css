@@ -1592,7 +1592,7 @@ label { font-weight: 550; font-size: 12px; }
  .sidebar.collapsed .brand > span, .sidebar.collapsed .nav-link > span, .sidebar.collapsed .sidebar-label { display: block; }
  .sidebar.collapsed .nav-link { justify-content: flex-start; }
  .sidebar.collapsed .nav-list { margin-top: 0; }
- .main-shell, .main-shell.sidebar-collapsed { margin-left: 0; }
+ .main-shell, .main-shell.sidebar-collapsed { margin-left: 0; transition: none; }
  .sidebar-collapse { display: none; }
  .auth-product { display: none; }
  .auth-story { padding: 30px; }

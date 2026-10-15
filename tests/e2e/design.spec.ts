@@ -117,7 +117,7 @@ test("password reset links work while already signed in in both interfaces", asy
     if (path === "/")
       await expect(
         page.getByRole("heading", {
-          name: "Всё для следующего урока",
+          name: "Мои КТП",
           exact: true,
         }),
       ).toBeVisible();

@@ -12,7 +12,7 @@ test("all formats, review, versions, exports, private ACL and persistence", asyn
   await page.goto("/");
   await page.getByRole("button", { name: "РУС", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "Всё для следующего урока" }),
+    page.getByRole("heading", { name: "Мои КТП" }),
   ).toBeVisible();
   await mkdir(".local/qa", { recursive: true });
   await page.setViewportSize({ width: 1440, height: 1000 });
