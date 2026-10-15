@@ -21,6 +21,8 @@ Firefox ESR 115 относится к ветке с поддержкой Windows
 
 **ОС Windows 7 и физический школьный ПК в этом прогоне не использовались.** Их TLS/root certificates, шрифты, драйверы и фактическую скорость нужно проверить на месте. Современный Chromium отдельно проверен на ширинах 360, 768 и 1440 px; проверяются отсутствие overflow, клавиатура, Escape, доступность WCAG A/AA и защита несохранённых правок.
 
+Дополнительно пройдены **5 сценариев в Playwright WebKit 27.2**: адаптивность и доступность, меню/несохранённые правки, большая таблица, Lite и полный UI import/edit/DOCX. Проверены ширины 360/768/1440. Это WebKit на Windows с эмуляцией Desktop Safari, а не физический iPhone/iPad. [Отчёт WebKit](reports/webkit-browser.json).
+
 ## Производительность
 
 [Отчёт](reports/browser-performance.json) измеряет compiled production build при симуляции CPU slowdown ×6 и сети 1,6 Mbps down / 750 Kbps up / 150 ms latency. Это лабораторная симуляция, не публичный CDN и не физический старый процессор. Lite передаёт около 11 KB JavaScript и показывает основной контент примерно за 1 секунду, основной интерфейс — примерно за 2,6–2,7 секунды. Точные значения и версия браузера находятся в отчёте; это отдельные прогоны, а не статистический production benchmark.
@@ -34,6 +36,17 @@ npm run build
 npm run start
 npx tsx scripts/browser-check.ts
 npx playwright test tests/e2e/design.spec.ts
+```
+
+Полные прогоны запускайте последовательно с паузой не менее 60 секунд после предыдущего. Ограничение авторизации остаётся включённым: одновременные/частые повторы с общего localhost IP могут получить штатный HTTP 429.
+
+Повтор WebKit проверки в PowerShell:
+
+```powershell
+npx playwright install webkit
+$env:QA_BROWSER = 'webkit'
+npx playwright test tests/e2e/design.spec.ts tests/e2e/ui.spec.ts --grep 'large plans|both sign-in|workspace stays|lite imports|teacher UI'
+Remove-Item Env:QA_BROWSER
 ```
 
 Для необязательного Firefox-прогона извлеките официальный win32 Firefox ESR 115.40.0 без системной установки в `.local/browsers/firefox115/core` и geckodriver 0.35.0 в `.local/browsers/geckodriver`. Сверьте SHA256 с Mozilla и цифровую подпись, затем запустите `npx tsx scripts/legacy-browser-check.ts`. Другие пути задаются `LEGACY_FIREFOX` и `LEGACY_GECKODRIVER`. Тест создаёт только синтетический аккаунт с письмами в локальном Mailpit.

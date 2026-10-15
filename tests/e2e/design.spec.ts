@@ -131,6 +131,7 @@ test("password reset links work while already signed in in both interfaces", asy
 test("large plans and assignment tables keep a bounded DOM and preserve edits across pages", async ({
   page,
   request,
+  browserName,
 }) => {
   await verifiedUser(request);
   await page.context().addCookies((await request.storageState()).cookies);
@@ -305,7 +306,7 @@ test("large plans and assignment tables keep a bounded DOM and preserve edits ac
         firstMiddleAndLastCellsVerified: true,
         phoneAndTabletOverflow: false,
         wcagViolations: a11y.violations.length,
-        scope: "Local compiled UI; synthetic API data and Chromium",
+        scope: `Local compiled UI; synthetic API data and ${browserName}`,
       },
       null,
       2,

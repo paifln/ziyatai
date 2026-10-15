@@ -1,15 +1,15 @@
 {
-    "date":  "2026-10-15",
-    "sourceTree":  "b1d024491e1d9a797a0af98bf8ca7bc9e45b565b",
-    "cli":  "27.12.1",
-    "build":  "37.4.1",
-    "adapter":  "5.16.2",
-    "next":  "16.4.0",
-    "offline":  true,
-    "signedPluginLoaded":  true,
-    "buildComplete":  true,
-    "privateServiceCredentialsPresent":  false,
-    "proxySecretAbsentFromBundles":  true,
-    "publicDeploy":  false,
-    "scope":  "Local Windows CLI and packaging from a Git archive with synthetic public origins; no Netlify site or backend connection was deployed"
+  "date": "2026-10-15",
+  "cli": "27.12.1",
+  "build": "37.4.1",
+  "adapter": "5.16.2",
+  "next": "16.4.0",
+  "offline": true,
+  "signedPluginLoaded": true,
+  "buildComplete": true,
+  "privateServiceCredentialsPresent": false,
+  "proxySecretAbsentFromBundles": true,
+  "publicDeploy": false,
+  "scope": "Local Windows offline CLI and full function packaging from a fresh Git archive and npm ci, with synthetic public origins; no Netlify site or backend connection was deployed",
+  "sourceCommit": "51bcea35cac9875cc1388d61ea5fa5133e533a3b"
 }

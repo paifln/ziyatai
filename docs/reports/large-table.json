@@ -10,5 +10,5 @@
   "firstMiddleAndLastCellsVerified": true,
   "phoneAndTabletOverflow": false,
   "wcagViolations": 0,
-  "scope": "Local compiled UI; synthetic API data and Chromium"
+  "scope": "Local compiled UI; synthetic API data and chromium"
 }

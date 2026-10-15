@@ -69,4 +69,5 @@ test("teacher UI imports a file, confirms rows, edits a task and downloads an ex
   await expect(
     page.getByText("Линейные алгоритмы", { exact: true }),
   ).toBeVisible();
+  await page.unrouteAll({ behavior: "wait" });
 });

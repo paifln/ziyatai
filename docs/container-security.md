@@ -4,6 +4,8 @@
 
 ## Изменения
 
+Web/worker в текущем отчёте пересобраны из Git-архива application commit `51bcea3`; остальные четыре образа не менялись. Изменения только тестового harness и отчётов после этой точки не входят в runtime. При следующем изменении приложения нужна новая сборка и scan.
+
 - Web/worker: минимальный Ubuntu 24.04 runtime и официальный Node LTS 24.22.0. npm отсутствует в runtime. Worker собирается в отдельный bundle; его зависимости дополнительно проверяются `npm audit` по lockfile, поскольку image scanner не восстанавливает каждую библиотеку из JavaScript bundle.
 - Renderer: Ubuntu 24.04, закреплённые Python зависимости, PDFium вместо PyMuPDF, обновлённые системные пакеты. Исходная Debian Trixie libxml2 была уязвима для CVE-2026-6653; [Canonical указывает исправление для Ubuntu 24.04](https://ubuntu.com/security/CVE-2026-6653). Уязвимость исправлена сменой/обновлением пакета, а не исключена из отчёта.
 - Caddy: стандартные модули версии 2.11.7 пересобраны Go 1.27.2 и `golang.org/x/net` 0.60.0. Исходный официальный образ содержал Go 1.26.8 и четыре HIGH находки. [Go advisory](https://pkg.go.dev/vuln/GO-2026-6609), [официальная сборка Caddy](https://caddyserver.com/docs/build). Go module versions/checksums закреплены в `infra/caddy/`; notices сохраняются в образе.

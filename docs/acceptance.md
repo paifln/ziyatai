@@ -19,7 +19,7 @@
 | AC09 | Частично проверено локально | Lease recovery/idempotency/cancellation/quota и mock provider errors. Fault injection реального OpenAI и renderer outage на production не выполнены. |
 | AC10 | Проверено локально, production проверка нужна | Signature/ZIP/XML checks, ClamAV, ACL/Origin, deletion/cleanup, secret scan, npm audit. Independent pentest и production bucket policy не проверены. |
 | AC11 | Локальный запуск; внешняя зависимость | Web, DB, S3, worker, renderer, antivirus, Mailpit. Local restore подтверждён. Public deploy/monitoring/backup schedule отсутствуют. |
-| AC12 | Проверено локально и на GitHub | Lockfile, 7 migrations, README, synthetic seed, Docker builds и CI. [GitHub Actions для 3dcec13](https://github.com/paifln/ziyatai/actions/runs/38771185954): test и integration — success. Исправлено глобальное правило lib/, которое скрывало серверные исходники от первого коммита; добавлена защита check:source и сборка из Git-архива. |
+| AC12 | Проверено локально и на GitHub | Lockfile, 7 migrations, README, synthetic seed, Docker builds и CI. [GitHub Actions для 51bcea3](https://github.com/paifln/ziyatai/actions/runs/38781454807): test и integration — success. Исправлено глобальное правило lib/, которое скрывало серверные исходники от первого коммита; добавлена защита check:source и сборка из Git-архива. |
 
 Definition of Done из задания **не достигнута**: production URL и реальная AI генерация отсутствуют. Не следует выдавать local или mock результаты за production proof.
 
@@ -36,6 +36,7 @@ Definition of Done из задания **не достигнута**: production
 - npm audit: 0 vulnerabilities на момент проверки. Secret scanner не нашёл узнаваемых OpenAI keys/PEM private keys в tracked/unignored source. Это не абсолютная гарантия отсутствия любых секретов.
 - DOCX/PDF structural checks: TNR 14, answer page 3 из 4, glyphs ӘҒҚҢӨҰҮҺІ, отсутствие answers в student. UI проверялся на 360/768/1440 px.
 - [Firefox ESR 115](reports/legacy-browser.json): настоящий win32 browser на текущем Windows, вход/импорт/правка/подтверждение/export. Физическая Windows 7 не использовалась.
+- [WebKit 27.2](reports/webkit-browser.json): 5 дополнительных UI сценариев, включая responsive/a11y, большие таблицы и DOCX. Эмуляция на Windows, не физический iPhone/iPad.
 - [Скорость](reports/browser-performance.json): отдельный замер compiled bundle под ограничениями CPU/сети; без внешних шрифтов. [Очистка](reports/upload-cleanup.json) проверяет повтор после сбоя S3 и сохранность используемого источника.
 - [Container scan](container-security.md): отчёт точных образов включает unfixed HIGH/CRITICAL; blanket ignore не используется. [Proxy check](reports/proxy.json) проверяет локальную маршрутизацию и обе конфигурации; публичный TLS ещё не проверен.
 
