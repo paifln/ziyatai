@@ -24,6 +24,7 @@ npx tsx scripts/prepare-local-containers.ts
 docker compose -f infra/compose.tools-local.yml --env-file .env.local up -d --build
 npm run migrate
 npm run fixtures
+npx tsx --env-file=.env.local scripts/configure-storage.ts
 ```
 
 `local:setup` генерирует случайные локальные credentials в игнорируемом `.env.local` и конфигурацию локального Garage. Повторный запуск сохраняет их. `.env.local` не пересоздавайте при существующем PostgreSQL volume: иначе пароль БД и storage ключи разойдутся. В Windows используйте редактор UTF-8 без BOM; PowerShell `Set-Content -Encoding utf8` старых версий добавляет BOM и может испортить имя первой переменной.
