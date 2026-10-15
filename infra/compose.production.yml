@@ -22,7 +22,10 @@ services:
       context: ..
       dockerfile: infra/Dockerfile
       target: web
-      args: {UPLOAD_ORIGIN: "${UPLOAD_ORIGIN:?Set public HTTPS storage origin}"}
+      args:
+        UPLOAD_ORIGIN: "${UPLOAD_ORIGIN:?Set public HTTPS storage origin}"
+        LEGAL_OPERATOR_NAME: "${LEGAL_OPERATOR_NAME:-}"
+        LEGAL_CONTACT_EMAIL: "${LEGAL_CONTACT_EMAIL:-}"
     restart: unless-stopped
     env_file: ../.env.production
     environment:

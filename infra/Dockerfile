@@ -8,7 +8,10 @@ RUN npm run licenses:generate && npm run typecheck && npm run lint && npm test
 
 FROM source AS builder
 ARG UPLOAD_ORIGIN
+ARG LEGAL_OPERATOR_NAME
+ARG LEGAL_CONTACT_EMAIL
 ENV UPLOAD_ORIGIN=$UPLOAD_ORIGIN
+ENV LEGAL_OPERATOR_NAME="${LEGAL_OPERATOR_NAME}" LEGAL_CONTACT_EMAIL="${LEGAL_CONTACT_EMAIL}"
 RUN npm run build
 
 FROM source AS worker-build
