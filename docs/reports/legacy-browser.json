@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-15",
+  "browser": "115.40.0",
+  "driver": "0.35.0",
+  "binary": "Official Mozilla Firefox ESR 115, win32",
+  "host": "Current Windows host, not a physical Windows 7 PC",
+  "main": {
+    "width": 1440,
+    "height": 915,
+    "heading": "Келесі сабаққа қажеттінің бәрі",
+    "overflow": false
+  },
+  "lite": {
+    "width": 450,
+    "height": 815,
+    "overflow": false,
+    "nextScripts": 0
+  },
+  "importConfirmed": true,
+  "taskEdited": true,
+  "teacherReviewAcknowledged": true,
+  "docxExported": true,
+  "limitations": [
+    "Does not verify Windows 7 OS TLS, fonts, drivers or hardware performance",
+    "Live OpenAI is not configured"
+  ]
+}

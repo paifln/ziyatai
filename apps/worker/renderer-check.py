@@ -1,6 +1,6 @@
 import sys, zipfile
 from lxml import etree
-import pymupdf as fitz
+import pdfplumber
 path=sys.argv[1]
 try:
  if path.endswith('.docx'):
@@ -9,8 +9,8 @@ try:
    if len(root)==0:raise ValueError()
    etree.fromstring(z.read('word/styles.xml'))
  else:
-  with fitz.open(path) as d:
-   if not len(d) or not any(p.get_text().strip() for p in d):raise ValueError()
+  with pdfplumber.open(path) as d:
+   if not len(d.pages) or not any((p.extract_text() or '').strip() for p in d.pages):raise ValueError()
  print('{"valid":true}')
 except Exception:
  print('ZIYAT_ERROR:RENDER_UNAVAILABLE',file=sys.stderr);sys.exit(1)

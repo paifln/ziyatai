@@ -1,0 +1,12 @@
+{$APP_HOST} {
+  request_body {
+    max_size 26MB
+  }
+  handle /api/* {
+    reverse_proxy web:3000
+  }
+  handle {
+    redir {$APP_URL}{uri} 302
+  }
+  header Strict-Transport-Security "max-age=31536000"
+}

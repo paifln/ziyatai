@@ -16,12 +16,16 @@ import {
 import { api } from "../lib/client";
 import type { Texts, UiLocale } from "../lib/i18n";
 import type { KtpRow } from "../../../packages/contracts";
-import { Jobs } from "./Workspace";
+import { Jobs } from "./Jobs";
+import { usePolling } from "../lib/use-polling";
+import { hasGoalText } from "../../../packages/domain/goals";
+import { normalizeDate } from "../../../packages/domain/dates";
 export default function PlanReview({
   id,
   t,
   locale,
   onError,
+  onDirtyChange,
   onSaved,
   onGenerate,
   jobs,
@@ -31,6 +35,7 @@ export default function PlanReview({
   t: Texts;
   locale: UiLocale;
   onError: (s: string) => void;
+  onDirtyChange: (dirty: boolean) => void;
   onSaved: () => void;
   onGenerate: () => void;
   jobs: any[];
@@ -47,6 +52,8 @@ export default function PlanReview({
     [dirty, setDirty] = useState(false),
     [showWarnings, setShowWarnings] = useState(false);
   const [previewPage, setPreviewPage] = useState(0);
+  const [previewFailed, setPreviewFailed] = useState(false);
+  const [page, setPage] = useState(0);
   const load = useCallback(async () => {
     try {
       const p = await api(`ktp/${id}`);
@@ -62,16 +69,13 @@ export default function PlanReview({
   useEffect(() => {
     void load();
   }, [load]);
-  useEffect(() => {
-    if (plan?.status === "extracting") {
-      const timer = setInterval(() => void load(), 2000);
-      return () => clearInterval(timer);
-    }
-  }, [plan?.status, load]);
+  usePolling(load, plan?.status === "extracting");
+  useEffect(() => { onDirtyChange(dirty); }, [dirty, onDirtyChange]);
   useEffect(() => {
     if (!dirty) return;
     const handler = (e: BeforeUnloadEvent) => {
       e.preventDefault();
+      e.returnValue = "";
     };
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
@@ -83,6 +87,7 @@ export default function PlanReview({
           ? {
               ...r,
               [key]: value,
+              ...(key === "dateRaw" ? {...normalizeDate(value),warnings:[...r.warnings.filter((w)=>!w.includes("date")),...normalizeDate(value).warnings]} : {}),
               ...(key === "goals"
                 ? {
                     objectiveCodes:
@@ -97,6 +102,8 @@ export default function PlanReview({
     setDirty(true);
   }
   function add(after?: number) {
+    setQuery(""); setQuarter(""); setSort("original");
+    setPage(Math.floor((after === undefined ? rows.length : after+1)/25));
     const r: KtpRow = {
       id: crypto.randomUUID(),
       sourceOrder: rows.length + 1,
@@ -184,9 +191,11 @@ export default function PlanReview({
     )
     .sort((a, b) =>
       sort === "date"
-        ? a.r.dateRaw.localeCompare(b.r.dateRaw) || a.index - b.index
+        ? (a.r.dateStart || "9999").localeCompare(b.r.dateStart || "9999") || a.index - b.index
         : a.index - b.index,
     );
+  const currentPage = Math.min(page,Math.max(0,Math.ceil(visible.length/25)-1));
+  const pageRows = visible.slice(currentPage*25,(currentPage+1)*25);
   const warning = (w: string) =>
     (
       ({
@@ -259,11 +268,12 @@ export default function PlanReview({
               {t.cancel}
             </button>
           </div>
-          <img
+          {previewFailed ? <p className="notice warning">{locale === "ru" ? "Предпросмотр недоступен. Скачайте исходник, чтобы проверить страницу." : "Алдын ала қарау қолжетімсіз. Бетті тексеру үшін бастапқы файлды жүктеңіз."}</p> : <img
+            onError={() => setPreviewFailed(true)}
             src={`/api/ktp/${id}/preview?page=${previewPage}`}
             alt={`${t.source} ${previewPage}`}
             style={{ maxWidth: "100%", height: "auto" }}
-          />
+          />}
         </section>
       )}
       <section className="card">
@@ -313,7 +323,7 @@ export default function PlanReview({
               busy ||
               !grade ||
               !rows.length ||
-              rows.some((r) => !r.topic.trim() || !r.goals.trim())
+              rows.some((r) => !r.topic.trim() || !hasGoalText(r.goals))
             }
           >
             <Check size={16} />
@@ -333,14 +343,14 @@ export default function PlanReview({
             <input
               placeholder={t.search}
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => { setQuery(e.target.value); setPage(0); }}
             />
           </label>
           <label>
             <span className="sr-only">{t.quarter}</span>
             <select
               value={quarter}
-              onChange={(e) => setQuarter(e.target.value)}
+              onChange={(e) => { setQuarter(e.target.value); setPage(0); }}
             >
               <option value="">
                 {t.quarter}: {t.all}
@@ -352,7 +362,7 @@ export default function PlanReview({
           </label>
           <label>
             <span className="sr-only">{t.sort}</span>
-            <select value={sort} onChange={(e) => setSort(e.target.value)}>
+            <select value={sort} onChange={(e) => { setSort(e.target.value); setPage(0); }}>
               <option value="original">{t.originalOrder}</option>
               <option value="date">{t.dateOrder}</option>
             </select>
@@ -371,7 +381,7 @@ export default function PlanReview({
               </tr>
             </thead>
             <tbody>
-              {visible.map(({ r, index }) => (
+              {pageRows.map(({ r, index }) => (
                 <tr key={r.id}>
                   <td data-label={t.number}>
                     <input
@@ -487,7 +497,7 @@ export default function PlanReview({
                       {r.source.page && (
                         <button
                           className="text-button"
-                          onClick={() => setPreviewPage(r.source.page!)}
+                          onClick={() => { setPreviewFailed(false); setPreviewPage(r.source.page!); }}
                         >
                           {locale === "ru"
                             ? "Показать оригинальную страницу"
@@ -576,6 +586,11 @@ export default function PlanReview({
             </tbody>
           </table>
         </div>
+        {visible.length > 25 && <nav className="pagination" aria-label={locale === "ru" ? "Страницы КТП" : "КТЖ беттері"}>
+          <button className="button secondary" disabled={currentPage===0} onClick={() => setPage(Math.max(0,currentPage-1))}>{t.back}</button>
+          <span>{currentPage+1} / {Math.ceil(visible.length/25)} · {visible.length} {locale === "ru" ? "строк" : "жол"}</span>
+          <button className="button secondary" disabled={(currentPage+1)*25>=visible.length} onClick={() => setPage(currentPage+1)}>{locale === "ru" ? "Далее" : "Келесі"}</button>
+        </nav>}
         <button className="button secondary mt-20" onClick={() => add()}>
           <Plus size={16} />
           {t.addRow}

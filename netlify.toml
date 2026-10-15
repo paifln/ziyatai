@@ -1,0 +1,11 @@
+[build]
+  command = "npm run build:netlify"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "24.22.0"
+  NEXT_TELEMETRY_DISABLED = "1"
+
+# Netlify's maintained OpenNext adapter is detected automatically.
+# Set ZIYATAI_API_ORIGIN and UPLOAD_ORIGIN in the Netlify dashboard.
+# API/auth stay on the container host; DB, AI, SMTP and renderer secrets stay there.

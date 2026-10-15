@@ -1,10 +1,70 @@
 {
   "environment": "local PostgreSQL container",
-  "date": "2026-10-14",
-  "backupBytes": 62409,
-  "sourceVersions": 32,
-  "restoredVersions": 32,
-  "durationMs": 683,
+  "date": "2026-10-15",
+  "backupBytes": 170923,
+  "sourceVersions": 165,
+  "restoredVersions": 165,
+  "consistentSnapshot": true,
+  "contentHashesMatch": true,
+  "tables": [
+    {
+      "table": "user",
+      "rows": 93
+    },
+    {
+      "table": "session",
+      "rows": 184
+    },
+    {
+      "table": "account",
+      "rows": 93
+    },
+    {
+      "table": "verification",
+      "rows": 0
+    },
+    {
+      "table": "profiles",
+      "rows": 36
+    },
+    {
+      "table": "uploads",
+      "rows": 82
+    },
+    {
+      "table": "plans",
+      "rows": 113
+    },
+    {
+      "table": "plan_versions",
+      "rows": 165
+    },
+    {
+      "table": "generations",
+      "rows": 31
+    },
+    {
+      "table": "generation_versions",
+      "rows": 51
+    },
+    {
+      "table": "exports",
+      "rows": 44
+    },
+    {
+      "table": "jobs",
+      "rows": 126
+    },
+    {
+      "table": "usage_ledger",
+      "rows": 0
+    },
+    {
+      "table": "schema_migrations",
+      "rows": 7
+    }
+  ],
+  "durationMs": 1528,
   "verified": true,
   "limits": "This verifies local restore, not production backup scheduling or storage encryption"
 }

@@ -1,0 +1,8 @@
+{
+  "date": "2026-10-15",
+  "image": "ziyatai-proxy:release",
+  "apiPathAndQueryPreserved": true,
+  "frontendRedirectPreservesQuery": true,
+  "bothConfigurationsValid": true,
+  "scope": "Local HTTP containers and synthetic upstream; public TLS/DNS and Netlify proxy remain unverified"
+}

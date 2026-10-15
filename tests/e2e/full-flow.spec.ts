@@ -52,6 +52,8 @@ test("all formats, review, versions, exports, private ACL and persistence", asyn
     const plan = await (await request.get(`/api/ktp/${result.id}`)).json();
     expect(plan.rows).toHaveLength(3);
     plan.rows[0].topic += " • исправлено";
+    const codeOnly=JSON.parse(JSON.stringify(plan.rows));codeOnly[0].goals="(7.3.2.1): / 7.3.2.2;";codeOnly[0].objectiveCodes=[];
+    expect((await request.post(`/api/ktp/${result.id}/confirm`,{headers,data:{revision:plan.revision,rows:codeOnly,grade:7,schoolYear:"2026–2027"}})).status()).toBe(422);
     const confirmed = await request.post(`/api/ktp/${result.id}/confirm`, {
       headers,
       data: {

@@ -1,8 +1,28 @@
 import sys,json,importlib.util
 from pathlib import Path
 import pytest
+sys.path.insert(0, str(Path('apps/worker').resolve()))
 spec=importlib.util.spec_from_file_location('ktp_parser','apps/worker/parser.py');parser=importlib.util.module_from_spec(spec);spec.loader.exec_module(parser)
 manifest=json.loads(Path('tests/fixtures/manifest.json').read_text(encoding='utf-8'))
+
+def test_large_pdf_page_rejected_before_native_bitmap_allocation(tmp_path, monkeypatch):
+ from reportlab.pdfgen import canvas
+ from pdf_adapter import render_page
+ import pypdfium2
+ path=tmp_path/'large.pdf'
+ doc=canvas.Canvas(str(path),pagesize=(10000,10000));doc.drawString(10,10,'bounded');doc.showPage();doc.save()
+ called=[]
+ def forbidden(*args,**kwargs):called.append(True);raise AssertionError('must not allocate')
+ monkeypatch.setattr(pypdfium2.PdfPage,'render',forbidden)
+ with pytest.raises(ValueError,match='FILE_SIZE'):render_page(path)
+ assert called==[]
+
+def test_preview_is_bounded_and_preserves_page_dimensions():
+ from pdf_adapter import preview_page
+ with preview_page('tests/fixtures/ru-digital.pdf',0) as image:
+  assert image.width<=1201 and image.height<=1601
+  assert image.width>image.height
+
 @pytest.mark.parametrize('fixture',[f for f in manifest if not f['ocr']],ids=lambda f:f['file'])
 def test_digital_corpus(fixture):
  result=parser.extract('tests/fixtures/'+fixture['file'])

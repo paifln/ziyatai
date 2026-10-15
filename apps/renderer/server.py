@@ -1,5 +1,5 @@
 """Private, serial execution boundary: no DB, S3 or OpenAI credentials."""
-import os,sys,json,tempfile,subprocess,hmac,signal
+import os,sys,json,tempfile,subprocess,hmac,signal,io
 from pathlib import Path
 from http.server import HTTPServer,BaseHTTPRequestHandler
 sys.path.insert(0,'/scripts')
@@ -26,20 +26,18 @@ class Handler(BaseHTTPRequestHandler):
     if self.path=='/inspect':payload=b'{"valid":true}';mime='application/json'
     elif self.path=='/parse':payload=json.dumps(extract(path,self.headers.get('X-Include-Hidden')=='true'),ensure_ascii=False).encode();mime='application/json'
     elif self.path=='/preview' and ext=='pdf':
-     import pymupdf
+     from pdf_adapter import preview_page
      page_number=int(self.headers.get('X-Page','1'))
-     with pymupdf.open(path) as document:
-      if not 1<=page_number<=len(document):raise ValueError('FILE_INVALID')
-      page=document[page_number-1];scale=min(1200/page.rect.width,1600/page.rect.height,2)
-      payload=page.get_pixmap(matrix=pymupdf.Matrix(scale,scale),alpha=False).tobytes('png');mime='image/png'
+     with preview_page(path,page_number-1) as image:
+      buffer=io.BytesIO();image.save(buffer,format='PNG');payload=buffer.getvalue();mime='image/png'
     elif self.path=='/render' and ext=='docx':
      match=subprocess.check_output(['fc-match','-f','%{family}',font],timeout=10).decode()
      if font not in match:raise ValueError('FONT_UNAVAILABLE')
      subprocess.run(['libreoffice','-env:UserInstallation=file://'+tmp+'/lo-profile','--headless','--convert-to','pdf','--outdir',tmp,str(path)],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=100,env={'PATH':os.environ.get('PATH',''),'HOME':tmp,'LANG':'C.UTF-8'})
      payload=(Path(tmp)/'source.pdf').read_bytes();mime='application/pdf'
-     import pymupdf
-     with pymupdf.open(stream=payload,filetype='pdf') as document:
-      if not len(document) or not any(page.get_text().strip() for page in document):raise ValueError('RENDER_UNAVAILABLE')
+     import pdfplumber
+     with pdfplumber.open(io.BytesIO(payload)) as document:
+      if not len(document.pages) or not any((page.extract_text() or '').strip() for page in document.pages):raise ValueError('RENDER_UNAVAILABLE')
     else:self.send_response(404);self.end_headers();return
    self.send_response(200);self.send_header('Content-Type',mime);self.send_header('Content-Length',str(len(payload)));self.end_headers();self.wfile.write(payload)
   except Exception as e:

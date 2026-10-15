@@ -10,7 +10,9 @@
 | POST /api/auth/sign-in/email; /sign-out | Обычная email/password сессия |
 | POST /api/auth/request-password-reset; /reset-password | Восстановление через одноразовый токен в письме |
 | GET /api/health; /api/health/ready | Liveness; БД/storage/worker readiness; без секретов |
-| POST /api/uploads | multipart file; серверный ограниченный upload вместо presigned init/complete; файл проверяется до сохранения |
+| POST /api/uploads | multipart file; локальный резервный путь при DIRECT_UPLOADS=false, максимум 25MiB |
+| POST /api/uploads/init | name, bytes; резервирование квоты и короткоживущий подписанный PUT в приватный quarantine; MIME определяется сервером по расширению |
+| POST /api/uploads/{id}/complete | HEAD проверяет размер/тип; идемпотентное завершение загрузки; ещё не разрешает скачивание непроверенного файла |
 | GET /api/uploads/{id} | Разрешённое владельцу скачивание исходника |
 | POST /api/ktp/imports | uploadId, locale kk/ru, includeHidden; 202 {id,jobId} |
 | GET /api/ktp | q, limit максимум 100, offset; список владельца |
@@ -27,7 +29,7 @@
 | PATCH /api/generations/{id}/document | revision, document; редактор всего AST и перестановка заданий |
 | POST /api/generations/{id}/tasks/{taskId}/regenerate | revision; Idempotency-Key UUID; сохраняются stable ID/level и остальные задания |
 | POST /api/generations/{id}/validate | Структурная проверка текущей версии; не методическое утверждение |
-| POST /api/exports | generationId, revision, format docx/pdf, audience full/student, styles; Idempotency-Key UUID; 202 |
+| POST /api/exports | generationId, revision, format docx/pdf, audience full/student, styles, teacherReviewed (default false); Idempotency-Key UUID; 202 |
 | GET /api/exports/{id}/download | Владелец и parent generation проверяются; private attachment bytes |
 | GET /api/history; /api/library | q, limit, offset; версии и исторические exports |
 | GET/PATCH /api/profile | name, school, locale, grades, styles; credentials в профиль не копируются |
@@ -35,6 +37,8 @@
 | DELETE /api/account | Немедленное прекращение доступа, отзыв сессий, фоновое физическое удаление |
 | POST /api/demo | Только явно включённый local/test demo; отдельная маркировка synthetic/no OpenAI; идемпотентно на пользователя и язык |
 
-Multipart upload — сознательное упрощение presigned двухфазного API для первоначального лимита 25MiB. Оно обеспечивает серверную проверку всех bytes, но нагрузку на API нужно измерить. Для больших файлов двухфазный интерфейс можно добавить без ослабления проверки.
+При DIRECT_UPLOADS=true браузер отправляет bytes непосредственно в S3: init → PUT → complete → import. Подпись ограничивает ключ, тип, размер и срок. Worker проверяет сигнатуру, архив/XML и антивирус, затем копирует проверенные bytes в новый неизменяемый ключ: повтор PUT по ещё действующей подписи не изменит чистый источник. Пока проверка не завершилась, download/preview запрещены. Для quarantine настраивается удаление через сутки; CORS допускает только APP_URL. Это позволяет не пропускать большие файлы через ограничения Netlify proxy, см. [инструкцию](netlify.md).
+
+teacherReviewed=true — явное подтверждение учителя для конкретного экспорта. Сервер повторно проверяет документ и отвергает подтверждение при структурных замечаниях (REVIEW_REQUIRED); без подтверждения экспорт сохраняет надпись «Черновик». Подтверждение не меняет needs_review у AI и не является автоматической педагогической экспертизой. Поле сохраняется в exports и возвращается библиотекой. JSON body ограничен 2MiB независимо от Content-Length; AST имеет отдельные ограничения количества заданий, блоков, ячеек и текста.
 
 Renderer — внутренний сервис: POST /inspect, /parse, /render. Требует длинный bearer token; принимает ограниченные bytes + X-Format, X-Font, X-Include-Hidden. Публичный ingress для него запрещён. В нём отсутствуют пользовательская БД, storage ключи и OpenAI key.

@@ -80,7 +80,7 @@ export default function AuthPanel({
     <main className="auth-page">
       <section className="auth-story">
         <a className="brand" href="/">
-          <img src="/owl.svg" alt="" width="46" height="46" />
+          <img src="/brand-owl.png" alt="" width="46" height="46" />
           <span>
             Ziyat<span className="brand-ai">AI</span>
           </span>
@@ -116,7 +116,7 @@ export default function AuthPanel({
             <div className="paper-title">
               {locale === "ru" ? "Линейные алгоритмы" : "Сызықтық алгоритмдер"}
             </div>
-            {["Жеңіл", "Орта", "Күрделі"].map((level, i) => (
+            {(locale === "ru" ? ["Базовый", "Средний", "Продвинутый"] : ["Жеңіл", "Орта", "Күрделі"]).map((level, i) => (
               <div className="paper-level" key={level}>
                 <span className={`level-dot dot-${i}`} />
                 {level}
@@ -157,6 +157,9 @@ export default function AuthPanel({
                   ? t.resetNew
                   : t.signIn}
           </h2>
+          <p className="auth-caption">
+            {locale === "ru" ? "Ваши планы, задания и готовые материалы — в одном месте." : "Жоспарларыңыз, тапсырмалар мен дайын материалдар — бір жерде."}
+          </p>
           <form onSubmit={submit}>
             {mode === "signup" && (
               <label>
@@ -175,6 +178,8 @@ export default function AuthPanel({
                 {t.email}
                 <input
                   type="email"
+                  inputMode="email"
+                  spellCheck={false}
                   value={email}
                   autoComplete="email"
                   required
@@ -247,6 +252,7 @@ export default function AuthPanel({
               {mode === "login" ? t.signUp : t.signIn}
             </button>
           </p>
+          <p className="auth-support"><a href="/lite/">{locale === "ru" ? "Слабый компьютер? Открыть лёгкую версию" : "Компьютер баяу ма? Жеңіл нұсқаны ашу"}</a><br/><a href="/help/">{locale === "ru" ? "Как пользоваться ZiyatAI" : "ZiyatAI қалай қолданылады"}</a></p>
         </div>
       </section>
     </main>

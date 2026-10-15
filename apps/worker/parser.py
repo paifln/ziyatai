@@ -46,7 +46,7 @@ def row_from(cells,mapping,source,order,section,quarter):
  start,end,warnings=normalize_date(get('dateRaw'))
  if not goals:warnings.append('missing_objective_text')
  codes=re.findall(r'(?<!\d)\d{1,2}\.\d+\.\d+\.\d+(?!\d)',goals)
- if codes and not re.sub(r'[\d.\s,;\-]+','',goals):warnings.append('objective_code_only')
+ if goals and not any(c.isalpha() for c in goals):warnings.append('objective_code_only')
  if source['method']=='ocr':warnings.append('ocr_requires_review')
  if any('[formula without cached value]' in str(c) for c in cells):warnings.append('formula_without_cached_value')
  return {'id':str(uuid.uuid4()),'sourceOrder':order,'lessonNumberRaw':get('lessonNumberRaw'),'section':get('section') or section,'quarter':get('quarter') or quarter,'topic':topic,'goals':goals,'objectiveCodes':codes,'lessonGoals':get('lessonGoals'),'hours':get('hours'),'dateRaw':get('dateRaw'),'dateStart':start,'dateEnd':end,'notes':get('notes'),'warnings':warnings,'source':source}
@@ -101,10 +101,11 @@ def inspect(path):
    required='word/document.xml' if ext=='.docx' else 'xl/workbook.xml'
    if required not in z.namelist():raise ValueError('FILE_INVALID')
  elif ext=='.pdf':
-  import pymupdf as fitz
-  with fitz.open(path) as d:
-   if d.needs_pass:raise ValueError('FILE_INVALID')
-   if len(d)>150:raise ValueError('FILE_SIZE')
+  import pdfplumber
+  with pdfplumber.open(path) as d:
+   if d.doc.encryption:raise ValueError('FILE_INVALID')
+   if not len(d.pages):raise ValueError('FILE_INVALID')
+   if len(d.pages)>150:raise ValueError('FILE_SIZE')
  elif ext=='.xls':
   import xlrd
   w=xlrd.open_workbook(path,on_demand=True)
@@ -189,19 +190,17 @@ def spreadsheets(path,include_hidden=False):
  return tables
 
 def pdf_tables(path):
- import pymupdf as fitz
  import pdfplumber
- from PIL import Image
+ from pdf_adapter import render_page
  tables=[]
- with fitz.open(path) as doc,pdfplumber.open(path) as plumber:
-  for pi,page in enumerate(doc):
-   text=page.get_text();letters=sum(c.isalpha() for c in text);bad=sum(c=='\ufffd' for c in text)
+ with pdfplumber.open(path) as plumber:
+  for pi,page in enumerate(plumber.pages):
+   text=page.extract_text() or '';letters=sum(c.isalpha() for c in text);bad=sum(c=='\ufffd' for c in text)
    if letters<30 or bad/max(len(text),1)>0.05:
     import pytesseract
     pytesseract.pytesseract.tesseract_cmd=os.getenv('TESSERACT_PATH','tesseract')
     try:
-     pix=page.get_pixmap(matrix=fitz.Matrix(2,2));im=Image.frombytes('RGB',(pix.width,pix.height),pix.samples)
-     if pix.width*pix.height>25000000:raise ValueError('FILE_SIZE')
+     im=render_page(path,pi,scale=2)
      text=pytesseract.image_to_string(im,lang='kaz+rus',config='--psm 6',timeout=60)
     except ValueError:raise
     except Exception:raise ValueError('OCR_UNAVAILABLE')

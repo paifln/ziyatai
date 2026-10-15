@@ -18,13 +18,16 @@ import {
 } from "docx";
 import { Styles, type GenerationDocument } from "../contracts";
 import { displayLevel } from "../domain/validation";
+import { assertDocumentBudget } from "../domain/document-budget";
 const cm = (n: number) => Math.round(n * 567);
 export async function renderDocx(
   doc: GenerationDocument,
   snapshot: any,
   stylesInput: unknown,
   audience: "full" | "student",
+  teacherReviewed = false,
 ) {
+  assertDocumentBudget(doc);
   const styles = Styles.parse(stylesInput),
     ru = doc.localeMode === "ru";
   const children: (Paragraph | Table)[] = [];
@@ -34,10 +37,11 @@ export async function renderDocx(
     p(text, { heading: HeadingLevel.HEADING_2, keepNext: true });
   const block = (
     b: GenerationDocument["tasks"][number]["contentBlocks"][number],
+    keepNext = false,
   ): (Paragraph | Table)[] => {
     if (b.type === "list")
       return b.items.map((text) =>
-        p(text, { numbering: { reference: "bullets", level: 0 } }),
+        p(text, { numbering: { reference: "bullets", level: 0 }, keepNext }),
       );
     if (b.type === "code")
       return b.text.split("\n").map(
@@ -45,7 +49,7 @@ export async function renderDocx(
           new Paragraph({
             children: [new TextRun({ text, font: "Courier New", size: 22 })],
             spacing: { after: 0 },
-            keepNext: false,
+            keepNext,
           }),
       );
     if (b.type === "table") {
@@ -61,23 +65,25 @@ export async function renderDocx(
           rows: [
             new TableRow({
               tableHeader: true,
+              cantSplit: true,
               children: b.columns.map(
                 (text) =>
                   new TableCell({
-                    children: [p(text)],
+                    children: [p(text,{keepNext:true})],
                     borders,
-                    shading: { type: ShadingType.CLEAR, fill: "EAF0F6" },
+                    shading: { type: ShadingType.CLEAR, fill: "F1F0E8" },
                     margins: { top: 100, bottom: 100, left: 100, right: 100 },
                   }),
               ),
             }),
             ...b.rows.map(
-              (row) =>
+              (row,rowIndex) =>
                 new TableRow({
+                  cantSplit:true,
                   children: row.map(
                     (text) =>
                       new TableCell({
-                        children: [p(text)],
+                        children: [p(text,{keepNext:keepNext && rowIndex===b.rows.length-1})],
                         borders,
                         margins: {
                           top: 100,
@@ -93,7 +99,7 @@ export async function renderDocx(
         }),
       ];
     }
-    return b.text.split("\n").map((text) => p(text));
+    return b.text.split("\n").map((text) => p(text,{keepNext}));
   };
   if (styles.includeLogo) children.push(p("ZiyatAI", { style: "Brand" }));
   children.push(
@@ -115,7 +121,7 @@ export async function renderDocx(
           : "Синтетикалық демонстрациялық материал. OpenAI генерациясы орындалмаған.",
       ),
     );
-  children.push(
+  if (!teacherReviewed) children.push(
     p(
       ru
         ? "Черновик. Требуется педагогическая проверка."
@@ -132,16 +138,16 @@ export async function renderDocx(
           { style: "TaskTitle", keepNext: true },
         ),
       );
-      for (const b of task.contentBlocks) children.push(...block(b));
+      for (const b of task.contentBlocks) children.push(...block(b,styles.answerSpace));
       if (task.translation) {
         children.push(p("Русская версия", { keepNext: true }));
         for (const b of task.translation.contentBlocks)
-          children.push(...block(b));
+          children.push(...block(b,styles.answerSpace));
       }
-      if (styles.answerSpace)
-        children.push(
-          p("________________________________________________________________"),
-        );
+      if (styles.answerSpace) {
+        const lines = task.level === "advanced" ? 3 : task.level === "medium" ? 2 : 1;
+        for(let line=0;line<lines;line++)children.push(p("________________________________________________________________",{keepNext:line<lines-1}));
+      }
     }
   }
   if (audience === "full") {
@@ -182,7 +188,7 @@ export async function renderDocx(
   const document = new Document({
     creator: "ZiyatAI",
     title: doc.title,
-    description: "Teacher-reviewed differentiated assignments",
+    description: teacherReviewed ? "Teacher review acknowledged for this exported version" : "Draft differentiated assignments; teacher review required",
     styles: {
       default: {
         document: {

@@ -1,14 +1,15 @@
 # Развёртывание ZiyatAI
 
-Публичного URL пока нет. Подготовлены образы web/worker/renderer и Compose для VPS. Нужны доступ к хостингу в подтверждённом регионе Казахстана, private S3, SMTP, OpenAI и лицензированные шрифты. Не подставляйте фиктивные credentials ради зелёного readiness.
+Публичного URL пока нет. Frontend предполагается разместить на Netlify, API/worker и длительные операции — на отдельном сервере: [hybrid настройка](netlify.md). Ниже описан также самостоятельный Compose запуск всего сайта. Нужны доступ к серверу в подтверждённом регионе, private S3, SMTP, OpenAI и лицензированные шрифты.
 
 ## Последовательность
 
 1. Создайте отдельные staging и production инфраструктуры: БД/volumes, buckets, secrets, email sender, redirect URLs. Подтвердите регион, резервное хранение и применимость требований к персональным данным. Откройте только HTTPS ingress; PostgreSQL, renderer и ClamAV не публикуются.
 2. Создайте `.env.production` на сервере с правами 600 из `.env.example`. DATABASE_URL использует hostname postgres, STORAGE_ENDPOINT — private S3, RENDERER_URL — http://renderer:8090, CLAMAV_HOST — clam-update. AUTH_SECRET и RENDERER_TOKEN — разные случайные секреты. APP_ENV=production, SCAN_REQUIRED=true, ALLOW_DEMO=false. RELEASE — commit SHA; APP_URL и APP_HOST соответствуют публичному HTTPS адресу.
-3. Создайте private bucket с запретом anonymous access, минимальными permissions на Put/Get/Delete/HeadBucket для приложения, encryption и защищённым backup/versioning. Нельзя принимать один лишь факт существования bucket за проверку приватности: unsigned GET должен быть запрещён.
+3. Создайте отдельный private bucket с запретом anonymous access, минимальными permissions на PutObject/GetObject/DeleteObject/HeadBucket для приложения, encryption и защищённым backup/versioning. HeadObject использует право GetObject. Нельзя принимать один лишь факт существования bucket за проверку приватности: unsigned GET должен быть запрещён. Для Netlify обязательны DIRECT_UPLOADS=true и HTTPS STORAGE_PUBLIC_ENDPOINT; UPLOAD_ORIGIN при сборке web должен совпадать с origin публичного storage. Настройте CORS для точного APP_URL и lifecycle quarantine через `scripts/configure-storage.ts` в одноразовой административной сессии. Скрипт сохраняет остальные lifecycle rules; административные права изменения bucket не оставляют у runtime ключа.
 4. Установите Times New Roman на LICENSED_FONT_DIR с подтверждённым правом использования. В эту папку не кладут документы учителей. Renderer mount только read-only.
-5. Соберите образы и примените миграции единственным runner:
+   Новая production БД использует PostgreSQL 18 Alpine в отдельном `postgres-alpine` volume. Не подключайте к ней старый Debian data directory: перенос выполняется pg_dump/pg_restore с проверкой содержимого и коллации. Текущая локальная БД не меняется автоматически. Образы PostgreSQL и proxy собираются из `Dockerfile.postgres`/`Dockerfile.proxy`; причины и проверки — в [security record](container-security.md).
+5. Соберите образы и примените миграции единственным runner. Для Netlify APP_URL — адрес frontend, APP_HOST — hostname backend; используйте CADDY_CONFIG=./Caddyfile.hybrid. Для самостоятельного сайта они соответствуют одному адресу, Caddyfile остаётся стандартным:
 
 ```sh
 docker compose -f infra/compose.production.yml --env-file .env.production build

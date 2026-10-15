@@ -1,5 +1,6 @@
 node_modules/
 .next/
+next-env.d.ts
 .env*
 !.env.example
 .local/
@@ -11,3 +12,11 @@ playwright-report/
 coverage/
 dist/
 *.tsbuildinfo
+
+# Application source must override broad user-level lib/ ignore patterns.
+!apps/web/lib/
+!apps/web/lib/*.ts
+public/_redirects
+public/_headers
+public/licenses.txt
+.netlify/

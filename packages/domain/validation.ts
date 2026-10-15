@@ -1,4 +1,5 @@
 import { GenerationDoc, type GenerationDocument } from "../contracts";
+import { assertDocumentBudget } from "./document-budget";
 import { arithmetic } from "./arithmetic";
 export function validateDocument(
   value: unknown,
@@ -11,7 +12,15 @@ export function validateDocument(
   },
 ) {
   const doc = GenerationDoc.parse(value);
+  assertDocumentBudget(doc);
   const issues: string[] = [];
+  const details: {code:string;taskId:string|null;taskIndex:number|null}[] = [];
+  let context: {taskId:string;taskIndex:number}|null = null;
+  const issue = (code: string) => {
+    issues.push(code);
+    details.push({code,taskId:context?.taskId ?? null,taskIndex:context?.taskIndex ?? null});
+  };
+  const blockText = (blocks: GenerationDocument["tasks"][number]["contentBlocks"]) => blocks.map((b) => b.type === "list" ? b.items.join(" ") : b.type === "table" ? [...b.columns,...b.rows.flat()].join(" ") : b.text).join(" ").trim();
   let arithmeticChecked = 0;
   let unexecutedCases = 0;
   if (
@@ -19,48 +28,45 @@ export function validateDocument(
     doc.grade !== snapshot.grade ||
     doc.localeMode !== snapshot.locale
   )
-    issues.push("SNAPSHOT_MISMATCH");
-  if (doc.tasks.length !== snapshot.count * 3) issues.push("TASK_COUNT");
+    issue("SNAPSHOT_MISMATCH");
+  if (doc.tasks.length !== snapshot.count * 3) issue("TASK_COUNT");
   for (const level of ["easy", "medium", "advanced"])
     if (doc.tasks.filter((t) => t.level === level).length !== snapshot.count)
-      issues.push("LEVEL_COUNT");
+      issue("LEVEL_COUNT");
   const ids = new Set<string>();
   const conditions = new Set<string>();
-  for (const t of doc.tasks) {
-    if (ids.has(t.id)) issues.push("DUPLICATE_ID");
+  for (const [taskIndex,t] of doc.tasks.entries()) {
+    context = {taskId:t.id,taskIndex};
+    if (!t.id.trim() || ids.has(t.id)) issue("DUPLICATE_ID");
     ids.add(t.id);
-    const condition = t.contentBlocks
-      .map((b) => b.text + " " + b.items.join(" "))
-      .join(" ")
-      .normalize("NFKC")
-      .trim()
-      .toLowerCase();
-    if (conditions.has(condition)) issues.push("DUPLICATE_TASK");
+    const condition = blockText(t.contentBlocks).normalize("NFKC").trim().toLowerCase();
+    if (conditions.has(condition)) issue("DUPLICATE_TASK");
     conditions.add(condition);
     if (
       !condition ||
-      !t.answerBlocks.length ||
+      !blockText(t.answerBlocks) ||
       !t.explanationHow.trim() ||
       !t.explanationWhy.trim()
     )
-      issues.push("MISSING_CONTENT");
+      issue("MISSING_CONTENT");
     if (
       t.points < 1 ||
       t.points > 100 ||
       t.rubric.reduce((s, r) => s + r.points, 0) !== t.points ||
       t.rubric.some((r) => r.points < 0 || !r.criterion.trim())
     )
-      issues.push("POINTS");
+      issue("POINTS");
     if (t.estimatedMinutes < 1 || t.estimatedMinutes > 120)
-      issues.push("DURATION");
+      issue("DURATION");
     if (
       !t.objectiveRefs.length ||
       t.objectiveRefs.some((c) => !snapshot.objectiveCodes.includes(c))
     )
-      issues.push("OBJECTIVE_REF");
+      issue("OBJECTIVE_REF");
     if (doc.localeMode === "kk+ru" && !t.translation)
-      issues.push("TRANSLATION_MISSING");
+      issue("TRANSLATION_MISSING");
     if (t.translation) {
+      if (!blockText(t.translation.contentBlocks) || !blockText(t.translation.answerBlocks) || !t.translation.explanationHow.trim() || !t.translation.explanationWhy.trim() || t.translation.rubric.some((r) => !r.criterion.trim())) issue("TRANSLATION_CONTENT");
       const numbers = (blocks: typeof t.contentBlocks) =>
         blocks
           .flatMap((b) => [b.text, ...b.items, ...b.rows.flat(), ...b.columns])
@@ -72,7 +78,7 @@ export function validateDocument(
         numbers(t.contentBlocks) !== numbers(t.translation.contentBlocks) ||
         numbers(t.answerBlocks) !== numbers(t.translation.answerBlocks)
       )
-        issues.push("TRANSLATION_NUMBERS");
+        issue("TRANSLATION_NUMBERS");
     }
     for (const test of t.verificationCases) {
       const actual = arithmetic(test.input);
@@ -82,14 +88,14 @@ export function validateDocument(
         continue;
       }
       arithmeticChecked++;
-      if (Math.abs(actual - expected) > 1e-9) issues.push("ARITHMETIC_ANSWER");
+      if (Math.abs(actual - expected) > 1e-9) issue("ARITHMETIC_ANSWER");
     }
     if (
       t.translation &&
       (t.translation.rubric.length !== t.rubric.length ||
         t.translation.rubric.some((r, i) => r.points !== t.rubric[i]?.points))
     )
-      issues.push("TRANSLATION_POINTS");
+      issue("TRANSLATION_POINTS");
     for (const b of [
       ...t.contentBlocks,
       ...t.answerBlocks,
@@ -97,17 +103,18 @@ export function validateDocument(
       ...(t.translation?.answerBlocks ?? []),
     ]) {
       if (b.text.length > 20000 || b.items.length > 100 || b.rows.length > 200)
-        issues.push("CONTENT_LIMIT");
+        issue("CONTENT_LIMIT");
       if (
         b.type === "table" &&
         (b.columns.length === 0 ||
           b.rows.some((r) => r.length !== b.columns.length))
       )
-        issues.push("TABLE_SHAPE");
+        issue("TABLE_SHAPE");
     }
   }
   return {
     issues: [...new Set(issues)],
+    details: [...new Map(details.map((d) => [d.code+":"+d.taskIndex,d])).values()],
     verification: { arithmeticChecked, unexecutedCases },
     status: "needs_review" as const,
     checks: [

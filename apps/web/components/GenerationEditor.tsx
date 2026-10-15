@@ -20,7 +20,9 @@ import {
   type TaskDocument,
 } from "../../../packages/contracts";
 import { displayLevel } from "../../../packages/domain/validation";
-import { Jobs } from "./Workspace";
+import { validationMessage } from "../../../packages/domain/validation-messages";
+import { Jobs } from "./Jobs";
+import { usePolling } from "../lib/use-polling";
 type Block = TaskDocument["contentBlocks"][number];
 const blank = (type: Block["type"] = "paragraph"): Block => ({
   type,
@@ -37,6 +39,7 @@ export default function GenerationEditor({
   jobs,
   profileStyles,
   onError,
+  onDirtyChange,
   onSaved,
   refresh,
 }: {
@@ -46,6 +49,7 @@ export default function GenerationEditor({
   jobs: any[];
   profileStyles: any;
   onError: (s: string) => void;
+  onDirtyChange: (dirty: boolean) => void;
   onSaved: () => void;
   refresh: () => Promise<void>;
 }) {
@@ -59,6 +63,11 @@ export default function GenerationEditor({
     [styles, setStyles] = useState(Styles.parse(profileStyles)),
     [exportJobs, setExportJobs] = useState<any[]>([]),
     [report, setReport] = useState<any>();
+  const [regenerationJob, setRegenerationJob] = useState("");
+  const [activeTask, setActiveTask] = useState("");
+  const [teacherReviewed, setTeacherReviewed] = useState(false);
+  useEffect(()=>{setTeacherReviewed(false);},[generation?.revision]);
+  useEffect(()=>{if(dirty)setTeacherReviewed(false);},[dirty]);
   const requestKeys = useRef(new Map<string, string>());
   function requestKey(data: unknown) {
     const signature = JSON.stringify(data);
@@ -83,26 +92,30 @@ export default function GenerationEditor({
   useEffect(() => {
     void load();
   }, [load]);
-  useEffect(() => {
-    if (generation?.status === "queued") {
-      const timer = setInterval(() => void load(), 2000);
-      return () => clearInterval(timer);
-    }
-  }, [generation?.status, load]);
-  useEffect(() => {
-    if (!exportJobs.length) return;
-    const timer = setInterval(async () => {
-      const next = await Promise.all(
-        exportJobs.map((j) => api(`jobs/${j.id}`)),
-      );
+  usePolling(load, ["queued", "running"].includes(generation?.status));
+  usePolling(async () => {
+    try {
+      const next = await Promise.all(exportJobs.map((j) => ["queued", "running"].includes(j.status) ? api(`jobs/${j.id}`) : j));
       setExportJobs(next);
-    }, 2000);
-    return () => clearInterval(timer);
-  }, [exportJobs]);
+    } catch (e) { onError((e as Error).message); }
+  }, exportJobs.some((j) => ["queued", "running"].includes(j.status)));
+  useEffect(() => { onDirtyChange(dirty); }, [dirty, onDirtyChange]);
+  usePolling(async () => {
+    try {
+      const result = await api(`jobs/${regenerationJob}`);
+      if (["succeeded", "failed", "cancelled"].includes(result.status)) {
+        setRegenerationJob(""); setBusy(false);
+        if (result.status === "succeeded") { await load(); onSaved(); }
+        else onError(result.error?.message ?? t.failed);
+        await refresh();
+      }
+    } catch (e) { setRegenerationJob(""); setBusy(false); onError((e as Error).message); }
+  }, !!regenerationJob);
   useEffect(() => {
     if (!dirty) return;
     const handler = (e: BeforeUnloadEvent) => {
       e.preventDefault();
+      e.returnValue = "";
     };
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
@@ -142,6 +155,7 @@ export default function GenerationEditor({
         format,
         audience,
         styles,
+        teacherReviewed,
       };
       const result = await api("exports", "POST", data, requestKey(data));
       setExportJobs([
@@ -171,24 +185,7 @@ export default function GenerationEditor({
         { revision: generation.revision },
         requestKey({ taskId: task.id, revision: generation.revision }),
       );
-      const timer = setInterval(async () => {
-        try {
-          const result = await api(`jobs/${j.jobId}`);
-          if (["succeeded", "failed", "cancelled"].includes(result.status)) {
-            clearInterval(timer);
-            setBusy(false);
-            if (result.status === "succeeded") {
-              await load();
-              onSaved();
-            } else onError(result.error?.message ?? t.failed);
-            await refresh();
-          }
-        } catch (e) {
-          clearInterval(timer);
-          setBusy(false);
-          onError((e as Error).message);
-        }
-      }, 2000);
+      setRegenerationJob(j.jobId);
       await refresh();
     } catch (e) {
       setBusy(false);
@@ -276,10 +273,14 @@ export default function GenerationEditor({
             />
           ) : (
             document.tasks.map((task, index) => (
-              <section className="task-card" key={task.id}>
+              <section className="task-card" key={task.id} data-expanded={activeTask ? activeTask===task.id : index===0}>
                 <div className="task-header">
                   <span className="task-number">{index + 1}</span>
-                  <strong>{displayLevel(task.level, locale)}</strong>
+                  <button className="task-toggle" aria-expanded={activeTask ? activeTask===task.id : index===0} aria-controls={`task-${task.id}`} onClick={() => setActiveTask((activeTask ? activeTask===task.id : index===0) ? "closed" : task.id)}>
+                    <strong>{displayLevel(task.level, locale)}</strong>
+                    <small>{task.points} {t.points.toLowerCase()} · {task.estimatedMinutes} {t.duration.toLowerCase()}</small>
+                    <span aria-hidden="true">{(activeTask ? activeTask===task.id : index===0) ? "−" : "+"}</span>
+                  </button>
                   <button
                     className="icon-button"
                     aria-label={t.moveUp}
@@ -319,6 +320,7 @@ export default function GenerationEditor({
                     <ArrowDown size={14} />
                   </button>
                 </div>
+                {(activeTask ? activeTask===task.id : index===0) ? <div id={`task-${task.id}`}>
                 <label>{t.condition}</label>
                 <BlocksEditor
                   blocks={task.contentBlocks}
@@ -450,7 +452,7 @@ export default function GenerationEditor({
                 {task.translation && (
                   <details className="mt-20">
                     <summary style={{ cursor: "pointer", fontWeight: 600 }}>
-                      Русская версия
+                      {locale === "ru" ? "Русская версия" : "Орысша нұсқа"}
                     </summary>
                     <label className="mt-20">{t.condition}</label>
                     <BlocksEditor
@@ -542,6 +544,7 @@ export default function GenerationEditor({
                     {t.regenerate}
                   </button>
                 </div>
+                </div> : <p className="task-excerpt">{task.contentBlocks.find((b) => b.type === "paragraph")?.text.slice(0,200) || (locale === "ru" ? "Откройте задание для редактирования" : "Өңдеу үшін тапсырманы ашыңыз")}</p>}
               </section>
             ))
           )}
@@ -549,6 +552,8 @@ export default function GenerationEditor({
         <aside className="editor-side">
           <section className="card">
             <h2>{t.export}</h2>
+            <label className="checkbox teacher-review"><input type="checkbox" checked={teacherReviewed} disabled={dirty || busy || !!report?.issues?.length} onChange={(e)=>setTeacherReviewed(e.target.checked)}/><span>{locale === "ru" ? "Я проверил(а) задания, ответы и критерии" : "Тапсырмаларды, жауаптар мен критерийлерді тексердім"}</span></label>
+            <p className="review-hint">{locale === "ru" ? "Отметка убирает надпись «Черновик» только из этой выпущенной версии. После редактирования проверка нужна снова." : "Белгі осы шығарылған нұсқадан «Жоба» жазуын алып тастайды. Өңдеуден кейін қайта тексеру қажет."}</p>
             <label>
               {locale === "ru" ? "Вариант" : "Нұсқа"}
               <select
@@ -698,10 +703,13 @@ export default function GenerationEditor({
               </div>
             )}
             {report?.issues?.length > 0 && (
-              <div className="notice warning">
+              <div className="notice warning" role="status">
                 {locale === "ru"
                   ? "Есть ошибки структуры, баллов или ссылок на цели. Проверьте отредактированные задания."
                   : "Құрылымда, балдарда немесе мақсат сілтемелерінде қате бар. Өңделген тапсырмаларды тексеріңіз."}
+                <ul className="validation-list">{(report.details?.length ? report.details : report.issues.map((code:string)=>({code,taskIndex:null,taskId:null}))).map((detail:{code:string;taskIndex:number|null;taskId:string|null},i:number)=><li key={i}>
+                  {detail.taskId ? <button className="text-button" onClick={()=>{setPreview(false);setActiveTask(detail.taskId!);requestAnimationFrame(()=>window.document.getElementById(`task-${detail.taskId}`)?.scrollIntoView({block:"center"}));}}>{locale === "ru" ? "Задание" : "Тапсырма"} {(detail.taskIndex ?? 0)+1}: {validationMessage(detail.code,locale)}</button> : validationMessage(detail.code,locale)}
+                </li>)}</ul>
               </div>
             )}
             <button

@@ -1,5 +1,6 @@
 import json,subprocess,sys,importlib.util
 from pathlib import Path
+sys.path.insert(0, str(Path('apps/worker').resolve()))
 spec=importlib.util.spec_from_file_location('parser','apps/worker/parser.py');p=importlib.util.module_from_spec(spec);spec.loader.exec_module(p)
 manifest=json.loads(Path('tests/fixtures/manifest.json').read_text(encoding='utf8'));groups={}
 for fixture in manifest:

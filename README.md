@@ -4,13 +4,19 @@ ZiyatAI помогает учителю информатики загрузит�
 
 **Текущий статус: проверено локально, публичный production запуск не выполнен.** Настоящий OpenAI provider реализован, но без ключа не проверен. Синтетическое демо явно помечено и не выдаётся за AI. Полный перечень результатов и блокеров — в [приёмке](docs/acceptance.md).
 
+![Рабочее пространство ZiyatAI на синтетическом аккаунте](docs/images/workspace.png)
+
+[Мобильный экран](docs/images/mobile.png) · [Логотип и дизайн](docs/design.md) · [Облегчённый режим для старых браузеров](docs/browser-support.md)
+
 ## Локальный запуск с нуля
 
-Требуются Git, Node.js 24.21.0 LTS, Python 3.13/3.14 и работающий Docker Desktop/Engine с Linux контейнерами. На машине нужно примерно 8GiB свободной RAM и место для образов. Windows шрифты используются только локально с установленной лицензией; на Linux задайте FONT_DIRECTORY с законно установленными TNR/Arial/Calibri. Шрифты в репозиторий и образы не включаются.
+Требуются Git, Node.js 24.22.0 LTS, Python 3.12–3.14 и работающий Docker Desktop/Engine с Linux контейнерами. На серверной машине нужно примерно 8GiB свободной RAM и место для образов. Учитель открывает сайт в браузере: Docker и Python на школьном ПК не нужны. Для старых браузеров предусмотрен [облегчённый режим](http://localhost:3000/lite/), подробнее — [совместимость](docs/browser-support.md).
+
+Windows шрифты используются только локально с установленной лицензией; на Linux задайте FONT_DIRECTORY с законно установленными TNR/Arial/Calibri. Шрифты в репозиторий и образы не включаются.
 
 ```powershell
 npm ci
-python -m pip install -r apps/worker/requirements.txt -r tests/requirements.txt
+python -m pip install -r apps/worker/requirements.lock.txt -r tests/requirements.txt
 npm run local:setup
 npm run infra:up
 npx tsx scripts/enable-local-renderer.ts
@@ -32,7 +38,7 @@ npm run worker
 Для устойчивого локального запуска соберите и запустите web/worker контейнеры:
 
 ```powershell
-docker build --target web -f infra/Dockerfile -t ziyatai-web:local .
+docker build --build-arg UPLOAD_ORIGIN=http://127.0.0.1:53900 --target web -f infra/Dockerfile -t ziyatai-web:local .
 docker build --target worker -f infra/Dockerfile -t ziyatai-worker:local .
 docker compose -f infra/compose.app-local.yml up -d
 ```
@@ -51,13 +57,16 @@ npx tsx --env-file=.env.local scripts/live-ai-smoke.ts
 
 Без ключа smoke завершается статусом BLOCKED и не делает запрос. Успешный smoke проверяет контракт одного ответа, но не заменяет педагогическую оценку, 36 подготовленных сценариев и production E2E.
 
-Production план и минимальные внешние действия владельца — в [deploy.md](docs/deploy.md). [env.example](.env.example) содержит только placeholders и используемые настройки. APP_ENV=production включает fail-closed требования антивируса и isolated renderer, отключает synthetic demo provider и требует real AI на startup. Локально собранный production bundle с APP_ENV=local остаётся локальной проверкой, не production приёмкой.
+Для frontend выбран **Netlify**: [схема, бесплатный тариф и настройка](docs/netlify.md). PostgreSQL, worker, OCR, антивирус и конвертация PDF работают на отдельном сервере; бесплатный frontend не означает бесплатную работу всего сервиса. Аккаунт хостинга ещё не подключён, публичного деплоя нет.
+
+Production план и минимальные внешние действия владельца — в [deploy.md](docs/deploy.md). [.env.example](.env.example) содержит только placeholders и используемые настройки. APP_ENV=production включает fail-closed требования антивируса и isolated renderer, отключает synthetic demo provider и требует real AI на startup. Локально собранный production bundle с APP_ENV=local остаётся локальной проверкой, не production приёмкой.
 
 ## Проверки
 
 ```powershell
 npm run lint
 npm run typecheck
+npm run check:source
 npm test
 npm run test:parser
 npm run test:e2e
@@ -69,9 +78,13 @@ npx tsx --env-file=.env.local scripts/antivirus-check.ts
 npx tsx --env-file=.env.local scripts/load-check.ts
 python scripts/parser-report.py
 python scripts/document-check.py
+npx tsx --env-file=.env.local scripts/upload-cleanup-check.ts
+npx tsx scripts/proxy-check.ts
+npx tsx scripts/browser-check.ts
+npx tsx scripts/legacy-browser-check.ts
 ```
 
-E2E требует запущенных web, worker, PostgreSQL, S3, renderer, ClamAV, Mailpit и локально установленного Chrome. Проверки используют только синтетические данные и случайные пароли. `.local/qa`, traces и резервные тестовые архивы игнорируются git; не публикуйте их как общую библиотеку. На CI выполняются lint/typecheck/unit/parser/build/audit/secret scan. Интеграционная приёмка с контейнерами и staging должна проходить перед production release отдельно.
+E2E требует запущенных web, worker, PostgreSQL, S3, renderer, ClamAV, Mailpit и локально установленного Chrome. Проверки используют только синтетические данные и случайные пароли. `.local/qa`, traces и резервные тестовые архивы игнорируются git; не публикуйте их как общую библиотеку. На CI выполняются lint/typecheck/unit/parser/build/audit/secret scan и интеграционные сценарии без лицензированных шрифтов. Полный экспорт с TNR и приёмка на публичном staging проверяются отдельно. Для native Firefox 115 проверки нужны официальные локальные Firefox/geckodriver binaries; инструкция — в документе о совместимости.
 
 ## Документация
 
@@ -79,6 +92,8 @@ E2E требует запущенных web, worker, PostgreSQL, S3, renderer, C
 - [Архитектура и лицензии](docs/adr/001_architecture.md), [инфраструктура и расходы](docs/adr/002_hosting.md)
 - [Контракты API](docs/api.md), [модель угроз](docs/threat-model.md)
 - [Деплой](docs/deploy.md), [эксплуатация и восстановление](docs/runbook.md)
+- [Netlify](docs/netlify.md), [дизайн и логотип](docs/design.md), [поддержка браузеров](docs/browser-support.md)
+- [Лицензии сторонних компонентов](THIRD_PARTY_NOTICES.md), [проверка шести production образов](docs/container-security.md)
 - [Прогресс](docs/progress.md), [приёмка и внешние блокеры](docs/acceptance.md)
 
 ## Troubleshooting

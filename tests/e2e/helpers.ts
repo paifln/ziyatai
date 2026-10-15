@@ -2,6 +2,13 @@ import { expect, type APIRequestContext } from "@playwright/test";
 import { randomBytes } from "node:crypto";
 export const origin = "http://localhost:3000";
 export const headers = { Origin: origin };
+async function authRequest<T extends {status:()=>number}>(send:()=>Promise<T>):Promise<T>{
+  let response = await send();
+  if(response.status()===429) await expect.poll(async()=>{
+    response=await send();return response.status();
+  },{timeout:70000,intervals:[2000,3000,5000]}).not.toBe(429);
+  return response;
+}
 export async function emailLink(
   request: APIRequestContext,
   email: string,
@@ -37,19 +44,19 @@ export async function verifiedUser(
 ) {
   const email = `teacher-${randomBytes(5).toString("hex")}@example.test`,
     password = randomBytes(16).toString("hex");
-  const signup = await request.post("/api/auth/sign-up/email", {
+  const signup = await authRequest(()=>request.post("/api/auth/sign-up/email", {
     headers,
     data: { email, password, name, callbackURL: "/" },
-  });
+  }));
   expect(signup.ok(), await signup.text()).toBeTruthy();
   const link = await emailLink(request, email);
-  const verified = await request.get(link);
+  const verified = await authRequest(()=>request.get(link));
   expect(verified.ok(), await verified.text()).toBeTruthy();
-  const login = await request.post("/api/auth/sign-in/email", {
+  const login = await authRequest(()=>request.post("/api/auth/sign-in/email", {
     headers,
     data: { email, password },
-  });
-  if(login.status()===429){await expect.poll(async()=> (await request.post('/api/auth/sign-in/email',{headers,data:{email,password}})).status(),{timeout:20000,intervals:[2000,3000,5000]}).toBe(200);}else expect(login.ok(), await login.text()).toBeTruthy();
+  }));
+  expect(login.ok(), await login.text()).toBeTruthy();
   return { email, password };
 }
 export async function jobDone(request: APIRequestContext, id: string) {

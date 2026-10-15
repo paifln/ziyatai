@@ -12,13 +12,14 @@ import { join, resolve } from "node:path";
 import { db, transaction } from "../web/lib/db";
 import { env } from "../web/lib/env";
 import { getObject, putObject, deleteObject } from "../web/lib/storage";
-import { processRun } from "../web/lib/files";
+import { processRun, inspectFile } from "../web/lib/files";
 import { ImportResult } from "../../packages/contracts";
 import { validateDocument } from "../../packages/domain/validation";
 import { AppError } from "../../packages/domain/errors";
 import { renderDocx } from "../../packages/document-renderer";
 import { generate } from "./ai";
 import { isolatedRequest } from "../web/lib/renderer";
+import { cleanupAbandonedUploads } from "../web/lib/upload-cleanup";
 const workerId = randomUUID();
 let stopping = false;
 process.on("SIGTERM", () => {
@@ -86,7 +87,37 @@ async function importPlan(job: Job) {
   const dir = await mkdtemp(join(tmpdir(), "ziyatai-parse-"));
   try {
     const path = join(dir, `source.${ext}`);
-    await writeFile(path, await getObject(f.object_key));
+    const sourceBytes = await getObject(f.object_key);
+    if (sourceBytes.length !== Number(f.bytes)) throw new AppError("FILE_INVALID",422);
+    if (f.scan_status === "pending") {
+      await stage(job, "scanning");
+      let type;
+      try { type = await inspectFile(sourceBytes, f.original_name); }
+      catch (error) {
+        if (["FILE_INVALID","FILE_TYPE","FILE_SIZE","FILE_UNSAFE"].includes((error as AppError).code))
+          await transaction(async (c) => {
+            await check(c,job);
+            await c.query("UPDATE uploads SET status='rejected',scan_status='rejected' WHERE id=$1 AND owner_id=$2",[f.id,job.owner_id]);
+          });
+        throw error;
+      }
+      // Signed quarantine URLs stay writable briefly. Publish a separate immutable key,
+      // never the key an untrusted client can overwrite after its successful scan.
+      const cleanKey = `${job.owner_id}/uploads/${randomUUID()}.${type.ext}`;
+      let published = false;
+      await putObject(cleanKey,sourceBytes,type.mime);
+      try {
+        await transaction(async (c) => {
+          await check(c,job); await active("plans",job,c);
+          const updated = await c.query("UPDATE uploads SET object_key=$3,mime=$4,checksum=$5,scan_status=$6 WHERE id=$1 AND owner_id=$2 AND deleted_at IS NULL AND scan_status='pending' RETURNING id",[f.id,job.owner_id,cleanKey,type.mime,createHash('sha256').update(sourceBytes).digest('hex'),env().SCAN_REQUIRED==='true'?'clean':'unscanned-development']);
+          if (!updated.rowCount) throw new AppError("CONFLICT",409);
+        });
+        published = true;
+      } finally { if (!published) await deleteObject(cleanKey); }
+      await deleteObject(f.object_key);
+    } else if (!["clean","unscanned-development"].includes(f.scan_status)) throw new AppError("FILE_UNSAFE",422);
+    else if (createHash('sha256').update(sourceBytes).digest('hex') !== f.checksum) throw new AppError("FILE_INVALID",422);
+    await writeFile(path, sourceBytes);
     const e = env();
     let output: string;
     if (e.RENDERER_URL) {
@@ -259,6 +290,7 @@ async function exportDocument(job: Job) {
       g.source_snapshot,
       ex.styles,
       ex.audience,
+      ex.teacher_reviewed,
     );
     const path = join(dir, "material.docx");
     await writeFile(path, doc);
@@ -515,13 +547,8 @@ async function janitor() {
   await db().query(
     "DELETE FROM api_limits WHERE window_start<now()-interval '1 day'",
   );
-  const abandoned = await db().query(
-    "UPDATE uploads SET deleted_at=now() WHERE deleted_at IS NULL AND created_at<now()-interval '24 hours' AND NOT EXISTS(SELECT 1 FROM plans WHERE file_id=uploads.id) RETURNING id,owner_id,object_key",
-  );
-  for (const upload of abandoned.rows) {
-    await deleteObject(upload.object_key);
-    await db().query("DELETE FROM uploads WHERE id=$1", [upload.id]);
-  }
+  const cleanup = await cleanupAbandonedUploads();
+  if (cleanup.failed) console.error(JSON.stringify({ code: "UPLOAD_CLEANUP_RETRY", count: cleanup.failed }));
   for (const name of await readdir(tmpdir()))
     if (name.startsWith("ziyatai-")) {
       const path = join(tmpdir(), name);

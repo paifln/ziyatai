@@ -12,6 +12,8 @@ for (const [input, output] of [
     bundle: true,
     platform: "node",
     format: "esm",
-    packages: input === "scripts/preflight.ts" ? "bundle" : "external",
+    packages: "bundle",
+    external: ["pg-native"],
+    banner: {js:'import { createRequire } from "node:module"; const require = createRequire(import.meta.url);'},
     target: "node24",
   });

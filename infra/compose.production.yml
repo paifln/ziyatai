@@ -2,13 +2,14 @@
 name: ziyatai-production
 services:
   postgres:
-    image: postgres:18@sha256:74935e72241653ca55e0414067e6d8763aceb8a810eb51b452253ec3dcfc4336
+    image: ziyatai-postgres:${RELEASE:?required}
+    build: {context: .., dockerfile: infra/Dockerfile.postgres}
     restart: unless-stopped
     environment:
       POSTGRES_USER: ziyatai
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?required}
       POSTGRES_DB: ziyatai
-    volumes: ["postgres:/var/lib/postgresql"]
+    volumes: ["postgres-alpine:/var/lib/postgresql"]
     networks: [data]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ziyatai -d ziyatai"]
@@ -17,7 +18,11 @@ services:
       retries: 10
   web:
     image: ziyatai-web:${RELEASE:?required}
-    build: {context: .., dockerfile: infra/Dockerfile, target: web}
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile
+      target: web
+      args: {UPLOAD_ORIGIN: "${UPLOAD_ORIGIN:?Set public HTTPS storage origin}"}
     restart: unless-stopped
     env_file: ../.env.production
     environment:
@@ -57,7 +62,7 @@ services:
     mem_limit: 2g
     cpus: 2.0
     pids_limit: 128
-    networks: [data,egress,render]
+    networks: [data,egress,render,av]
   renderer:
     image: ziyatai-renderer:${RELEASE:?required}
     build: {context: .., dockerfile: infra/Dockerfile.renderer}
@@ -80,15 +85,17 @@ services:
     volumes: ["clam-db:/var/lib/clamav"]
     networks: [egress,av]
   proxy:
-    image: caddy:2.11.7@sha256:685ae3d7c34d9b5f8caeddc5d14051db7bbd88ff1f5a2fa0c16bd8ca328fb7af
+    image: ziyatai-proxy:${RELEASE:?required}
+    build: {context: .., dockerfile: infra/Dockerfile.proxy}
     restart: unless-stopped
     ports: ["80:80","443:443"]
     environment:
       APP_HOST: ${APP_HOST:?required}
-    volumes: ["./Caddyfile:/etc/caddy/Caddyfile:ro","caddy-data:/data","caddy-config:/config"]
+      APP_URL: ${APP_URL:?required}
+    volumes: ["${CADDY_CONFIG:-./Caddyfile}:/etc/caddy/Caddyfile:ro","caddy-data:/data","caddy-config:/config"]
     networks: [edge]
 volumes:
-  postgres:
+  postgres-alpine:
   clam-db:
   caddy-data:
   caddy-config:

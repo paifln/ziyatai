@@ -4,12 +4,16 @@
   "description": "ZiyatAI — private KTP import and differentiated assignments for Kazakhstan teachers",
   "main": "index.js",
   "scripts": {
+    "predev": "npm run licenses:generate",
     "dev": "next dev --webpack",
-    "build": "next build --webpack",
-    "start": "next start",
+    "build": "npm run licenses:generate && next build --webpack && node scripts/package-web.mjs",
+    "build:netlify": "node scripts/prepare-netlify.mjs && npm run licenses:generate && next build --webpack",
+    "licenses:generate": "node scripts/license-report.mjs",
+    "start": "node --env-file-if-exists=.env.local scripts/start-web.mjs",
     "worker": "tsx --env-file=.env.local apps/worker/index.ts",
     "migrate": "tsx --env-file=.env.local scripts/migrate.ts",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
+    "check:source": "node scripts/check-source.mjs",
     "lint": "eslint .",
     "test": "vitest run",
     "test:parser": "python -m pytest tests/parser -q",
@@ -21,7 +25,8 @@
   "keywords": [],
   "type": "module",
   "dependencies": {
-    "@aws-sdk/client-s3": "3.1151.0",
+    "@aws-sdk/client-s3": "3.1152.0",
+    "@aws-sdk/s3-request-presigner": "3.1152.0",
     "better-auth": "1.7.7",
     "docx": "9.11.0",
     "lucide-react": "1.57.0",
@@ -34,12 +39,14 @@
     "zod": "4.6.7"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
     "@playwright/test": "1.64.1",
     "@types/node": "26.6.5",
     "@types/nodemailer": "8.0.2",
     "@types/pg": "8.23.1",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
+    "acorn": "8.19.0",
     "esbuild": "0.28.2",
     "eslint": "10.12.0",
     "eslint-plugin-react-hooks": "7.1.1",
@@ -50,8 +57,7 @@
     "vitest": "5.0.4"
   },
   "allowScripts": {
-    "esbuild@0.28.2": true,
-    "unrs-resolver@1.12.2": true
+    "esbuild@0.28.2": true
   },
   "private": true,
   "engines": {

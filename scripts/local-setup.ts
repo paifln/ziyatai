@@ -12,6 +12,7 @@ POSTGRES_PASSWORD=${password}
 AUTH_SECRET=${secret()}
 APP_URL=http://localhost:3000
 STORAGE_ENDPOINT=http://127.0.0.1:53900
+STORAGE_PUBLIC_ENDPOINT=http://127.0.0.1:53900
 STORAGE_REGION=garage
 STORAGE_BUCKET=ziyatai-private
 STORAGE_ACCESS_KEY=GK${randomBytes(16).toString("hex")}

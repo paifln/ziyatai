@@ -6,6 +6,10 @@ test("teacher UI imports a file, confirms rows, edits a task and downloads an ex
 }) => {
   await verifiedUser(request);
   await page.context().addCookies((await request.storageState()).cookies);
+  await page.route("**/api/profile",async(route)=>{
+    const response=await route.fetch();const data=await response.json();
+    await route.fulfill({response,json:{...data,capabilities:{...data.capabilities,directUploads:true}}});
+  });
   await page.goto("/");
   await page.getByRole("button", { name: "РУС", exact: true }).click();
   await page
@@ -32,10 +36,10 @@ test("teacher UI imports a file, confirms rows, edits a task and downloads an ex
   await expect(page.getByText("Подтверждено", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Обзор", exact: true }).click();
   await page
-    .getByRole("button", { name: "Открыть синтетическое демо", exact: true })
+    .getByRole("button", { name: "Посмотреть пример заданий", exact: true })
     .click();
   await expect(
-    page.getByText("Синтетическое демо • OpenAI не вызывался", { exact: true }),
+    page.getByText("Готовый пример • AI не используется", { exact: true }),
   ).toBeVisible();
   const first = page.locator(".task-card").first();
   await first

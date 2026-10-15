@@ -2,6 +2,70 @@ import { test, expect } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { verifiedUser, jobDone, headers } from "./helpers";
+import { request as httpRequest } from "node:http";
+
+test("chunked JSON is bounded and teacher review cannot bypass invalid scoring", async ({
+  request,
+}) => {
+  await verifiedUser(request);
+  const cookies = (await request.storageState()).cookies
+    .map((c) => `${c.name}=${c.value}`)
+    .join("; ");
+  const status = await new Promise<number>((resolve, reject) => {
+    const outgoing = httpRequest(
+      {
+        hostname: "127.0.0.1",
+        port: 3000,
+        path: "/api/exports",
+        method: "POST",
+        headers: {
+          ...headers,
+          Cookie: cookies,
+          "Content-Type": "application/json",
+          "Transfer-Encoding": "chunked",
+        },
+      },
+      (response) => {
+        response.resume();
+        resolve(response.statusCode || 0);
+      },
+    );
+    outgoing.on("error", reject);
+    outgoing.write('{"large":"');
+    for (let i = 0; i < 9; i++) outgoing.write("a".repeat(256 * 1024));
+    outgoing.end('"}');
+  });
+  expect(status).toBe(413);
+  const demo = await (
+    await request.post("/api/demo", { headers, data: { locale: "ru" } })
+  ).json();
+  const current = await (
+    await request.get(`/api/generations/${demo.id}`)
+  ).json();
+  const task = current.document.tasks[0];
+  task.points++;
+  const edited = await request.patch(
+    `/api/generations/${demo.id}/tasks/${task.id}`,
+    { headers, data: { revision: current.revision, task } },
+  );
+  expect(edited.ok()).toBe(true);
+  const updated = await (
+    await request.get(`/api/generations/${demo.id}`)
+  ).json();
+  const rejected = await request.post("/api/exports", {
+    headers: { ...headers, "Idempotency-Key": randomUUID() },
+    data: {
+      generationId: demo.id,
+      revision: updated.revision,
+      format: "docx",
+      audience: "full",
+      styles: {},
+      teacherReviewed: true,
+    },
+  });
+  expect(rejected.status()).toBe(422);
+  expect((await rejected.json()).code).toBe("REVIEW_REQUIRED");
+});
 test("negative uploads, idempotent exports, cancellation and deletion revoke access", async ({
   request,
 }) => {

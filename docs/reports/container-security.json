@@ -1,0 +1,147 @@
+{
+  "date": "2026-10-15",
+  "scanner": "Trivy 0.76.0",
+  "filter": "HIGH,CRITICAL; includes unfixed findings; no CVE ignored",
+  "scope": "Recognized OS and language packages in six images; bundled worker JS dependencies also checked separately with npm audit",
+  "images": [
+    {
+      "component": "web",
+      "image": "ziyatai-web:release",
+      "digest": "sha256:3a7846c9180d649ae012e72fcc1ae96085656eeebea96aa5a80e4b4e9cdd7635",
+      "scannedAt": "2026-10-15T16:39:25.348475395Z",
+      "os": {
+        "Family": "ubuntu",
+        "Name": "24.04"
+      },
+      "targets": [
+        {
+          "target": "ziyatai-web:release (ubuntu 24.04)",
+          "type": "ubuntu",
+          "packageCount": 95
+        },
+        {
+          "target": "Node.js",
+          "type": "node-pkg",
+          "packageCount": 64
+        }
+      ],
+      "counts": {},
+      "findings": []
+    },
+    {
+      "component": "renderer",
+      "image": "ziyatai-renderer:local",
+      "digest": "sha256:109f10cb0d22f3fb250f77582dc13a5ffac1541d70143d38a89bbd36d97334f8",
+      "scannedAt": "2026-10-15T16:19:01.880917619Z",
+      "os": {
+        "Family": "ubuntu",
+        "Name": "24.04"
+      },
+      "targets": [
+        {
+          "target": "ziyatai-renderer:local (ubuntu 24.04)",
+          "type": "ubuntu",
+          "packageCount": 265
+        },
+        {
+          "target": "Python",
+          "type": "python-pkg",
+          "packageCount": 14
+        }
+      ],
+      "counts": {},
+      "findings": []
+    },
+    {
+      "component": "worker",
+      "image": "ziyatai-worker:release",
+      "digest": "sha256:529abf46638fdf2828ced90f8d248d88b2f4f29e675a0ed710b27dce8d0fa1c6",
+      "scannedAt": "2026-10-15T16:39:33.126419058Z",
+      "os": {
+        "Family": "ubuntu",
+        "Name": "24.04"
+      },
+      "targets": [
+        {
+          "target": "ziyatai-worker:release (ubuntu 24.04)",
+          "type": "ubuntu",
+          "packageCount": 95
+        },
+        {
+          "target": "Node.js",
+          "type": "node-pkg",
+          "packageCount": 1
+        }
+      ],
+      "counts": {},
+      "findings": []
+    },
+    {
+      "component": "postgres",
+      "image": "ziyatai-postgres:release",
+      "digest": "sha256:b39ade90fa059d268f50fc0e1c1520daa2aa960610428e338d9497d5a237a7c9",
+      "scannedAt": "2026-10-15T16:31:49.231768376Z",
+      "os": {
+        "Family": "alpine",
+        "Name": "3.24.2"
+      },
+      "targets": [
+        {
+          "target": "ziyatai-postgres:release (alpine 3.24.2)",
+          "type": "alpine",
+          "packageCount": 53
+        },
+        {
+          "target": "usr/local/bin/gosu",
+          "type": "gobinary",
+          "packageCount": 4
+        }
+      ],
+      "counts": {},
+      "findings": []
+    },
+    {
+      "component": "proxy",
+      "image": "ziyatai-proxy:release",
+      "digest": "sha256:db27d833dd50a28ec8cc4fa174409fd1902d3800e8ae3c1baf60fa20279ec8e9",
+      "scannedAt": "2026-10-15T16:31:52.608447597Z",
+      "os": {
+        "Family": "alpine",
+        "Name": "3.23.6"
+      },
+      "targets": [
+        {
+          "target": "ziyatai-proxy:release (alpine 3.23.6)",
+          "type": "alpine",
+          "packageCount": 32
+        },
+        {
+          "target": "usr/bin/caddy",
+          "type": "gobinary",
+          "packageCount": 162
+        }
+      ],
+      "counts": {},
+      "findings": []
+    },
+    {
+      "component": "antivirus",
+      "image": "clamav/clamav:1.4@sha256:b5b910ce43d595bf8a2fe401e34db56434602b2c755b7c2b07f00c917d04d469",
+      "digest": "sha256:b5b910ce43d595bf8a2fe401e34db56434602b2c755b7c2b07f00c917d04d469",
+      "scannedAt": "2026-10-15T16:20:57.343173297Z",
+      "os": {
+        "Family": "alpine",
+        "Name": "3.24.2"
+      },
+      "targets": [
+        {
+          "target": "clamav/clamav:1.4@sha256:b5b910ce43d595bf8a2fe401e34db56434602b2c755b7c2b07f00c917d04d469 (alpine 3.24.2)",
+          "type": "alpine",
+          "packageCount": 41
+        }
+      ],
+      "counts": {},
+      "findings": []
+    }
+  ]
+}
