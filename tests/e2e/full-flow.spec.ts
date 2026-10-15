@@ -214,6 +214,7 @@ test("password reset uses delivered email and invalidates the old password", asy
     data: { token, newPassword: password },
   });
   expect(reset.ok(), await reset.text()).toBeTruthy();
+  expect((await request.get("/api/profile")).status()).toBe(401);
   expect(
     (
       await request.post("/api/auth/sign-in/email", {

@@ -8,7 +8,7 @@
 | --- | --- |
 | POST /api/auth/sign-up/email | name, email, password минимум 12 символов; verification email |
 | POST /api/auth/sign-in/email; /sign-out | Обычная email/password сессия |
-| POST /api/auth/request-password-reset; /reset-password | Восстановление через одноразовый токен в письме |
+| POST /api/auth/request-password-reset; /reset-password | Восстановление через одноразовый токен в письме; успешный сброс отзывает все старые сессии |
 | GET /api/health; /api/health/ready | Liveness; БД/storage/worker readiness; без секретов |
 | POST /api/uploads | multipart file; локальный резервный путь при DIRECT_UPLOADS=false, максимум 25MiB |
 | POST /api/uploads/init | name, bytes; резервирование квоты и короткоживущий подписанный PUT в приватный quarantine; MIME определяется сервером по расширению |
@@ -42,3 +42,5 @@
 teacherReviewed=true — явное подтверждение учителя для конкретного экспорта. Сервер повторно проверяет документ и отвергает подтверждение при структурных замечаниях (REVIEW_REQUIRED); без подтверждения экспорт сохраняет надпись «Черновик». Подтверждение не меняет needs_review у AI и не является автоматической педагогической экспертизой. Поле сохраняется в exports и возвращается библиотекой. JSON body ограничен 2MiB независимо от Content-Length; AST имеет отдельные ограничения количества заданий, блоков, ячеек и текста.
 
 Renderer — внутренний сервис: POST /inspect, /parse, /render. Требует длинный bearer token; принимает ограниченные bytes + X-Format, X-Font, X-Include-Hidden. Публичный ingress для него запрещён. В нём отсутствуют пользовательская БД, storage ключи и OpenAI key.
+
+При API_GATEWAY=netlify все auth/business endpoints дополнительно требуют действующую Netlify HS256 подпись нужного site ID. Проверенный provider IP используется для auth rate limit; клиентский `x-ziyatai-client-ip` перезаписывается. Health не требует подписи. Standalone Compose сохраняет API_GATEWAY=direct и доверяет только заголовкам своего reverse proxy. [Настройка](netlify.md).

@@ -12,7 +12,9 @@
 
 Обновлены и проверены контейнеры, включая отдельные исправленные PostgreSQL/proxy images для production. Проверка restore теперь использует согласованный snapshot и SHA256 содержимого 14 таблиц, в том числе на новой PostgreSQL платформе. Текущая локальная БД сохранена. Исправлено глобальное Git ignore `lib/`, из-за которого первый коммит не включал серверные исходники; добавлена проверка скрытого source. Обновлены README, Netlify/browser/design/deploy/API/runbook и лицензионные notices.
 
-Локально проходят 33 unit-теста, 27 parser tests и 13 E2E. GitHub remote подключён. Публичного deployment и live AI всё ещё нет; границы и внешние действия перечислены в [приёмке](acceptance.md).
+Локально проходят 52 unit-теста, 27 parser tests и 15 E2E. GitHub remote подключён, первый полный CI checkpoint завершился успешно. Better Auth обновлён до 1.7.10, успешный reset отзывает сессии; fault test проверяет rollback и повтор ссылки. Исправлено открытие формы reset при активном входе, переключение языка в Lite и удаление токена из адреса после сброса.
+
+Netlify signed gateway проверяет HS256/site ID/expiry/context до доверия provider IP; неподписанные auth/business requests отклоняются. Полная локальная offline упаковка адаптером Netlify прошла без credentials backend. CI дополнен Linux packaging и обязательным ClamAV для интеграций. Публичного deployment и live AI всё ещё нет; границы и внешние действия перечислены в [приёмке](acceptance.md).
 
 ## Первоначальная реализация
 

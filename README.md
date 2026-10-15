@@ -79,12 +79,14 @@ npx tsx --env-file=.env.local scripts/load-check.ts
 python scripts/parser-report.py
 python scripts/document-check.py
 npx tsx --env-file=.env.local scripts/upload-cleanup-check.ts
+npx tsx --env-file=.env.local scripts/auth-reset-check.ts
+npx tsx scripts/netlify-gateway-check.ts
 npx tsx scripts/proxy-check.ts
 npx tsx scripts/browser-check.ts
 npx tsx scripts/legacy-browser-check.ts
 ```
 
-E2E требует запущенных web, worker, PostgreSQL, S3, renderer, ClamAV, Mailpit и локально установленного Chrome. Проверки используют только синтетические данные и случайные пароли. `.local/qa`, traces и резервные тестовые архивы игнорируются git; не публикуйте их как общую библиотеку. На CI выполняются lint/typecheck/unit/parser/build/audit/secret scan и интеграционные сценарии без лицензированных шрифтов. Полный экспорт с TNR и приёмка на публичном staging проверяются отдельно. Для native Firefox 115 проверки нужны официальные локальные Firefox/geckodriver binaries; инструкция — в документе о совместимости.
+E2E требует запущенных web, worker, PostgreSQL, S3, renderer, ClamAV, Mailpit и локально установленного Chrome. Проверки используют только синтетические данные и случайные пароли. Для `proxy-check.ts` отдельно соберите `docker build -f infra/Dockerfile.proxy -t ziyatai-proxy:local .`; gateway check использует уже собранный `ziyatai-web:local`. `.local/qa`, traces и резервные тестовые архивы игнорируются git; не публикуйте их как общую библиотеку. На CI выполняются lint/typecheck/unit/parser/build/audit/secret scan и интеграционные сценарии без лицензированных шрифтов, со сканированием ClamAV. Полный экспорт с TNR и приёмка на публичном staging проверяются отдельно. Для native Firefox 115 проверки нужны официальные локальные Firefox/geckodriver binaries; инструкция — в документе о совместимости.
 
 ## Документация
 

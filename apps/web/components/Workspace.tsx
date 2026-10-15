@@ -32,9 +32,15 @@ import { usePolling, useResume } from "../lib/use-polling";
 const ResourceCollection = dynamic(() => import("./ResourceCollection"));
 const PlanReview = dynamic(() => import("./PlanReview"));
 const GenerationEditor = dynamic(() => import("./GenerationEditor"));
-const UploadPanel = dynamic(() => import("./WorkspaceForms").then((m) => m.UploadPanel));
-const GeneratePanel = dynamic(() => import("./WorkspaceForms").then((m) => m.GeneratePanel));
-const ProfilePanel = dynamic(() => import("./WorkspaceForms").then((m) => m.ProfilePanel));
+const UploadPanel = dynamic(() =>
+  import("./WorkspaceForms").then((m) => m.UploadPanel),
+);
+const GeneratePanel = dynamic(() =>
+  import("./WorkspaceForms").then((m) => m.GeneratePanel),
+);
+const ProfilePanel = dynamic(() =>
+  import("./WorkspaceForms").then((m) => m.ProfilePanel),
+);
 const nav = [
   { key: "overview", icon: LayoutDashboard },
   { key: "plans", icon: Files },
@@ -62,8 +68,15 @@ export default function Workspace() {
     [query, setQuery] = useState("");
   const [hasChanges, setHasChanges] = useState(false);
   const openedLink = useRef(false);
+  const [passwordReset, setPasswordReset] = useState(false);
+  useEffect(() => {
+    setPasswordReset(new URLSearchParams(window.location.search).has("token"));
+  }, []);
   const sidebar = useRef<HTMLElement>(null);
-  const discardPrompt = locale === "ru" ? "Есть несохранённые изменения. Уйти без сохранения?" : "Сақталмаған өзгерістер бар. Сақтамай шығу керек пе?";
+  const discardPrompt =
+    locale === "ru"
+      ? "Есть несохранённые изменения. Уйти без сохранения?"
+      : "Сақталмаған өзгерістер бар. Сақтамай шығу керек пе?";
   const refreshing = useRef(false);
   const refreshQueued = useRef(false);
   const setLocale = useCallback((l: UiLocale) => {
@@ -78,40 +91,50 @@ export default function Workspace() {
     if (cookie) setLocale(cookie);
   }, [setLocale]);
   const refresh = useCallback(async () => {
-    if (!session) return;
-    if (refreshing.current) { refreshQueued.current = true; return; }
+    if (!session || passwordReset) return;
+    if (refreshing.current) {
+      refreshQueued.current = true;
+      return;
+    }
     refreshing.current = true;
     try {
       do {
-      refreshQueued.current = false;
-      const data = await Promise.all([
-        api("profile"),
-        api("ktp?limit=100"),
-        api("library?limit=100"),
-        api("jobs"),
-      ]);
-      setProfile(data[0]);
-      setPlans(data[1]);
-      setLibrary(data[2]);
-      setJobs(data[3]);
-      setLoaded(true);
+        refreshQueued.current = false;
+        const data = await Promise.all([
+          api("profile"),
+          api("ktp?limit=100"),
+          api("library?limit=100"),
+          api("jobs"),
+        ]);
+        setProfile(data[0]);
+        setPlans(data[1]);
+        setLibrary(data[2]);
+        setJobs(data[3]);
+        setLoaded(true);
       } while (refreshQueued.current);
     } catch (e) {
       setError((e as Error).message);
     } finally {
       refreshing.current = false;
     }
-  }, [session]);
+  }, [session, passwordReset]);
   useEffect(() => {
     void refresh();
   }, [refresh]);
-  usePolling(refresh, !!session && jobs.some((j) => ["queued", "running"].includes(j.status)), 5000);
-  useResume(refresh,!!session);
+  usePolling(
+    refresh,
+    !!session && jobs.some((j) => ["queued", "running"].includes(j.status)),
+    5000,
+  );
+  useResume(refresh, !!session);
   useEffect(() => {
     if (!loaded || openedLink.current) return;
     openedLink.current = true;
     const id = new URLSearchParams(window.location.search).get("generation");
-    if (id && /^[0-9a-f-]{36}$/i.test(id)) { setSelected(id); setView("editor"); }
+    if (id && /^[0-9a-f-]{36}$/i.test(id)) {
+      setSelected(id);
+      setView("editor");
+    }
   }, [loaded]);
   useEffect(() => {
     if (!menu) return;
@@ -119,11 +142,19 @@ export default function Workspace() {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") setMenu(false);
       if (event.key === "Tab") {
-        const nodes = sidebar.current?.querySelectorAll<HTMLElement>('a[href],button:not([disabled])');
+        const nodes = sidebar.current?.querySelectorAll<HTMLElement>(
+          "a[href],button:not([disabled])",
+        );
         if (!nodes?.length) return;
-        const first=nodes[0],last=nodes[nodes.length-1];
-        if (event.shiftKey && document.activeElement===first) { event.preventDefault(); last.focus(); }
-        else if (!event.shiftKey && document.activeElement===last) { event.preventDefault(); first.focus(); }
+        const first = nodes[0],
+          last = nodes[nodes.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
       }
     };
     const previous = document.body.style.overflow;
@@ -217,6 +248,8 @@ export default function Workspace() {
       ))}
     </>
   );
+  if (passwordReset)
+    return <AuthPanel t={t} locale={locale} setLocale={setLocale} />;
   if (isPending)
     return (
       <div className="loading-screen">
@@ -230,17 +263,35 @@ export default function Workspace() {
   if (!session)
     return <AuthPanel t={t} locale={locale} setLocale={setLocale} />;
   const title =
-    view==='review'?t.plans:view==='editor'?t.editor:(t as any)[view]??t.upload;
+    view === "review"
+      ? t.plans
+      : view === "editor"
+        ? t.editor
+        : ((t as any)[view] ?? t.upload);
   return (
     <>
-      <a className="skip-link" href="#workspace-main">{locale === "ru" ? "К содержимому" : "Мазмұнға өту"}</a>
+      <a className="skip-link" href="#workspace-main">
+        {locale === "ru" ? "К содержимому" : "Мазмұнға өту"}
+      </a>
       <button
         className={`mobile-overlay ${menu ? "open" : ""}`}
         onClick={() => setMenu(false)}
         aria-label={t.cancel}
       />
-      <aside ref={sidebar} className={`sidebar ${menu ? "open" : ""}`} role={menu ? "dialog" : undefined} aria-modal={menu ? true : undefined} aria-label={menu ? t.workspace : undefined}>
-        <button className="icon-button sidebar-close" onClick={()=>setMenu(false)} aria-label={locale === "ru" ? "Закрыть меню" : "Мәзірді жабу"}><X size={18}/></button>
+      <aside
+        ref={sidebar}
+        className={`sidebar ${menu ? "open" : ""}`}
+        role={menu ? "dialog" : undefined}
+        aria-modal={menu ? true : undefined}
+        aria-label={menu ? t.workspace : undefined}
+      >
+        <button
+          className="icon-button sidebar-close"
+          onClick={() => setMenu(false)}
+          aria-label={locale === "ru" ? "Закрыть меню" : "Мәзірді жабу"}
+        >
+          <X size={18} />
+        </button>
         <a href="/" className="brand">
           <img src="/brand-owl.png" width="40" height="40" alt="" />
           <span>
@@ -262,8 +313,13 @@ export default function Workspace() {
           ))}
         </nav>
         <div className="sidebar-bottom">
-          <a className="lite-link" href="/help/">{locale === "ru" ? "Помощь" : "Көмек"} <ArrowRight size={14}/></a>
-          <a className="lite-link" href="/lite/">{locale === "ru" ? "Облегчённая версия" : "Жеңілдетілген нұсқа"} <ArrowRight size={14} /></a>
+          <a className="lite-link" href="/help/">
+            {locale === "ru" ? "Помощь" : "Көмек"} <ArrowRight size={14} />
+          </a>
+          <a className="lite-link" href="/lite/">
+            {locale === "ru" ? "Облегчённая версия" : "Жеңілдетілген нұсқа"}{" "}
+            <ArrowRight size={14} />
+          </a>
           <div className="profile-mini">
             <div className="avatar">
               {session.user.name.slice(0, 1).toUpperCase()}
@@ -306,7 +362,15 @@ export default function Workspace() {
             <strong>{title}</strong>
           </div>
           <div className="topbar-right">
-            <button className="icon-button" onClick={()=>void refresh()} aria-label={locale === "ru" ? "Обновить данные" : "Деректерді жаңарту"}><RefreshCw size={16}/></button>
+            <button
+              className="icon-button"
+              onClick={() => void refresh()}
+              aria-label={
+                locale === "ru" ? "Обновить данные" : "Деректерді жаңарту"
+              }
+            >
+              <RefreshCw size={16} />
+            </button>
             <div className="language-switch">
               <button
                 className={locale === "kk" ? "active" : ""}
@@ -383,27 +447,45 @@ export default function Workspace() {
                     </button>
                   </div>
                   <section className="lesson-path" aria-label={t.start}>
-                    {[[t.step1, t.step1Sub, "upload"], [t.step2, t.step2Sub, "plans"], [t.step3, t.step3Sub, "create"]].map(([heading, description, destination], index) => (
-                      <button key={destination} onClick={() => navigate(destination as View)}>
+                    {[
+                      [t.step1, t.step1Sub, "upload"],
+                      [t.step2, t.step2Sub, "plans"],
+                      [t.step3, t.step3Sub, "create"],
+                    ].map(([heading, description, destination], index) => (
+                      <button
+                        key={destination}
+                        onClick={() => navigate(destination as View)}
+                      >
                         <span className="path-number">0{index + 1}</span>
-                        <span><strong>{heading}</strong><small>{description}</small></span>
+                        <span>
+                          <strong>{heading}</strong>
+                          <small>{description}</small>
+                        </span>
                         <ArrowRight size={18} />
                       </button>
                     ))}
                   </section>
                   <div className="stats-grid">
                     {[
-                      [Files, t.planCount, profile.stats?.planCount ?? plans.length, ""],
+                      [
+                        Files,
+                        t.planCount,
+                        profile.stats?.planCount ?? plans.length,
+                        "",
+                      ],
                       [
                         Clock,
                         t.reviewCount,
-                        profile.stats?.reviewCount ?? plans.filter((p) => p.status === "review").length,
+                        profile.stats?.reviewCount ??
+                          plans.filter((p) => p.status === "review").length,
                         "gold",
                       ],
                       [
                         Library,
                         t.documentCount,
-                        profile.stats?.documentCount ?? library.filter((d) => d.status === "succeeded").length,
+                        profile.stats?.documentCount ??
+                          library.filter((d) => d.status === "succeeded")
+                            .length,
                         "blue",
                       ],
                     ].map(([Icon, label, count, color], i) => {
@@ -484,7 +566,14 @@ export default function Workspace() {
                                     {d.audience === "student"
                                       ? t.student
                                       : t.full}
-                                    {" · "}{d.teacher_reviewed ? (locale === "ru" ? "Проверено учителем" : "Мұғалім тексерді") : (locale === "ru" ? "Черновик" : "Жоба")}
+                                    {" · "}
+                                    {d.teacher_reviewed
+                                      ? locale === "ru"
+                                        ? "Проверено учителем"
+                                        : "Мұғалім тексерді"
+                                      : locale === "ru"
+                                        ? "Черновик"
+                                        : "Жоба"}
                                   </small>
                                 </div>
                                 <a
@@ -697,7 +786,15 @@ export default function Workspace() {
                 />
               )}
               {(view === "history" || view === "library") && (
-                <ResourceCollection key={view} kind={view} t={t} locale={locale} onOpen={(id) => navigate("editor",id)} onCreate={() => navigate("create")} refresh={refresh}/>
+                <ResourceCollection
+                  key={view}
+                  kind={view}
+                  t={t}
+                  locale={locale}
+                  onOpen={(id) => navigate("editor", id)}
+                  onCreate={() => navigate("create")}
+                  refresh={refresh}
+                />
               )}
               {view === "profile" && (
                 <ProfilePanel

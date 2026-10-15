@@ -4,6 +4,8 @@
 
 `npm run build:netlify` проверен из отдельного Git-архива с чистым npm install и только двумя несекретными HTTPS origins. Это подтверждает сборку без credentials БД/S3/SMTP/AI, но не интеграцию с реальным Netlify аккаунтом и backend.
 
+[Полная offline упаковка](reports/netlify-build.json) через Netlify CLI 27.12.1 и OpenNext adapter 5.16.2 также завершилась `Netlify Build Complete`, включая подписанный proxy plugin и function bundle. Использованы синтетические origins/ключ подписи, публикации не было. Linux упаковка проверяется отдельным шагом GitHub Actions; локальный отчёт не является проверкой TLS/DNS или Windows 7.
+
 ## Почему Netlify
 
 Netlify прямо допускает коммерческие проекты на Free; Vercel Hobby ограничен личным некоммерческим использованием. Поэтому Free удобнее для пилота продукта, который предполагается продавать. Это не обещание бесплатного сервиса при любой нагрузке. [Netlify Free](https://www.netlify.com/blog/introducing-netlify-free-plan/), [Vercel Hobby](https://vercel.com/docs/plans/hobby).
@@ -22,14 +24,14 @@ Worker  → антивирус + проверка формата → отдел�
 Worker  → OpenAI / приватный renderer → PostgreSQL / private S3
 ```
 
-Выбран API proxy, чтобы cookies и авторизация оставались для браузера на одном origin. Секреты БД, S3, SMTP, renderer и OpenAI на Netlify не нужны. Renderer, ClamAV и БД остаются во внутренних Docker networks сервера.
+Выбран API proxy, чтобы cookies и авторизация оставались для браузера на одном origin. Секреты БД, S3, SMTP, renderer и OpenAI на Netlify не нужны. Отдельный узкий proxy secret используется только для подписи запросов Netlify → backend. Renderer, ClamAV и БД остаются во внутренних Docker networks сервера.
 
 Стандартные функции имеют ограничение buffered payload 6 MB, а внешний proxy — timeout 26 секунд. Поэтому 25 MiB загрузки идут прямо в S3, а OCR/PDF выполняются в очереди. Ожидание preview ограничено; при ошибке можно скачать оригинал. Эти ограничения необходимо повторно проверить на реальном staging. [Functions limits](https://docs.netlify.com/build/functions/configuration/), [Proxy limits](https://docs.netlify.com/manage/routing/redirects/rewrites-proxies/).
 
 ## Подготовка сервера
 
 1. Выполните [развёртывание контейнеров](deploy.md). Используйте выделенный private bucket и лицензированные шрифты.
-2. Для hybrid задайте `APP_URL=https://ваш-проект.netlify.app`, `APP_HOST=api.ваш-домен`, `CADDY_CONFIG=./Caddyfile.hybrid`, `DIRECT_UPLOADS=true`. `UPLOAD_ORIGIN` и `STORAGE_PUBLIC_ENDPOINT` — публичный HTTPS origin S3 API, а не публичный bucket. `STORAGE_ENDPOINT` может использовать внутренний маршрут к тому же bucket.
+2. Для hybrid задайте `APP_URL=https://ваш-проект.netlify.app`, `APP_HOST=api.ваш-домен`, `CADDY_CONFIG=./Caddyfile.hybrid`, `DIRECT_UPLOADS=true`, `API_GATEWAY=netlify`. В `NETLIFY_SITE_ID` укажите UUID проекта из Netlify. Создайте отдельный случайный `NETLIFY_PROXY_SECRET` длиной минимум 32 символа, отличный от AUTH_SECRET. Тот же proxy secret задаётся в Netlify Runtime. `UPLOAD_ORIGIN` и `STORAGE_PUBLIC_ENDPOINT` — публичный HTTPS origin S3 API, а не публичный bucket. `STORAGE_ENDPOINT` может использовать внутренний маршрут к тому же bucket.
 3. Администратором хранилища настройте CORS: только точный `APP_URL`, метод PUT, заголовок Content-Type. Включите lifecycle удаления `quarantine/` через сутки. Скрипт `scripts/configure-storage.ts` служит образцом настройки; bucket admin credentials не оставляют в runtime приложения.
 4. Runtime S3 role получает только нужные object operations и readiness HeadBucket. Убедитесь, что unsigned GET существующего объекта запрещён. Объекты не публикуются через website endpoint.
 5. Для web image `UPLOAD_ORIGIN` передаётся как **несекретный build arg**: CSP фиксируется при сборке. Compose передаёт его автоматически. Изменение origin требует новой сборки интерфейса.
@@ -45,9 +47,13 @@ ZIYATAI_API_ORIGIN=https://api.ваш-домен
 UPLOAD_ORIGIN=https://s3.ваш-провайдер
 ```
 
-Подготовка сборки отклоняет пустые значения, HTTP, credentials, path/query/hash. Она генерирует `_redirects` и `_headers` без секретов. Эти производные файлы не коммитятся. Все `/api/*` принудительно проксируются на backend до framework routing.
+Дополнительно задайте `NETLIFY_PROXY_SECRET` в scope **Runtime** (или All, если тариф не разделяет scopes). Значение совпадает с backend, но никогда не подставляется в frontend или routing files. Не переносите сюда AUTH_SECRET/DB/S3/SMTP/OpenAI credentials.
 
-Deploy Preview должен использовать отдельный staging backend и staging `APP_URL`/bucket. Не перенаправляйте preview на production ради удобства: Origin и callback должны совпадать с конкретным окружением.
+Подготовка сборки отклоняет пустые origins, HTTP, credentials, path/query/hash. Она генерирует статические `_redirects` и `_headers` без секретов. API rule добавляет локальный `infra/netlify-proxy` build plugin через `netlifyConfig`: `/api/*` → backend, force=true, signed=`NETLIFY_PROXY_SECRET`. Сама подпись создаётся Netlify в Runtime, а в конфигурацию попадает только имя переменной. [Signed proxy](https://docs.netlify.com/manage/routing/redirects/rewrites-proxies/#signed-proxy-redirects), [Build plugin API](https://docs.netlify.com/extend/develop-and-share/develop-build-plugins/).
+
+Backend проверяет HS256, issuer, срок, Netlify site ID и production context. Только после этого он доверяет `x-nf-client-connection-ip` для лимита входа; произвольный клиентский IP заголовок заменяется. Неподписанные запросы к auth/business API отвергаются. Это предотвращает общий лимит всех учителей на IP одного proxy узла. Health остаётся доступен мониторингу. [Локальная HTTP проверка](reports/netlify-gateway.json) использует синтетические подписи; реальные Netlify headers ещё нужно проверить на staging.
+
+Deploy Preview должен использовать отдельные staging backend, site/secret, `APP_URL` и bucket. Production gateway отвергает preview claims. Origin и callback должны совпадать с конкретным окружением.
 
 ## Приёмка на реальном домене
 

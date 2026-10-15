@@ -31,6 +31,7 @@ function makeAuth() {
     emailAndPassword: {
       enabled: true,
       requireEmailVerification: true,
+      revokeSessionsOnPasswordReset: true,
       minPasswordLength: 12,
       sendResetPassword: async ({ user, url }) =>
         send(
@@ -46,6 +47,9 @@ function makeAuth() {
         send(user.email, url, "Подтверждение email / Email растау"),
     },
     advanced: {
+      ...(e.API_GATEWAY === "netlify"
+        ? { ipAddress: { ipAddressHeaders: ["x-ziyatai-client-ip"] } }
+        : {}),
       database: { generateId: "uuid" },
       useSecureCookies: e.APP_URL.startsWith("https://"),
     },

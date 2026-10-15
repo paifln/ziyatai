@@ -11,7 +11,7 @@
     return;
   }
   var locale = /(?:^|; )ziyatai-locale=ru(?:;|$)/.test(document.cookie) ? 'ru' : 'kk';
-  var user = null, profile = null, currentView = 'plans', plan = null, generation = null;
+  var user = null, profile = null, currentView = 'plans', plan = null, generation = null, authMode = 'login';
   var rowPage = 0, listOffset = 0, dirty = false, busy = false;
   var requestKeys = {};
   var words = {
@@ -90,9 +90,10 @@
     }
     xhr.onload = function () {
       var result;
-      try { result = JSON.parse(xhr.responseText); } catch (parseError) { void parseError; done(t('error')); return; }
+      try { result = JSON.parse(xhr.responseText); } catch (parseError) { void parseError; done(t(xhr.status===429?'LIMIT':xhr.status===413?'FILE_SIZE':'error')); return; }
       if (xhr.status < 200 || xhr.status >= 300) {
         var code = result.code || (result.error && result.error.code);
+        if(xhr.status===429)code='LIMIT';
         done(words[code] ? t(code) : t('error'), result, xhr.status); return;
       }
       done(null, result);
@@ -153,9 +154,10 @@
   document.getElementById('language').onclick=function(){
     if(!leave())return; dirty=false; locale=locale==='kk'?'ru':'kk';
     document.cookie='ziyatai-locale='+locale+'; Path=/; SameSite=Lax; Max-Age=31536000';
-    language();renderNav(); if(user)render();else authForm('login');
+    language();renderNav(); if(user)render();else authForm(authMode);
   };
   function authForm(mode) {
+    authMode=mode;
     clear(text('Сабаққа дайындық — бір жерде','Подготовка к уроку — в одном месте'));
     var form=add(content,el('form',null,'panel auth')); add(form,el('h2',t(mode)));
     var name, email, password;
@@ -357,9 +359,10 @@
   }
   window.addEventListener('beforeunload',function(e){if(dirty){e.preventDefault();e.returnValue='';}});
   language();
+  if(new URLSearchParams(window.location.search).has('token')){authForm('newPassword');return;}
   request('auth/get-session','GET',undefined,function(err,session){
     if(err){clear('ZiyatAI');note(err,true);add(content,button(t('retry'),function(){window.location.reload();}));return;}
-    if(!session||!session.user){authForm(new URLSearchParams(window.location.search).has('token')?'newPassword':'login');return;}
+    if(!session||!session.user){authForm('login');return;}
     user=session.user;
     request('profile','GET',undefined,function(error,p){if(error){note(error,true);authForm('login');return;}profile=p;renderNav();var id=new URLSearchParams(window.location.search).get('generation');if(id&&/^[0-9a-f-]{36}$/i.test(id))openGeneration(id);else render();});
   });

@@ -10,6 +10,8 @@ const docker = async (...args: string[]) =>
     await exec("docker", args, { windowsHide: true, maxBuffer: 1024 * 1024 })
   ).stdout.trim();
 const prefix = `ziyatai-proxy-check-${randomBytes(5).toString("hex")}`;
+const webImage = process.env.WEB_TEST_IMAGE || "ziyatai-web:local";
+const proxyImage = process.env.PROXY_TEST_IMAGE || "ziyatai-proxy:local";
 const upstream = prefix + "-web",
   proxy = prefix + "-edge";
 try {
@@ -26,7 +28,7 @@ try {
     "--read-only",
     "--cap-drop",
     "ALL",
-    "ziyatai-web:release",
+    webImage,
     "node",
     "-e",
     "require('http').createServer((req,res)=>{res.setHeader('Content-Type','application/json');res.end(JSON.stringify({path:req.url,forwardedProto:req.headers['x-forwarded-proto']}));}).listen(3000,'0.0.0.0')",
@@ -53,7 +55,7 @@ try {
     "ALL",
     "-v",
     `${resolve("infra/Caddyfile.hybrid")}:/etc/caddy/Caddyfile:ro`,
-    "ziyatai-proxy:release",
+    proxyImage,
   );
   const ports = JSON.parse(
     await docker(
@@ -92,7 +94,7 @@ try {
       "APP_URL=https://frontend.example.test",
       "-v",
       `${resolve("infra/" + file)}:/etc/caddy/Caddyfile:ro`,
-      "ziyatai-proxy:release",
+      proxyImage,
       "caddy",
       "validate",
       "--config",
@@ -100,7 +102,7 @@ try {
     );
   const report = {
     date: new Date().toISOString().slice(0, 10),
-    image: "ziyatai-proxy:release",
+    image: proxyImage,
     apiPathAndQueryPreserved: true,
     frontendRedirectPreservesQuery: true,
     bothConfigurationsValid: true,

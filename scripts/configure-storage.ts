@@ -65,6 +65,7 @@ if (e.APP_ENV === "production") {
             Status: "Enabled",
             Filter: { Prefix: "quarantine/" },
             Expiration: { Days: 1 },
+            NoncurrentVersionExpiration: { NoncurrentDays: 1 },
             AbortIncompleteMultipartUpload: { DaysAfterInitiation: 1 },
           },
         ],

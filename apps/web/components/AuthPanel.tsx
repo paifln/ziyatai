@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useId } from "react";
 import { ArrowRight, Check, BookOpen, Layers, FileCheck } from "lucide-react";
 import { authClient } from "../lib/client";
 import type { Texts, UiLocale } from "../lib/i18n";
@@ -12,6 +12,7 @@ export default function AuthPanel({
   locale: UiLocale;
   setLocale: (l: UiLocale) => void;
 }) {
+  const passwordHintId = useId();
   const [mode, setMode] = useState<"login" | "signup" | "reset" | "new">(() =>
     typeof window !== "undefined" &&
     new URLSearchParams(window.location.search).has("token")
@@ -51,6 +52,8 @@ export default function AuthPanel({
           token: new URLSearchParams(window.location.search).get("token") ?? "",
         });
         if (!result.error) {
+          window.history.replaceState(null, "", window.location.pathname);
+          setPassword("");
           setMessage(t.passwordChanged);
           setMode("login");
         }
@@ -60,11 +63,13 @@ export default function AuthPanel({
       }
       if (result.error)
         setError(
-          result.error.code === "EMAIL_NOT_VERIFIED"
-            ? t.verifySent
-            : locale === "ru"
-              ? "Не удалось выполнить действие. Проверьте введённые данные."
-              : "Әрекет орындалмады. Енгізілген деректерді тексеріңіз.",
+          result.error.status === 429
+            ? t.tooManyAttempts
+            : result.error.code === "EMAIL_NOT_VERIFIED"
+              ? t.verifySent
+              : locale === "ru"
+                ? "Не удалось выполнить действие. Проверьте введённые данные."
+                : "Әрекет орындалмады. Енгізілген деректерді тексеріңіз.",
         );
     } catch {
       setError(
@@ -116,7 +121,10 @@ export default function AuthPanel({
             <div className="paper-title">
               {locale === "ru" ? "Линейные алгоритмы" : "Сызықтық алгоритмдер"}
             </div>
-            {(locale === "ru" ? ["Базовый", "Средний", "Продвинутый"] : ["Жеңіл", "Орта", "Күрделі"]).map((level, i) => (
+            {(locale === "ru"
+              ? ["Базовый", "Средний", "Продвинутый"]
+              : ["Жеңіл", "Орта", "Күрделі"]
+            ).map((level, i) => (
               <div className="paper-level" key={level}>
                 <span className={`level-dot dot-${i}`} />
                 {level}
@@ -158,7 +166,9 @@ export default function AuthPanel({
                   : t.signIn}
           </h2>
           <p className="auth-caption">
-            {locale === "ru" ? "Ваши планы, задания и готовые материалы — в одном месте." : "Жоспарларыңыз, тапсырмалар мен дайын материалдар — бір жерде."}
+            {locale === "ru"
+              ? "Ваши планы, задания и готовые материалы — в одном месте."
+              : "Жоспарларыңыз, тапсырмалар мен дайын материалдар — бір жерде."}
           </p>
           <form onSubmit={submit}>
             {mode === "signup" && (
@@ -192,6 +202,10 @@ export default function AuthPanel({
                 {t.password}
                 <input
                   type="password"
+                  aria-label={t.password}
+                  aria-describedby={
+                    mode === "login" ? undefined : passwordHintId
+                  }
                   value={password}
                   required
                   minLength={mode === "login" ? 1 : 12}
@@ -200,7 +214,9 @@ export default function AuthPanel({
                   }
                   onChange={(e) => setPassword(e.target.value)}
                 />
-                {mode !== "login" && <small>{t.passwordHint}</small>}
+                {mode !== "login" && (
+                  <small id={passwordHintId}>{t.passwordHint}</small>
+                )}
               </label>
             )}
             {mode === "login" && (
@@ -252,7 +268,19 @@ export default function AuthPanel({
               {mode === "login" ? t.signUp : t.signIn}
             </button>
           </p>
-          <p className="auth-support"><a href="/lite/">{locale === "ru" ? "Слабый компьютер? Открыть лёгкую версию" : "Компьютер баяу ма? Жеңіл нұсқаны ашу"}</a><br/><a href="/help/">{locale === "ru" ? "Как пользоваться ZiyatAI" : "ZiyatAI қалай қолданылады"}</a></p>
+          <p className="auth-support">
+            <a href="/lite/">
+              {locale === "ru"
+                ? "Слабый компьютер? Открыть лёгкую версию"
+                : "Компьютер баяу ма? Жеңіл нұсқаны ашу"}
+            </a>
+            <br />
+            <a href="/help/">
+              {locale === "ru"
+                ? "Как пользоваться ZiyatAI"
+                : "ZiyatAI қалай қолданылады"}
+            </a>
+          </p>
         </div>
       </section>
     </main>

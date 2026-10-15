@@ -1,0 +1,10 @@
+{
+  "betterAuth": "1.7.10",
+  "date": "2026-10-15",
+  "environment": "Local PostgreSQL, Better Auth and Mailpit; synthetic user only",
+  "failedResetPreservesPassword": true,
+  "failedResetPreservesSession": true,
+  "resetTokenReusableAfterFailure": true,
+  "successfulResetRevokesOldSession": true,
+  "newPasswordLoginWorks": true
+}

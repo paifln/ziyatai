@@ -7,6 +7,7 @@ import { z } from "zod";
 import { auth } from "./auth";
 import { db, transaction } from "./db";
 import { env } from "./env";
+import { trustedGatewayRequest } from "./netlify-gateway";
 import { putObject, getObject, deleteObject, storageReady, signedUpload, objectMetadata } from "./storage";
 import { inspectFile } from "./files";
 import { isolatedRequest } from "./renderer";
@@ -161,6 +162,7 @@ export async function handle(req: Request, path: string[]) {
       }
       return json({ status: "ok" });
     }
+    req=trustedGatewayRequest(req);
     const session = await auth().api.getSession({ headers: req.headers });
     if (!session || !session.user.emailVerified)
       throw new AppError("UNAUTHORIZED", 401);

@@ -1,8 +1,97 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { randomUUID } from "node:crypto";
+import { randomUUID, randomBytes } from "node:crypto";
 import { writeFile } from "node:fs/promises";
-import { verifiedUser, headers } from "./helpers";
+import { verifiedUser, headers, emailLink, origin } from "./helpers";
+
+test("password reset links work while already signed in in both interfaces", async ({
+  page,
+  request,
+}) => {
+  test.setTimeout(180000);
+  for (const path of ["/", "/lite/"]) {
+    const user = await verifiedUser(request);
+    await page.context().addCookies((await request.storageState()).cookies);
+    expect(
+      (
+        await request.post("/api/auth/request-password-reset", {
+          headers,
+          data: { email: user.email, redirectTo: origin + path },
+        })
+      ).ok(),
+    ).toBe(true);
+    const link = await emailLink(request, user.email, "Восстановление");
+    const redirect = await request.get(link, { maxRedirects: 0 });
+    const resetUrl = redirect.headers().location;
+    if (path === "/lite/")
+      await page
+        .context()
+        .addCookies([{ name: "ziyatai-locale", value: "kk", url: origin }]);
+    await page.goto(resetUrl);
+    if (path === "/")
+      await page.getByRole("button", { name: "РУС", exact: true }).click();
+    else if (
+      await page
+        .getByRole("button", { name: "Русский", exact: true })
+        .isVisible()
+    )
+      await page.getByRole("button", { name: "Русский", exact: true }).click();
+    const label = path === "/" ? "Установить новый пароль" : "Новый пароль";
+    await expect(
+      page.getByRole("heading", { name: label, exact: true }),
+    ).toBeVisible();
+    const password = randomBytes(20).toString("hex");
+    await page.getByLabel("Пароль", { exact: true }).fill(password);
+    await page
+      .locator("form")
+      .getByRole("button", {
+        name: path === "/" ? "Сохранить" : label,
+        exact: true,
+      })
+      .click();
+    await expect(
+      page.getByText(
+        path === "/"
+          ? "Пароль изменён. Войдите с новым паролем."
+          : "Пароль изменён. Теперь можно войти.",
+        { exact: true },
+      ),
+    ).toBeVisible();
+    await expect(page).not.toHaveURL(/token=/);
+    expect((await request.get("/api/profile")).status()).toBe(401);
+    await page.getByLabel("Email", { exact: true }).fill(user.email);
+    await page.getByLabel("Пароль", { exact: true }).fill(password);
+    await expect
+      .poll(
+        async () => {
+          const response = page.waitForResponse(
+            (r) =>
+              r.url().endsWith("/api/auth/sign-in/email") &&
+              r.request().method() === "POST",
+          );
+          await page
+            .getByRole("button", { name: "Войти", exact: true })
+            .click();
+          const status = (await response).status();
+          expect([200, 429]).toContain(status);
+          return status;
+        },
+        { timeout: 30000, intervals: [2000, 3000, 5000] },
+      )
+      .toBe(200);
+    if (path === "/")
+      await expect(
+        page.getByRole("heading", {
+          name: "Всё для следующего урока",
+          exact: true,
+        }),
+      ).toBeVisible();
+    else
+      await expect(
+        page.getByRole("button", { name: "Загрузить КТП", exact: true }),
+      ).toBeVisible();
+  }
+});
 
 test("large plans and assignment tables keep a bounded DOM and preserve edits across pages", async ({
   page,

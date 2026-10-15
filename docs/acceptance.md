@@ -25,10 +25,11 @@ Definition of Done из задания **не достигнута**: production
 
 ## Результаты проверок
 
-- TypeScript, ESLint и production Docker build проходят. Unit/provider/browser-contract tests: 33 passed, 8 файлов.
+- TypeScript, ESLint и production Docker build проходят. Unit/provider/browser-contract/gateway tests: 52 passed, 9 файлов.
 - Parser pytest: 27 passed. [Цифровой отчёт](reports/parser.json): DOCX 15/15 строк и 75/75 полей; XLSX 12/12 и 60/60; XLS 6/6 и 30/30; PDF 6/6 и 30/30. Только synthetic samples, нормализация NFKC/whitespace.
-- API/browser E2E на собранных локальных контейнерах: 13 passed. Включены основные форматы, reset, security/deletion, OCR/mixed PDF, кнопки upload/confirm/editor/export, signed S3 upload и невозможность перезаписать чистый источник, ограничения chunked JSON, запрет teacherReviewed при неверных баллах, Lite editing/export, responsive/a11y и отсутствие idle polling.
+- API/browser E2E на собранных локальных контейнерах: 15 passed. Включены основные форматы, reset (в том числе из действующей сессии в обоих интерфейсах), security/deletion, OCR/mixed PDF, кнопки upload/confirm/editor/export, signed S3 upload и невозможность перезаписать чистый источник, большие таблицы, ограничения chunked JSON, запрет teacherReviewed при неверных баллах, Lite editing/export, responsive/a11y и отсутствие idle polling.
 - [Очередь](reports/queue.json): expired lease reclaimed с attempt 2, unique job, cancelled не claim, третья reservation откатывается.
+- [Password reset fault test](reports/auth-reset.json): Better Auth 1.7.10, сбой удаления сессии не меняет пароль и не расходует ссылку; успешный повтор отзывает старую сессию. [Signed gateway](reports/netlify-gateway.json): локальная HTTP проверка подписи, входа, ACL и двух provider IP; настоящий Netlify ingress остаётся отдельной проверкой.
 - [Antivirus](reports/antivirus.json): ClamAV 1.4.6, clean DOCX accepted, harmless standard EICAR rejected.
 - [Restore](reports/restore.json): отдельная БД, согласованный pg_dump snapshot и SHA256 содержимого 14 таблиц, включая задания, exports и миграции. [Новый PostgreSQL image](reports/postgres-image-restore.json) отдельно проходит логическое восстановление и kk/ru ILIKE. Исходная БД не менялась. Это не production SLA.
 - [Нагрузка](reports/load.json): 10 учителей, 100 API GET, 0 ошибок, development p95 846мс. Внешние AI операции не входили в этот замер.

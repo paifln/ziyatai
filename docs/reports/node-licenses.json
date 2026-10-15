@@ -98,42 +98,37 @@
     },
     {
       "name": "@better-auth/core",
-      "version": "1.7.7",
+      "version": "1.7.10",
       "license": "MIT"
     },
     {
       "name": "@better-auth/drizzle-adapter",
-      "version": "1.7.7",
+      "version": "1.7.10",
       "license": "MIT"
     },
     {
       "name": "@better-auth/kysely-adapter",
-      "version": "1.7.7",
+      "version": "1.7.10",
       "license": "MIT"
     },
     {
       "name": "@better-auth/memory-adapter",
-      "version": "1.7.7",
+      "version": "1.7.10",
       "license": "MIT"
     },
     {
       "name": "@better-auth/mongo-adapter",
-      "version": "1.7.7",
+      "version": "1.7.10",
       "license": "MIT"
     },
     {
       "name": "@better-auth/prisma-adapter",
-      "version": "1.7.7",
+      "version": "1.7.10",
       "license": "MIT"
     },
     {
       "name": "@better-auth/telemetry",
-      "version": "1.7.7",
-      "license": "MIT"
-    },
-    {
-      "name": "@better-auth/utils",
-      "version": "0.4.2",
+      "version": "1.7.10",
       "license": "MIT"
     },
     {
@@ -308,12 +303,12 @@
     },
     {
       "name": "better-auth",
-      "version": "1.7.7",
+      "version": "1.7.10",
       "license": "MIT"
     },
     {
       "name": "better-call",
-      "version": "1.4.0",
+      "version": "1.4.2",
       "license": "MIT"
     },
     {

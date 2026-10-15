@@ -15,6 +15,14 @@ jobs:
       - run: npm run fixtures
       - run: npm run lint && npm run typecheck && npm test && npm run test:parser
       - run: npm run build && node scripts/build-worker.mjs
+      - name: Package Next.js with the Netlify adapter (offline, synthetic origins)
+        env:
+          NETLIFY_SITE_ID: b0f3e39e-36bd-4d5e-bd5f-6c938fdc81bc
+          ZIYATAI_API_ORIGIN: https://api.example.test
+          UPLOAD_ORIGIN: https://storage.example.test
+          NETLIFY_PROXY_SECRET: local-fixture-key-only-never-a-production-secret
+          DO_NOT_TRACK: '1'
+        run: npx --yes netlify-cli@27.12.1 build --offline
       - run: npm audit --audit-level=moderate
       - run: python scripts/scan-secrets.py
   integration:
@@ -33,12 +41,14 @@ jobs:
       - run: docker build -f infra/Dockerfile.postgres -t ziyatai-postgres:ci .
       - run: npm run fixtures && npm run local:setup && npm run infra:up
       - run: npx tsx scripts/enable-local-renderer.ts
+      - run: npx tsx scripts/prepare-local-containers.ts
       - run: docker compose -f infra/compose.tools-local.yml --env-file .env.local up -d --build
       - run: npm run migrate
       - run: npx tsx --env-file=.env.local scripts/configure-storage.ts
       - run: npm run worker > /tmp/ziyatai-worker.log 2>&1 &
       - run: npx tsx --env-file=.env.local scripts/queue-check.ts && npx tsx --env-file=.env.local scripts/restore-check.ts
       - run: npx tsx --env-file=.env.local scripts/upload-cleanup-check.ts
+      - run: npx tsx --env-file=.env.local scripts/auth-reset-check.ts
       - run: npm run build
       - run: npm run start > /tmp/ziyatai-web.log 2>&1 &
       - run: npx playwright install --with-deps chromium

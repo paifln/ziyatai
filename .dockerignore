@@ -4,6 +4,7 @@ next-env.d.ts
 .git
 .env*
 .local
+.netlify
 test-results
 playwright-report
 __pycache__

@@ -5,7 +5,23 @@ const schema = z.object({
     .default(process.env.NODE_ENV === "production" ? "production" : "local"),
   DATABASE_URL: z.string().min(1),
   AUTH_SECRET: z.string().min(32),
-  APP_URL: z.string().url().refine((value) => { const url=new URL(value); return !url.username && !url.password && url.pathname==="/" && !url.search && !url.hash; },"APP_URL must be an origin").transform((value)=>new URL(value).origin),
+  API_GATEWAY: z.enum(["direct", "netlify"]).default("direct"),
+  NETLIFY_PROXY_SECRET: z.string().default(""),
+  NETLIFY_SITE_ID: z.string().default(""),
+  APP_URL: z
+    .string()
+    .url()
+    .refine((value) => {
+      const url = new URL(value);
+      return (
+        !url.username &&
+        !url.password &&
+        url.pathname === "/" &&
+        !url.search &&
+        !url.hash
+      );
+    }, "APP_URL must be an origin")
+    .transform((value) => new URL(value).origin),
   STORAGE_ENDPOINT: z.string().url(),
   STORAGE_PUBLIC_ENDPOINT: z.string().default(""),
   STORAGE_REGION: z.string().min(1),
@@ -64,11 +80,57 @@ export function env() {
       throw new Error(
         "Production requires scanning, isolated renderer credentials and disables synthetic demo",
       );
-    if (parsed.APP_ENV === "production" && (!parsed.APP_URL.startsWith("https://") || (parsed.DIRECT_UPLOADS === "true" && !(parsed.STORAGE_PUBLIC_ENDPOINT || parsed.STORAGE_ENDPOINT).startsWith("https://"))))
-      throw new Error("Production requires HTTPS application and direct-upload origins");
-    if (parsed.APP_ENV === "production" && [parsed.DATABASE_URL,parsed.AUTH_SECRET,parsed.RENDERER_TOKEN,parsed.STORAGE_ACCESS_KEY,parsed.STORAGE_SECRET_KEY,parsed.OPENAI_API_KEY,parsed.SMTP_PASSWORD].some((value)=>/YOUR_|REPLACE_|CHANGE_ME/i.test(value)))
-      throw new Error("Production credentials still contain example placeholders");
-    cache=parsed;
+    if (
+      parsed.APP_ENV === "production" &&
+      (!parsed.APP_URL.startsWith("https://") ||
+        (parsed.DIRECT_UPLOADS === "true" &&
+          !(
+            parsed.STORAGE_PUBLIC_ENDPOINT || parsed.STORAGE_ENDPOINT
+          ).startsWith("https://")))
+    )
+      throw new Error(
+        "Production requires HTTPS application and direct-upload origins",
+      );
+    if (
+      parsed.APP_ENV === "production" &&
+      [
+        parsed.DATABASE_URL,
+        parsed.AUTH_SECRET,
+        parsed.RENDERER_TOKEN,
+        parsed.STORAGE_ACCESS_KEY,
+        parsed.STORAGE_SECRET_KEY,
+        parsed.OPENAI_API_KEY,
+        parsed.SMTP_PASSWORD,
+      ].some((value) => /YOUR_|REPLACE_|CHANGE_ME/i.test(value))
+    )
+      throw new Error(
+        "Production credentials still contain example placeholders",
+      );
+    if (
+      parsed.API_GATEWAY === "netlify" &&
+      (parsed.NETLIFY_PROXY_SECRET.length < 32 ||
+        !z.uuid().safeParse(parsed.NETLIFY_SITE_ID).success ||
+        /YOUR_|REPLACE_|CHANGE_ME/i.test(parsed.NETLIFY_PROXY_SECRET))
+    )
+      throw new Error(
+        "Netlify gateway requires a separate random proxy secret and valid site ID",
+      );
+    if (
+      parsed.API_GATEWAY === "netlify" &&
+      parsed.NETLIFY_PROXY_SECRET === parsed.AUTH_SECRET
+    )
+      throw new Error(
+        "Netlify proxy secret must differ from authentication secret",
+      );
+    if (
+      parsed.API_GATEWAY === "netlify" &&
+      parsed.APP_ENV === "production" &&
+      parsed.DIRECT_UPLOADS !== "true"
+    )
+      throw new Error(
+        "Netlify gateway requires direct S3 uploads in production",
+      );
+    cache = parsed;
   }
   return cache;
 }

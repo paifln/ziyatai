@@ -8,4 +8,7 @@
 
 # Netlify's maintained OpenNext adapter is detected automatically.
 # Set ZIYATAI_API_ORIGIN and UPLOAD_ORIGIN in the Netlify dashboard.
+# Set the separate NETLIFY_PROXY_SECRET in Runtime scope for signed proxying.
 # API/auth stay on the container host; DB, AI, SMTP and renderer secrets stay there.
+[[plugins]]
+  package = "./infra/netlify-proxy"
