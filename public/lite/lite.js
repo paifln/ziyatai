@@ -159,14 +159,28 @@
   document.getElementById('language').onclick=function(){
     if(!leave())return; dirty=false; locale=locale==='kk'?'ru':'kk';
     document.cookie='ziyatai-locale='+locale+'; Path=/; SameSite=Lax; Max-Age=31536000';
-    language();renderNav(); if(user)render();else authForm(authMode);
+    language();renderNav(); if(user)render();else if(authMode==='verify')verifyForm(verificationEmail);else authForm(authMode);
   };
+  var verificationEmail = '';
+  function verifyForm(address) {
+    authMode='verify';
+    verificationEmail = address;
+    clear(text('Поштаңызды растаңыз', 'Подтвердите почту'));
+    var form = add(content,el('form',null,'panel auth'));
+    add(form,el('p',text('Поштадағы 6 таңбалы кодты енгізіңіз: ', 'Введите 6-значный код из письма: ')+address));
+    var code=field(form,text('Растау коды','Код подтверждения'),'','text');code.required=true;code.pattern='[0-9]{6}';code.maxLength=6;code.autocomplete='one-time-code';code.inputMode='numeric';
+    var submit=add(form,el('button',text('Растау','Подтвердить'),'primary'));submit.type='submit';
+    form.onsubmit=function(e){e.preventDefault();action('auth/email-otp/verify-email',{email:verificationEmail,otp:code.value},function(){window.location.reload();});};
+    add(form,button(text('Кодты қайта жіберу','Отправить код ещё раз'),function(){action('auth/email-otp/send-verification-otp',{email:verificationEmail,type:'email-verification'},function(){note(text('Жаңа код жіберілді. Код 10 минут жарамды.','Новый код отправлен. Код действует 10 минут.'));});}));
+    add(form,button(t('login'),function(){authForm('login');}));
+  }
   function authForm(mode) {
     authMode=mode;
     clear(text('Сабаққа дайындық — бір жерде','Подготовка к уроку — в одном месте'));
     var form=add(content,el('form',null,'panel auth')); add(form,el('h2',t(mode)));
-    var name, email, password;
+    var name, email, password, subject;
     if(mode==='signup') {name=field(form,t('name'),'','text');name.required=true;name.maxLength=100;name.autocomplete='name';}
+    if(mode==='signup') {subject=field(form,text('Сіздің пәніңіз','Ваш предмет'),'','text');subject.required=true;subject.maxLength=120;subject.setAttribute('list','school-subjects');var subjects=add(form,el('datalist'));subjects.id='school-subjects';['Қазақ тілі','Орыс тілі','Шетел тілі','Математика','Алгебра','Геометрия','Информатика','Цифрлық сауаттылық','Физика','Химия','Биология','География','Қазақстан тарихы','Дүниежүзі тарихы','Музыка','Көркем еңбек','Дене шынықтыру','Начальные классы','Казахский язык','Русский язык','Иностранный язык','Математика','Информатика','Естествознание','История Казахстана','Всемирная история','Физическая культура'].forEach(function(s){var option=add(subjects,el('option'));option.value=s;});}
     if(mode!=='newPassword'){email=field(form,t('email'),'','email');email.required=true;email.autocomplete='email';}
     if(mode!=='reset'){
       password=field(form,t('password'),'','password');password.required=true;
@@ -176,13 +190,14 @@
     var submit=add(form,el('button',t(mode),'primary'));submit.type='submit';
     form.onsubmit=function(e){
       e.preventDefault();
-      if(mode==='login')action('auth/sign-in/email',{email:email.value,password:password.value},function(){window.location.reload();});
-      else if(mode==='signup')action('auth/sign-up/email',{email:email.value,password:password.value,name:name.value,callbackURL:'/lite/'},function(){note(t('sent'));});
+      if(mode==='login') {if(busy)return;busy=true;var unlock=lockControls();request('auth/sign-in/email','POST',{email:email.value,password:password.value},function(err,result){busy=false;unlock();if(err){if(result&&result.code==='EMAIL_NOT_VERIFIED')verifyForm(email.value);else note(err,true);return;}window.location.reload();});}
+      else if(mode==='signup')action('auth/sign-up/email',{email:email.value,password:password.value,name:name.value,teachingSubject:subject.value,callbackURL:'/lite/'},function(){verifyForm(email.value);});
       else if(mode==='reset')action('auth/request-password-reset',{email:email.value,redirectTo:window.location.origin+'/lite/'},function(){note(t('sent'));});
       else action('auth/reset-password',{newPassword:password.value,token:new URLSearchParams(window.location.search).get('token')||''},function(){window.history.replaceState(null,'','/lite/');authForm('login');note(t('changed'));});
     };
     var buttons=add(form,el('div',null,'actions'));
     ['login','signup','reset'].forEach(function(m){if(m!==mode)add(buttons,button(t(m),function(){note('');authForm(m);}));});
+    if(mode==='login')add(buttons,button(text('Поштаны растау','Подтвердить почту'),function(){verifyForm(email.value);}));
   }
   function render() {
     if(plan){renderPlan();return;}if(generation){renderGeneration();return;}

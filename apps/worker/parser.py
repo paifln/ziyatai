@@ -5,13 +5,13 @@ from lxml import etree
 
 MAX_EXPANDED = 100 * 1024 * 1024
 HEADER = {
- 'topic': ['тема урока','темы уроков','тема','сабақтың тақырыбы','сабақ тақырыбы','тақырып','тақырыбы'],
- 'goals': ['цели обучения','учебные цели','оқу мақсаттары','оқу мақсаты','оқыту мақсаттары'],
+ 'topic': ['тема урока','темы урока','темы уроков','тема','сабақтың тақырыбы','сабақ тақырыбы','тақырып','тақырыбы'],
+ 'goals': ['цель обучения','цели обучения','учебные цели','оқу мақсаттары','оқу мақсаты','оқыту мақсаттары'],
  'lessonGoals': ['цели урока','сабақ мақсаттары'],
  'dateRaw': ['сроки','дата','дата проведения','мерзімі','күні','мерзімдер'],
  'hours': ['количество часов','кол во часов','часы','сағат саны','сағат'],
- 'lessonNumberRaw': ['№','no','номер','номер урока','р/с','реті','n'],
- 'section': ['раздел','бөлім'], 'notes': ['примечание','примечания','ескерту'],
+ 'lessonNumberRaw': ['№','No','no','no п/п','номер','номер урока','р/с','реті','n'],
+ 'section': ['раздел','раздел/ сквозные темы','бөлім'], 'notes': ['примечание','примечания','ескерту'],
  'quarter': ['четверть','тоқсан']}
 
 def clean(value):
@@ -20,7 +20,7 @@ def clean(value):
 def header_map(cells):
  result={}
  for i, cell in enumerate(cells):
-  text=clean(cell).lower().replace('-', ' ')
+  text=clean(cell).lower().replace('-', ' ').replace('№','no')
   for key, values in HEADER.items():
    if text in values or any(text.replace(' ','')==v.replace(' ','') for v in values) or any(text.startswith(v+' ') for v in values if len(v)>5):
     result[key]=i; break
@@ -52,15 +52,17 @@ def row_from(cells,mapping,source,order,section,quarter):
  return {'id':str(uuid.uuid4()),'sourceOrder':order,'lessonNumberRaw':get('lessonNumberRaw'),'section':get('section') or section,'quarter':get('quarter') or quarter,'topic':topic,'goals':goals,'objectiveCodes':codes,'lessonGoals':get('lessonGoals'),'hours':get('hours'),'dateRaw':get('dateRaw'),'dateStart':start,'dateEnd':end,'notes':get('notes'),'warnings':warnings,'source':source}
 
 def normalize(tables):
- rows=[];warnings=[];unrecognized=[];section='';quarter='';mapping={}
+ rows=[];warnings=[];unrecognized=[];section='';quarter='';mapping={};last_sheet=None
  for cells,source in tables:
+  if source.get('sheet')!=last_sheet:
+   mapping={};section='';quarter='';last_sheet=source.get('sheet')
   if not any(clean(c) for c in cells):continue
   discovered=header_map(cells)
   if discovered:mapping=discovered;continue
   joined=clean(' '.join(str(c or '') for c in cells))
-  nonempty=[clean(c) for c in cells if clean(c)]
-  if len(nonempty)==1 and re.search(r'(четверть|тоқсан)',joined,re.I):quarter=joined;continue
-  if len(nonempty)==1 and not re.match(r'^\d+\s',joined):section=joined;unrecognized.append(joined);continue
+  nonempty=list(dict.fromkeys(clean(c) for c in cells if clean(c)))
+  if len(nonempty)==1 and re.search(r'(четверть|тоқсан)',joined,re.I):quarter=nonempty[0];continue
+  if len(nonempty)==1 and not re.match(r'^\d+\s',joined):section=nonempty[0];unrecognized.append(nonempty[0]);continue
   if re.match(r'^(итого|барлығы|всего)\b',joined,re.I):continue
   if not mapping:unrecognized.append(joined);continue
   topic=clean(cells[mapping['topic']]) if mapping['topic']<len(cells) else ''
@@ -72,7 +74,7 @@ def normalize(tables):
   if len(rows)>2000:raise ValueError('FILE_SIZE')
  if not rows:warnings.append('no_lesson_rows_found')
  if unrecognized:warnings.append('unrecognized_fragments_require_review')
- return {'schemaVersion':'1.0','rows':rows,'warnings':warnings,'unrecognized':unrecognized,'parserVersion':'ktp-1.0'}
+ return {'schemaVersion':'1.0','rows':rows,'warnings':warnings,'unrecognized':unrecognized,'parserVersion':'ktp-1.1'}
 
 def inspect(path):
  ext=Path(path).suffix.lower()

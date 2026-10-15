@@ -30,6 +30,7 @@ export default function PlanReview({
   onGenerate,
   jobs,
   refresh,
+  onBack,
 }: {
   id: string;
   t: Texts;
@@ -40,6 +41,7 @@ export default function PlanReview({
   onGenerate: () => void;
   jobs: any[];
   refresh: () => Promise<void>;
+  onBack: () => void;
 }) {
   const [plan, setPlan] = useState<any>(),
     [rows, setRows] = useState<KtpRow[]>([]),
@@ -54,6 +56,7 @@ export default function PlanReview({
   const [previewPage, setPreviewPage] = useState(0);
   const [previewFailed, setPreviewFailed] = useState(false);
   const [page, setPage] = useState(0);
+  const [sheet, setSheet] = useState("");
   const load = useCallback(async () => {
     try {
       const p = await api(`ktp/${id}`);
@@ -166,6 +169,9 @@ export default function PlanReview({
     return (
       <div className="inline-loading">
         <span className="spinner" /> {t.loading}
+        <button className="button secondary" onClick={onBack}>
+          {t.cancel}
+        </button>
       </div>
     );
   const related = jobs.filter((j) => j.resource_id === id);
@@ -179,6 +185,25 @@ export default function PlanReview({
           </div>
         </div>
         <Jobs t={t} jobs={related} refresh={refresh} />
+        <button
+          className="button secondary mt-20"
+          onClick={async () => {
+            try {
+              for (const job of related.filter((j) =>
+                ["queued", "running"].includes(j.status),
+              ))
+                await api(`jobs/${job.id}/cancel`, "POST", {});
+              await refresh();
+              onBack();
+            } catch (e) {
+              onError((e as Error).message);
+            }
+          }}
+        >
+          {locale === "ru"
+            ? "Отменить и вернуться к планам"
+            : "Бас тарту және жоспарларға оралу"}
+        </button>
         {["failed", "cancelled"].includes(plan.status) && (
           <div className="notice error">
             {t.failed}.{" "}
@@ -192,6 +217,9 @@ export default function PlanReview({
   const quarterOptions = [
     ...new Set(rows.map((r) => r.quarter).filter(Boolean)),
   ];
+  const sheets = [
+    ...new Set(rows.map((r) => r.source.sheet).filter(Boolean)),
+  ] as string[];
   const visible = rows
     .map((r, index) => ({ r, index }))
     .filter(
@@ -199,7 +227,8 @@ export default function PlanReview({
         (r.topic + " " + r.goals + " " + r.section)
           .toLowerCase()
           .includes(query.toLowerCase()) &&
-        (!quarter || r.quarter === quarter),
+        (!quarter || r.quarter === quarter) &&
+        (!sheet || r.source.sheet === sheet),
     )
     .sort((a, b) =>
       sort === "date"
@@ -274,6 +303,70 @@ export default function PlanReview({
           </button>
         </div>
       </div>
+      {sheets.length > 1 && (
+        <section className="sheet-picker card">
+          <label>
+            {locale === "ru" ? "Лист / класс" : "Парақ / сынып"}
+            <select
+              aria-label={locale === "ru" ? "Лист / класс" : "Парақ / сынып"}
+              disabled={busy}
+              value={sheet}
+              onChange={(e) => {
+                setSheet(e.target.value);
+                setPage(0);
+              }}
+            >
+              <option value="">
+                {locale === "ru"
+                  ? `Все листы · ${rows.length} уроков`
+                  : `Барлық парақтар · ${rows.length} сабақ`}
+              </option>
+              {sheets.map((name) => (
+                <option key={name} value={name}>
+                  {name} · {rows.filter((r) => r.source.sheet === name).length}
+                </option>
+              ))}
+            </select>
+          </label>
+          {sheet && (
+            <button
+              className="button secondary"
+              disabled={busy}
+              onClick={() => {
+                if (
+                  !window.confirm(
+                    locale === "ru"
+                      ? "Оставить в этом плане только выбранный лист? Исходный Excel сохранится целиком."
+                      : "Осы жоспарда тек таңдалған парақты қалдыру керек пе? Бастапқы Excel толық сақталады.",
+                  )
+                )
+                  return;
+                setRows(rows.filter((r) => r.source.sheet === sheet));
+                const detected = sheet.match(/^\s*(1[01]|[1-9])(?:\D|$)/);
+                if (detected) setGrade(Number(detected[1]));
+                setDirty(true);
+                setPage(0);
+              }}
+            >
+              {locale === "ru"
+                ? "Работать только с этим листом"
+                : "Тек осы парақпен жұмыс істеу"}
+            </button>
+          )}
+        </section>
+      )}
+      {!rows.length && (
+        <div className="notice warning">
+          <p>
+            {locale === "ru"
+              ? "Уроки не распознаны. Можно выбрать другой файл или восстановить строки вручную ниже."
+              : "Сабақтар танылмады. Басқа файлды таңдаңыз немесе төменде жолдарды қолмен қосыңыз."}
+          </p>
+          <button className="button secondary" onClick={onBack}>
+            {locale === "ru" ? "Вернуться к планам" : "Жоспарларға оралу"}
+          </button>
+        </div>
+      )}
       <fieldset className="editor-fields" disabled={busy}>
         <legend className="sr-only">{t.plans}</legend>
         {previewPage > 0 && (

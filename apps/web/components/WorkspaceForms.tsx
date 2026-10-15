@@ -4,28 +4,36 @@ import { Upload, ArrowRight, Sparkles, Check } from "lucide-react";
 import { api, authClient, uploadFile } from "../lib/client";
 import type { Texts, UiLocale } from "../lib/i18n";
 import { displayLevel } from "../../../packages/domain/validation";
+import { subjects } from "../../../packages/domain/subjects";
 export function UploadPanel({
   directUploads,
   t,
   locale,
   onDone,
   onError,
+  onCancel,
 }: {
   directUploads: boolean;
   t: Texts;
   locale: UiLocale;
   onDone: (id: string) => void;
   onError: (e: string) => void;
+  onCancel: () => void;
 }) {
   const [file, setFile] = useState<File>(),
     [sourceLocale, setSourceLocale] = useState(locale),
     [hidden, setHidden] = useState(false),
     [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
+  const controller = useRef<AbortController | null>(null);
+  useEffect(() => () => controller.current?.abort(), []);
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!file) return;
     setBusy(true);
+    controller.current = new AbortController();
     try {
       if (!file.size || file.size > 25 * 1024 * 1024)
         throw new Error(
@@ -34,15 +42,26 @@ export function UploadPanel({
             : "25 МБ дейінгі файлды таңдаңыз.",
         );
       setProgress(0);
-      const uploaded = await uploadFile(file, directUploads, setProgress);
-      const imported = await api("ktp/imports", "POST", {
-        uploadId: uploaded.id,
-        locale: sourceLocale,
-        includeHidden: hidden,
-      });
+      const uploaded = await uploadFile(
+        file,
+        directUploads,
+        setProgress,
+        controller.current.signal,
+      );
+      const imported = await api(
+        "ktp/imports",
+        "POST",
+        {
+          uploadId: uploaded.id,
+          locale: sourceLocale,
+          includeHidden: hidden,
+        },
+        undefined,
+        controller.current.signal,
+      );
       onDone(imported.id);
     } catch (e) {
-      onError((e as Error).message);
+      if (!controller.current?.signal.aborted) onError((e as Error).message);
     } finally {
       setBusy(false);
     }
@@ -63,20 +82,46 @@ export function UploadPanel({
               {progress}%
             </div>
           )}
-          <div className="dropzone">
+          <div
+            className={`dropzone ${dragging ? "dragging" : ""}`}
+            onDragOver={(e) => {
+              e.preventDefault();
+              if (!busy) setDragging(true);
+            }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragging(false);
+              if (busy) return;
+              const dropped = e.dataTransfer.files[0];
+              if (dropped) {
+                setFile(dropped);
+                if (fileInput.current)
+                  fileInput.current.files = e.dataTransfer.files;
+              }
+            }}
+          >
             <Upload size={32} />
             <h3>{t.drag}</h3>
             <p>{t.formats}</p>
             <label>
               <span className="sr-only">{t.upload}</span>
               <input
+                ref={fileInput}
                 type="file"
                 accept=".pdf,.docx,.xls,.xlsx"
                 required
+                disabled={busy}
                 onChange={(e) => setFile(e.target.files?.[0])}
               />
             </label>
             <p>{t.docNotice}</p>
+            {file && (
+              <span className="selected-file">
+                <Check size={15} />
+                {file.name} · {(file.size / 1024 / 1024).toFixed(1)} MB
+              </span>
+            )}
           </div>
           <label>
             {t.sourceLanguage}
@@ -110,6 +155,16 @@ export function UploadPanel({
                 <ArrowRight size={16} />
               </>
             )}
+          </button>
+          <button
+            type="button"
+            className="button secondary wide mt-20"
+            onClick={() => {
+              controller.current?.abort();
+              onCancel();
+            }}
+          >
+            {t.cancel}
           </button>
         </form>
       </section>
@@ -409,6 +464,47 @@ export function ProfilePanel({
             <label>
               {t.email}
               <input value={form.email} disabled />
+            </label>
+            <label>
+              {form.locale === "ru" ? "Ваш предмет" : "Сіздің пәніңіз"}
+              <select
+                aria-label={
+                  form.locale === "ru" ? "Ваш предмет" : "Сіздің пәніңіз"
+                }
+                value={
+                  subjects.some((s) => s[0] === form.teachingSubject)
+                    ? form.teachingSubject
+                    : "other"
+                }
+                onChange={(e) =>
+                  setForm({ ...form, teachingSubject: e.target.value })
+                }
+              >
+                <option value="">—</option>
+                {subjects.map(([id, kk, ru]) => (
+                  <option key={id} value={id}>
+                    {form.locale === "ru" ? ru : kk}
+                  </option>
+                ))}
+              </select>
+              {!subjects.some(
+                (s) => s[0] === form.teachingSubject && s[0] !== "other",
+              ) && (
+                <input
+                  aria-label={
+                    form.locale === "ru" ? "Название предмета" : "Пән атауы"
+                  }
+                  maxLength={120}
+                  value={
+                    form.teachingSubject === "other"
+                      ? ""
+                      : form.teachingSubject || ""
+                  }
+                  onChange={(e) =>
+                    setForm({ ...form, teachingSubject: e.target.value })
+                  }
+                />
+              )}
             </label>
             <label>
               {t.school}

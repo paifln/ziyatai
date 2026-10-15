@@ -341,7 +341,7 @@ test("idle workspace does not poll business APIs and auth responses forbid share
   await page.context().addCookies((await request.storageState()).cookies);
   await page.goto("/");
   await expect(
-    page.getByRole("heading", { name: "Келесі сабаққа қажеттінің бәрі" }),
+    page.getByRole("heading", { name: "Менің КТЖ" }),
   ).toBeVisible();
   let requests = 0;
   page.on("request", (r) => {
@@ -351,11 +351,9 @@ test("idle workspace does not poll business APIs and auth responses forbid share
   await page.clock.fastForward(120000);
   expect(requests).toBe(0);
   const updated = page.waitForResponse((r) => r.url().endsWith("/api/profile"));
-  await page
-    .getByRole("button", { name: "Деректерді жаңарту", exact: true })
-    .click();
+  await page.evaluate(() => window.dispatchEvent(new Event("online")));
   await updated;
-  expect(requests).toBe(4);
+  expect(requests).toBe(3);
 });
 
 test("both sign-in experiences are accessible and fit phones, tablets and desktops", async ({
@@ -393,7 +391,7 @@ test("workspace stays readable on small screens and protects unsaved edits", asy
   await page.goto("/");
   await page.getByRole("button", { name: "РУС", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "Всё для следующего урока" }),
+    page.getByRole("heading", { name: "Мои КТП" }),
   ).toBeVisible();
   let results = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
@@ -437,7 +435,7 @@ test("workspace stays readable on small screens and protects unsaved edits", asy
     .first()
     .fill("Не потерять эти изменения");
   page.once("dialog", (dialog) => dialog.dismiss());
-  await page.getByRole("button", { name: "Обзор", exact: true }).click();
+  await page.getByRole("button", { name: "Мои КТП", exact: true }).click();
   await expect(
     page
       .locator(".task-card")

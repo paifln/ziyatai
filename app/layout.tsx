@@ -4,7 +4,7 @@ import { browserSupportScript } from "../packages/domain/browser-support";
 export const metadata: Metadata = {
   title: "ZiyatAI — оқу тапсырмалары",
   description:
-    "Календарно-тематические планы и дифференцированные задания для учителей информатики Казахстана",
+    "Календарно-тематические планы и дифференцированные задания для учителей Казахстана",
   icons: { icon: "/favicon.png" },
 };
 export default function RootLayout({

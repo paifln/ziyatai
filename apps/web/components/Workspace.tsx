@@ -2,7 +2,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import dynamic from "next/dynamic";
 import {
-  LayoutDashboard,
   Files,
   PencilLine,
   History,
@@ -10,23 +9,24 @@ import {
   Settings,
   LogOut,
   Upload,
-  ArrowRight,
   ChevronRight,
   FileText,
-  Clock,
   Search,
   Menu,
   Plus,
   Check,
-  Download,
   Trash2,
   X,
-  Layers,
-  RefreshCw,
+  PanelLeftClose,
+  PanelLeftOpen,
+  CircleHelp,
+  Feather,
+  ChevronDown,
 } from "lucide-react";
 import { api, authClient } from "../lib/client";
 import { dictionary, type UiLocale, type Texts } from "../lib/i18n";
 import AuthPanel from "./AuthPanel";
+import { subjectLabel } from "../../../packages/domain/subjects";
 import { Jobs } from "./Jobs";
 import { usePolling, useResume } from "../lib/use-polling";
 const ResourceCollection = dynamic(() => import("./ResourceCollection"));
@@ -42,23 +42,25 @@ const ProfilePanel = dynamic(() =>
   import("./WorkspaceForms").then((m) => m.ProfilePanel),
 );
 const nav = [
-  { key: "overview", icon: LayoutDashboard },
   { key: "plans", icon: Files },
   { key: "create", icon: PencilLine },
   { key: "history", icon: History },
   { key: "library", icon: Library },
-  { key: "profile", icon: Settings },
 ] as const;
-type View = (typeof nav)[number]["key"] | "upload" | "review" | "editor";
+type View =
+  (typeof nav)[number]["key"] | "upload" | "review" | "editor" | "profile";
 export default function Workspace() {
   const [locale, setLocaleState] = useState<UiLocale>("kk");
   const t = dictionary[locale];
   const { data: session, isPending } = authClient.useSession();
-  const [view, setView] = useState<View>("overview"),
+  const [sessionLoaded, setSessionLoaded] = useState(false);
+  useEffect(() => {
+    if (!isPending) setSessionLoaded(true);
+  }, [isPending]);
+  const [view, setView] = useState<View>("plans"),
     [menu, setMenu] = useState(false),
     [profile, setProfile] = useState<any>(),
     [plans, setPlans] = useState<any[]>([]),
-    [library, setLibrary] = useState<any[]>([]),
     [jobs, setJobs] = useState<any[]>([]),
     [selected, setSelected] = useState(""),
     [error, setError] = useState(""),
@@ -67,6 +69,32 @@ export default function Workspace() {
     [busy, setBusy] = useState(false),
     [query, setQuery] = useState("");
   const [hasChanges, setHasChanges] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const [profileMenu, setProfileMenu] = useState(false);
+  const profileTrigger = useRef<HTMLButtonElement>(null);
+  const profileDropdown = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    setCollapsed(localStorage.getItem("ziyatai-sidebar") === "collapsed");
+  }, []);
+  useEffect(() => {
+    if (!profileMenu) return;
+    const close = (event: PointerEvent) => {
+      if (!profileDropdown.current?.contains(event.target as Node))
+        setProfileMenu(false);
+    };
+    const key = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setProfileMenu(false);
+        profileTrigger.current?.focus();
+      }
+    };
+    document.addEventListener("pointerdown", close);
+    document.addEventListener("keydown", key);
+    return () => {
+      document.removeEventListener("pointerdown", close);
+      document.removeEventListener("keydown", key);
+    };
+  }, [profileMenu]);
   const openedLink = useRef(false);
   const [passwordReset, setPasswordReset] = useState(false);
   useEffect(() => {
@@ -103,13 +131,11 @@ export default function Workspace() {
         const data = await Promise.all([
           api("profile"),
           api("ktp?limit=100"),
-          api("library?limit=100"),
           api("jobs"),
         ]);
         setProfile(data[0]);
         setPlans(data[1]);
-        setLibrary(data[2]);
-        setJobs(data[3]);
+        setJobs(data[2]);
         setLoaded(true);
       } while (refreshQueued.current);
     } catch (e) {
@@ -179,6 +205,7 @@ export default function Workspace() {
     setView(next);
     setSelected(id);
     setMenu(false);
+    setProfileMenu(false);
     setError("");
     setQuery("");
     window.scrollTo(0, 0);
@@ -215,42 +242,9 @@ export default function Workspace() {
     </span>
   );
   const openPlan = (p: any) => navigate("review", p.id);
-  const planRows = (data: any[]) => (
-    <>
-      {data.map((p) => (
-        <div className="resource-row" key={p.id}>
-          <div className="file-icon">
-            <FileText size={20} />
-          </div>
-          <button
-            className="resource-text text-button"
-            style={{ textAlign: "left", color: "inherit" }}
-            onClick={() => openPlan(p)}
-          >
-            <strong>{p.title}</strong>
-            <small>
-              {p.grade ? `${p.grade} ${t.grade.toLowerCase()} · ` : ""}
-              {p.school_year ||
-                new Date(p.created_at).toLocaleDateString(
-                  locale === "kk" ? "kk-KZ" : "ru-RU",
-                )}
-            </small>
-          </button>
-          {badge(p.status)}
-          <button
-            className="icon-button"
-            onClick={() => openPlan(p)}
-            aria-label={t.select}
-          >
-            <ChevronRight size={16} />
-          </button>
-        </div>
-      ))}
-    </>
-  );
   if (passwordReset)
     return <AuthPanel t={t} locale={locale} setLocale={setLocale} />;
-  if (isPending)
+  if (isPending && !sessionLoaded)
     return (
       <div className="loading-screen">
         <div>
@@ -280,7 +274,7 @@ export default function Workspace() {
       />
       <aside
         ref={sidebar}
-        className={`sidebar ${menu ? "open" : ""}`}
+        className={`sidebar ${menu ? "open" : ""} ${collapsed ? "collapsed" : ""}`}
         role={menu ? "dialog" : undefined}
         aria-modal={menu ? true : undefined}
         aria-label={menu ? t.workspace : undefined}
@@ -305,6 +299,8 @@ export default function Workspace() {
               className={`nav-link ${view === key || (key === "plans" && ["upload", "review"].includes(view)) || (key === "history" && view === "editor") ? "active" : ""}`}
               key={key}
               aria-current={view === key ? "page" : undefined}
+              title={t[key]}
+              aria-label={t[key]}
               onClick={() => navigate(key)}
             >
               <Icon size={19} />
@@ -312,41 +308,39 @@ export default function Workspace() {
             </button>
           ))}
         </nav>
-        <div className="sidebar-bottom">
-          <a className="lite-link" href="/help/">
-            {locale === "ru" ? "Помощь" : "Көмек"} <ArrowRight size={14} />
-          </a>
-          <a className="lite-link" href="/lite/">
-            {locale === "ru" ? "Облегчённая версия" : "Жеңілдетілген нұсқа"}{" "}
-            <ArrowRight size={14} />
-          </a>
-          <div className="profile-mini">
-            <div className="avatar">
-              {session.user.name.slice(0, 1).toUpperCase()}
-            </div>
-            <div>
-              <strong>{session.user.name}</strong>
-              <small>
-                {locale === "ru"
-                  ? "Учитель информатики"
-                  : "Информатика мұғалімі"}
-              </small>
-            </div>
-          </div>
-          <button
-            className="nav-link"
-            onClick={async () => {
-              if (hasChanges && !window.confirm(discardPrompt)) return;
-              await authClient.signOut();
-              window.location.assign("/");
-            }}
-          >
-            <LogOut size={16} />
-            {t.logout}
-          </button>
-        </div>
+        <button
+          className="sidebar-collapse icon-button"
+          onClick={() => {
+            const next = !collapsed;
+            setCollapsed(next);
+            localStorage.setItem(
+              "ziyatai-sidebar",
+              next ? "collapsed" : "expanded",
+            );
+          }}
+          aria-label={
+            locale === "ru"
+              ? collapsed
+                ? "Развернуть панель"
+                : "Свернуть панель"
+              : collapsed
+                ? "Панельді ашу"
+                : "Панельді жинау"
+          }
+          title={locale === "ru" ? "Боковая панель" : "Бүйірлік панель"}
+        >
+          {collapsed ? (
+            <PanelLeftOpen size={20} />
+          ) : (
+            <PanelLeftClose size={20} />
+          )}
+        </button>
       </aside>
-      <div className="main-shell" inert={menu} aria-hidden={menu || undefined}>
+      <div
+        className={`main-shell ${collapsed ? "sidebar-collapsed" : ""}`}
+        inert={menu}
+        aria-hidden={menu || undefined}
+      >
         <header className="topbar">
           <div className="breadcrumb">
             <button
@@ -362,15 +356,18 @@ export default function Workspace() {
             <strong>{title}</strong>
           </div>
           <div className="topbar-right">
-            <button
-              className="icon-button"
-              onClick={() => void refresh()}
-              aria-label={
-                locale === "ru" ? "Обновить данные" : "Деректерді жаңарту"
-              }
+            <a className="button help-button" href="/help/">
+              <CircleHelp size={17} />
+              <span>{locale === "ru" ? "Помощь" : "Көмек"}</span>
+            </a>
+            <a
+              className="icon-button lite-button"
+              href="/lite/"
+              aria-label={locale === "ru" ? "Лёгкая версия" : "Жеңіл нұсқа"}
+              title="Lite"
             >
-              <RefreshCw size={16} />
-            </button>
+              <Feather size={18} />
+            </a>
             <div className="language-switch">
               <button
                 className={locale === "kk" ? "active" : ""}
@@ -385,14 +382,46 @@ export default function Workspace() {
                 РУС
               </button>
             </div>
-            <button
-              className="avatar"
-              style={{ border: 0 }}
-              onClick={() => navigate("profile")}
-              aria-label={t.profile}
-            >
-              {session.user.name.slice(0, 1).toUpperCase()}
-            </button>
+            <div className="profile-dropdown" ref={profileDropdown}>
+              <button
+                ref={profileTrigger}
+                className="profile-trigger"
+                onClick={() => setProfileMenu(!profileMenu)}
+                aria-label="Профиль"
+                aria-expanded={profileMenu}
+                aria-controls="profile-menu"
+              >
+                <span className="avatar">
+                  {session.user.name.slice(0, 1).toUpperCase()}
+                </span>
+                <ChevronDown size={13} />
+              </button>
+              {profileMenu && (
+                <div id="profile-menu" className="profile-menu">
+                  <strong>{session.user.name}</strong>
+                  <small>{session.user.email}</small>
+                  {profile?.teachingSubject && (
+                    <small>
+                      {subjectLabel(profile.teachingSubject, locale)}
+                    </small>
+                  )}
+                  <button onClick={() => navigate("profile")}>
+                    <Settings size={17} />
+                    {locale === "ru" ? "Настройки" : "Баптаулар"}
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (hasChanges && !window.confirm(discardPrompt)) return;
+                      await authClient.signOut();
+                      window.location.assign("/");
+                    }}
+                  >
+                    <LogOut size={17} />
+                    {t.logout}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </header>
         <main className="main-content" id="workspace-main" tabIndex={-1}>
@@ -425,234 +454,6 @@ export default function Workspace() {
             </div>
           ) : (
             <>
-              {view === "overview" && (
-                <>
-                  <div className="page-heading dashboard-heading">
-                    <div>
-                      <span className="small-label greeting">
-                        {locale === "ru" ? "Здравствуйте" : "Сәлем"},{" "}
-                        {session.user.name.split(" ")[0]}
-                      </span>
-                      <h1 className="mt-20" style={{ marginTop: 9 }}>
-                        {t.welcome}
-                      </h1>
-                      <p>{t.welcomeSub}</p>
-                    </div>
-                    <button
-                      className="button primary"
-                      onClick={() => navigate("upload")}
-                    >
-                      <Plus size={17} />
-                      {t.upload}
-                    </button>
-                  </div>
-                  <section className="lesson-path" aria-label={t.start}>
-                    {[
-                      [t.step1, t.step1Sub, "upload"],
-                      [t.step2, t.step2Sub, "plans"],
-                      [t.step3, t.step3Sub, "create"],
-                    ].map(([heading, description, destination], index) => (
-                      <button
-                        key={destination}
-                        onClick={() => navigate(destination as View)}
-                      >
-                        <span className="path-number">0{index + 1}</span>
-                        <span>
-                          <strong>{heading}</strong>
-                          <small>{description}</small>
-                        </span>
-                        <ArrowRight size={18} />
-                      </button>
-                    ))}
-                  </section>
-                  <div className="stats-grid">
-                    {[
-                      [
-                        Files,
-                        t.planCount,
-                        profile.stats?.planCount ?? plans.length,
-                        "",
-                      ],
-                      [
-                        Clock,
-                        t.reviewCount,
-                        profile.stats?.reviewCount ??
-                          plans.filter((p) => p.status === "review").length,
-                        "gold",
-                      ],
-                      [
-                        Library,
-                        t.documentCount,
-                        profile.stats?.documentCount ??
-                          library.filter((d) => d.status === "succeeded")
-                            .length,
-                        "blue",
-                      ],
-                    ].map(([Icon, label, count, color], i) => {
-                      const I = Icon as typeof Files;
-                      return (
-                        <div className="stat-card" key={i}>
-                          <div className={`stat-icon ${color}`}>
-                            <I size={22} />
-                          </div>
-                          <div>
-                            <small>{label as string}</small>
-                            <strong>{count as number}</strong>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="dashboard-grid">
-                    <div>
-                      <section className="card">
-                        <div className="card-heading">
-                          <h2>{t.recentPlans}</h2>
-                          <button
-                            className="text-button"
-                            onClick={() => navigate("plans")}
-                          >
-                            {t.all} <span aria-hidden="true">→</span>
-                          </button>
-                        </div>
-                        {plans.length ? (
-                          <>
-                            {planRows(plans.slice(0, 4))}
-                            {profile.capabilities.demo && (
-                              <button
-                                className="text-button mt-20"
-                                onClick={demo}
-                                disabled={busy}
-                              >
-                                {t.demo}
-                              </button>
-                            )}
-                          </>
-                        ) : (
-                          <Empty
-                            t={t}
-                            onUpload={() => navigate("upload")}
-                            onDemo={
-                              profile.capabilities.demo ? demo : undefined
-                            }
-                            busy={busy}
-                          />
-                        )}
-                      </section>
-                      <section className="card">
-                        <div className="card-heading">
-                          <h2>{t.recentDocs}</h2>
-                          <button
-                            className="text-button"
-                            onClick={() => navigate("library")}
-                          >
-                            {t.all} →
-                          </button>
-                        </div>
-                        {library.filter((d) => d.status === "succeeded")
-                          .length ? (
-                          library
-                            .filter((d) => d.status === "succeeded")
-                            .slice(0, 3)
-                            .map((d) => (
-                              <div key={d.id} className="resource-row">
-                                <div className="file-icon">
-                                  <FileText size={20} />
-                                </div>
-                                <div className="resource-text">
-                                  <strong>{d.title}</strong>
-                                  <small>
-                                    {d.format.toUpperCase()} ·{" "}
-                                    {d.audience === "student"
-                                      ? t.student
-                                      : t.full}
-                                    {" · "}
-                                    {d.teacher_reviewed
-                                      ? locale === "ru"
-                                        ? "Проверено учителем"
-                                        : "Мұғалім тексерді"
-                                      : locale === "ru"
-                                        ? "Черновик"
-                                        : "Жоба"}
-                                  </small>
-                                </div>
-                                <a
-                                  className="icon-button"
-                                  href={`/api/exports/${d.id}/download`}
-                                  aria-label={t.download}
-                                >
-                                  <Download size={16} />
-                                </a>
-                              </div>
-                            ))
-                        ) : (
-                          <p
-                            className="muted"
-                            style={{ fontSize: 12, marginBottom: 0 }}
-                          >
-                            {t.emptySub}
-                          </p>
-                        )}
-                      </section>
-                    </div>
-                    <div>
-                      <div className="hero-card">
-                        <span className="eyebrow">
-                          {locale === "ru" ? "ПЛАН → УРОК" : "ЖОСПАР → САБАҚ"}
-                        </span>
-                        <h2 className="mt-20">{t.create}</h2>
-                        <p>{t.createSub}</p>
-                        <button
-                          className="button"
-                          onClick={() => navigate("create")}
-                        >
-                          {t.create}
-                          <ArrowRight size={15} />
-                        </button>
-                        <Layers size={110} className="hero-icon" />
-                      </div>
-                      <section className="card">
-                        <h2>{t.start}</h2>
-                        {[
-                          [t.step1, t.step1Sub],
-                          [t.step2, t.step2Sub],
-                          [t.step3, t.step3Sub],
-                        ].map(([heading, sub], i) => (
-                          <div className="step" key={i}>
-                            <span className="step-number">{i + 1}</span>
-                            <div>
-                              <strong>{heading}</strong>
-                              <p>{sub}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </section>
-                    </div>
-                  </div>
-                  {jobs.some((j) =>
-                    ["queued", "running", "failed"].includes(j.status),
-                  ) && (
-                    <section className="card">
-                      <h2>{t.jobs}</h2>
-                      <Jobs
-                        jobs={jobs
-                          .filter((j) =>
-                            ["queued", "running", "failed"].includes(j.status),
-                          )
-                          .slice(0, 5)}
-                        t={t}
-                        onOpen={(j) =>
-                          navigate(
-                            j.kind === "import" ? "review" : "editor",
-                            j.resource_id,
-                          )
-                        }
-                        refresh={refresh}
-                      />
-                    </section>
-                  )}
-                </>
-              )}
               {view === "plans" && (
                 <>
                   <div className="page-heading">
@@ -668,7 +469,25 @@ export default function Workspace() {
                       {t.upload}
                     </button>
                   </div>
+                  {plans.length > 0 && profile.capabilities.demo && (
+                    <button
+                      className="text-button demo-link"
+                      onClick={demo}
+                      disabled={busy}
+                    >
+                      {t.demo}
+                    </button>
+                  )}
                   <SearchBar t={t} query={query} setQuery={setQuery} />
+                  <Jobs
+                    jobs={jobs.filter(
+                      (j) =>
+                        j.kind === "import" &&
+                        ["queued", "running"].includes(j.status),
+                    )}
+                    t={t}
+                    refresh={refresh}
+                  />
                   <section className="card">
                     {plans.length ? (
                       plans
@@ -725,6 +544,7 @@ export default function Workspace() {
               )}
               {view === "upload" && (
                 <UploadPanel
+                  onCancel={() => navigate("plans")}
                   directUploads={profile.capabilities.directUploads}
                   t={t}
                   locale={locale}
@@ -737,6 +557,7 @@ export default function Workspace() {
               )}
               {view === "review" && (
                 <PlanReview
+                  onBack={() => navigate("plans")}
                   onDirtyChange={setHasChanges}
                   key={selected}
                   id={selected}
@@ -811,6 +632,16 @@ export default function Workspace() {
             </>
           )}
         </main>
+        <footer className="site-footer">
+          <span>© {new Date().getFullYear()} ZiyatAI</span>
+          <a href="/privacy/">
+            {locale === "ru" ? "Конфиденциальность" : "Құпиялық"}
+          </a>
+          <a href="/terms/">
+            {locale === "ru" ? "Условия использования" : "Пайдалану шарттары"}
+          </a>
+          <a href="/cookies/">Cookies</a>
+        </footer>
       </div>
       {toast && (
         <div className="toast" role="status">

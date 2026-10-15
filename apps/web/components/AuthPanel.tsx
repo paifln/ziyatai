@@ -1,6 +1,7 @@
 "use client";
-import { useState, useId } from "react";
-import { ArrowRight, Check, BookOpen, Layers, FileCheck } from "lucide-react";
+import { useState, useId, useEffect } from "react";
+import { ArrowRight, Mail, ShieldCheck } from "lucide-react";
+import { subjects } from "../../../packages/domain/subjects";
 import { authClient } from "../lib/client";
 import type { Texts, UiLocale } from "../lib/i18n";
 export default function AuthPanel({
@@ -13,7 +14,9 @@ export default function AuthPanel({
   setLocale: (l: UiLocale) => void;
 }) {
   const passwordHintId = useId();
-  const [mode, setMode] = useState<"login" | "signup" | "reset" | "new">(() =>
+  const [mode, setMode] = useState<
+    "login" | "signup" | "reset" | "new" | "verify"
+  >(() =>
     typeof window !== "undefined" &&
     new URLSearchParams(window.location.search).has("token")
       ? "new"
@@ -25,6 +28,40 @@ export default function AuthPanel({
     [busy, setBusy] = useState(false),
     [message, setMessage] = useState(""),
     [error, setError] = useState("");
+  const [subject, setSubject] = useState("");
+  const [customSubject, setCustomSubject] = useState("");
+  const [otp, setOtp] = useState("");
+  const [cooldown, setCooldown] = useState(0);
+  useEffect(() => {
+    if (!cooldown) return;
+    const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [cooldown]);
+  async function resend() {
+    setBusy(true);
+    setError("");
+    try {
+      const result = await authClient.emailOtp.sendVerificationOtp({
+        email,
+        type: "email-verification",
+      });
+      if (result.error) throw new Error();
+      setCooldown(60);
+      setMessage(
+        locale === "ru"
+          ? "Новый код отправлен. Используйте последнее письмо."
+          : "Жаңа код жіберілді. Соңғы хаттағы кодты енгізіңіз.",
+      );
+    } catch {
+      setError(
+        locale === "ru"
+          ? "Не удалось отправить код. Повторите позже."
+          : "Код жіберілмеді. Кейінірек қайталаңыз.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -37,9 +74,17 @@ export default function AuthPanel({
           email,
           password,
           name,
+          teachingSubject: subject === "other" ? customSubject.trim() : subject,
           callbackURL: "/",
         });
-        if (!result.error) setMessage(t.verifySent);
+        if (!result.error) {
+          setMode("verify");
+          setPassword("");
+          setCooldown(60);
+        }
+      } else if (mode === "verify") {
+        result = await authClient.emailOtp.verifyEmail({ email, otp });
+        if (!result.error) window.location.assign("/");
       } else if (mode === "reset") {
         result = await authClient.requestPasswordReset({
           email,
@@ -60,13 +105,21 @@ export default function AuthPanel({
       } else {
         result = await authClient.signIn.email({ email, password });
         if (!result.error) window.location.assign("/");
+        else if (result.error.code === "EMAIL_NOT_VERIFIED") {
+          setMode("verify");
+          setPassword("");
+          await resend();
+          return;
+        }
       }
       if (result.error)
         setError(
           result.error.status === 429
             ? t.tooManyAttempts
-            : result.error.code === "EMAIL_NOT_VERIFIED"
-              ? t.verifySent
+            : mode === "verify"
+              ? locale === "ru"
+                ? "Код неверный или истёк. Проверьте последнее письмо или запросите новый."
+                : "Код қате немесе мерзімі өткен. Соңғы хатты тексеріңіз немесе жаңа код сұраңыз."
               : locale === "ru"
                 ? "Не удалось выполнить действие. Проверьте введённые данные."
                 : "Әрекет орындалмады. Енгізілген деректерді тексеріңіз.",
@@ -91,50 +144,48 @@ export default function AuthPanel({
           </span>
         </a>
         <div className="auth-story-content">
-          <span className="eyebrow">
+          <span className="auth-kicker">
+            ZiyatAI /{" "}
             {locale === "ru"
-              ? "ДЛЯ УЧИТЕЛЕЙ ИНФОРМАТИКИ"
-              : "ИНФОРМАТИКА МҰҒАЛІМДЕРІНЕ"}
+              ? "Для учителей Казахстана"
+              : "Қазақстан мұғалімдеріне"}
           </span>
-          <h1>{t.authTitle}</h1>
-          <p>{t.authSubtitle}</p>
-          <div className="auth-features">
-            {[
-              [BookOpen, t.authFeature1],
-              [Layers, t.authFeature2],
-              [FileCheck, t.authFeature3],
-            ].map(([Icon, label], i) => {
-              const I = Icon as typeof BookOpen;
-              return (
-                <div key={i}>
-                  <I size={21} />
-                  <span>{label as string}</span>
-                </div>
-              );
-            })}
-          </div>
-          <div className="paper-illustration" aria-hidden="true">
-            <div className="paper-top">
-              <span>ZiyatAI</span>
-              <span>7 {t.grade.toLowerCase()}</span>
+          <h1>
+            {locale === "ru" ? (
+              <>
+                Больше времени.
+                <br />
+                Для главного.
+              </>
+            ) : (
+              <>
+                Маңыздысына
+                <br />
+                уақыт табыңыз.
+              </>
+            )}
+          </h1>
+          <p>
+            {locale === "ru"
+              ? "От учебного плана к заданиям для вашего класса. Просто, спокойно, по вашему предмету."
+              : "Оқу жоспарынан сыныпқа арналған тапсырмаларға дейін. Қарапайым, ыңғайлы, өз пәніңіз бойынша."}
+          </p>
+          <div className="auth-product">
+            <img src="/brand-owl.png" alt="" width="112" height="112" />
+            <span>
+              {locale === "ru"
+                ? "Ваш замысел. Ваш урок."
+                : "Өз ойыңыз. Өз сабағыңыз."}
+            </span>
+            <div>
+              <Mail size={18} />
+              <span>
+                {locale === "ru"
+                  ? "Личный кабинет с подтверждённой почтой"
+                  : "Расталған поштасы бар жеке кабинет"}
+              </span>
+              <ShieldCheck size={18} />
             </div>
-            <div className="paper-title">
-              {locale === "ru" ? "Линейные алгоритмы" : "Сызықтық алгоритмдер"}
-            </div>
-            {(locale === "ru"
-              ? ["Лёгкий", "Средний", "Сложный"]
-              : ["Жеңіл", "Орта", "Күрделі"]
-            ).map((level, i) => (
-              <div className="paper-level" key={level}>
-                <span className={`level-dot dot-${i}`} />
-                {level}
-                <div className="paper-lines">
-                  <i />
-                  <i />
-                </div>
-                <Check size={16} />
-              </div>
-            ))}
           </div>
         </div>
         <p className="auth-foot">{t.policy}</p>
@@ -157,18 +208,26 @@ export default function AuthPanel({
         <div className="auth-form-card">
           <span className="small-label">ZiyatAI</span>
           <h2>
-            {mode === "signup"
-              ? t.signUp
-              : mode === "reset"
-                ? t.reset
-                : mode === "new"
-                  ? t.resetNew
-                  : t.signIn}
+            {mode === "verify"
+              ? locale === "ru"
+                ? "Проверьте почту"
+                : "Поштаңызды тексеріңіз"
+              : mode === "signup"
+                ? t.signUp
+                : mode === "reset"
+                  ? t.reset
+                  : mode === "new"
+                    ? t.resetNew
+                    : t.signIn}
           </h2>
           <p className="auth-caption">
-            {locale === "ru"
-              ? "Ваши планы, задания и готовые материалы — в одном месте."
-              : "Жоспарларыңыз, тапсырмалар мен дайын материалдар — бір жерде."}
+            {mode === "verify"
+              ? locale === "ru"
+                ? `Введите 6-значный код из письма на ${email}. Код действует 10 минут.`
+                : `${email} поштасына жіберілген 6 таңбалы кодты енгізіңіз. Код 10 минут жарамды.`
+              : locale === "ru"
+                ? "Ваши планы, задания и готовые материалы — в одном месте."
+                : "Жоспарларыңыз, тапсырмалар мен дайын материалдар — бір жерде."}
           </p>
           <form onSubmit={submit}>
             {mode === "signup" && (
@@ -183,7 +242,61 @@ export default function AuthPanel({
                 />
               </label>
             )}
-            {mode !== "new" && (
+            {mode === "signup" && (
+              <>
+                <label>
+                  {locale === "ru" ? "Ваш предмет" : "Сіздің пәніңіз"}
+                  <select
+                    aria-label={
+                      locale === "ru" ? "Ваш предмет" : "Сіздің пәніңіз"
+                    }
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                    required
+                  >
+                    <option value="">
+                      {locale === "ru" ? "Выберите предмет" : "Пәнді таңдаңыз"}
+                    </option>
+                    {subjects.map(([id, kk, ru]) => (
+                      <option key={id} value={id}>
+                        {locale === "ru" ? ru : kk}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {subject === "other" && (
+                  <label>
+                    {locale === "ru" ? "Название предмета" : "Пән атауы"}
+                    <input
+                      required
+                      maxLength={120}
+                      value={customSubject}
+                      onChange={(e) => setCustomSubject(e.target.value)}
+                    />
+                  </label>
+                )}
+              </>
+            )}
+            {mode === "verify" && (
+              <label>
+                {locale === "ru" ? "Код из письма" : "Хаттағы код"}
+                <input
+                  className="otp-input"
+                  value={otp}
+                  onChange={(e) =>
+                    setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
+                  }
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  pattern="[0-9]{6}"
+                  minLength={6}
+                  maxLength={6}
+                  required
+                  autoFocus
+                />
+              </label>
+            )}
+            {mode !== "new" && mode !== "verify" && (
               <label>
                 {t.email}
                 <input
@@ -197,7 +310,7 @@ export default function AuthPanel({
                 />
               </label>
             )}
-            {mode !== "reset" && (
+            {mode !== "reset" && mode !== "verify" && (
               <label>
                 {t.password}
                 <input
@@ -232,6 +345,26 @@ export default function AuthPanel({
                 {t.forgot}
               </button>
             )}
+            {mode === "signup" && (
+              <label className="checkbox consent">
+                <input type="checkbox" required />
+                <span>
+                  {locale === "ru" ? "Я принимаю" : "Мен қабылдаймын:"}{" "}
+                  <a href="/terms/" target="_blank" rel="noreferrer">
+                    {locale === "ru"
+                      ? "условия использования"
+                      : "пайдалану шарттарын"}
+                  </a>{" "}
+                  {locale === "ru" ? "и ознакомился с" : "және таныстым:"}{" "}
+                  <a href="/privacy/" target="_blank" rel="noreferrer">
+                    {locale === "ru"
+                      ? "политикой конфиденциальности"
+                      : "құпиялық саясатымен"}
+                  </a>
+                  .
+                </span>
+              </label>
+            )}
             {error && (
               <div className="notice error" role="alert">
                 {error}
@@ -245,16 +378,31 @@ export default function AuthPanel({
             <button className="button primary wide" disabled={busy}>
               {busy
                 ? t.loading
-                : mode === "signup"
-                  ? t.signUp
-                  : mode === "reset"
-                    ? t.reset
-                    : mode === "new"
-                      ? t.save
-                      : t.signIn}
+                : mode === "verify"
+                  ? locale === "ru"
+                    ? "Подтвердить почту"
+                    : "Поштаны растау"
+                  : mode === "signup"
+                    ? t.signUp
+                    : mode === "reset"
+                      ? t.reset
+                      : mode === "new"
+                        ? t.save
+                        : t.signIn}
               <ArrowRight size={17} />
             </button>
           </form>
+          {mode === "verify" && (
+            <button
+              type="button"
+              className="text-button resend-code"
+              disabled={busy || cooldown > 0}
+              onClick={resend}
+            >
+              {locale === "ru" ? "Отправить код ещё раз" : "Кодты қайта жіберу"}
+              {cooldown > 0 ? ` · ${cooldown} с` : ""}
+            </button>
+          )}
           <p className="auth-toggle">
             {mode === "login" ? t.noAccount : t.haveAccount}{" "}
             <button
@@ -269,6 +417,14 @@ export default function AuthPanel({
             </button>
           </p>
           <p className="auth-support">
+            <a href="/privacy/">
+              {locale === "ru" ? "Конфиденциальность" : "Құпиялық"}
+            </a>
+            {" · "}
+            <a href="/terms/">
+              {locale === "ru" ? "Условия использования" : "Пайдалану шарттары"}
+            </a>
+            <br />
             <a href="/lite/">
               {locale === "ru"
                 ? "Слабый компьютер? Открыть лёгкую версию"

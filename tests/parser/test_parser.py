@@ -43,6 +43,22 @@ def test_normalization():
  assert parser.normalize_date('31.02.2026')[2]==['invalid_date']
  assert parser.normalize_date('01.09.2026–04.09.2026')[:2]==('2026-09-01','2026-09-04')
  assert parser.header_map(['Сағат саны','Оқу мақсаттары','Сабақтың тақырыбы'])=={'hours':0,'goals':1,'topic':2}
+
+def test_plural_topic_singular_goal_and_merged_quarter():
+ headers=['№ п/п','Раздел/ Сквозные темы','Темы урока','Цель обучения','Кол-во часов','Сроки']
+ mapping=parser.header_map(headers)
+ assert mapping=={'lessonNumberRaw':0,'section':1,'topic':2,'goals':3,'hours':4,'dateRaw':5}
+ tables=[(headers,parser.source(sheet='1 класс')),
+   (['3 четверть']*6,parser.source(sheet='1 класс')),
+   (['1','Раздел 1','Первая тема','1.1.1.1 объяснять назначение устройств','1',''],parser.source(sheet='1 класс',range='row:8')),
+   (['Оглавление другого листа','X','X','X','X',''],parser.source(sheet='2 класс')),
+   (headers,parser.source(sheet='2 класс')),
+   (['1','Раздел 2','Вторая тема','2.1.1.1 сравнивать устройства','1',''],parser.source(sheet='2 класс',range='row:8'))]
+ result=parser.normalize(tables)
+ assert len(result['rows'])==2
+ assert result['rows'][0]['quarter']=='3 четверть'
+ assert result['rows'][1]['quarter']==''
+ assert [r['source']['sheet'] for r in result['rows']]==['1 класс','2 класс']
 def test_hidden_sheets_excluded_and_auditable():
  result=parser.extract('tests/fixtures/kk-workbook-2.xlsx')
  assert len(result['rows'])==3 and any('Hidden sheet' in s for s in result['unrecognized'])

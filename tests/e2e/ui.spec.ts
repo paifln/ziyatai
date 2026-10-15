@@ -99,7 +99,7 @@ for (const screen of ["desktop", "phone", "tablet"] as const) {
           () => document.documentElement.scrollWidth <= innerWidth,
         ),
       ).toBe(true);
-      await navigate(page, "Обзор", touch);
+      await navigate(page, "Мои КТП", touch);
       if (touch)
         await expect(page.locator("html")).toHaveAttribute(
           "data-qa-touch-observed",

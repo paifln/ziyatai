@@ -352,6 +352,7 @@ export async function handle(req: Request, path: string[]) {
             )
           ).rows[0],
           name: session.user.name,
+          teachingSubject: (await db().query('SELECT "teachingSubject" FROM "user" WHERE id=$1', [owner])).rows[0]?.teachingSubject ?? "",
           email: session.user.email,
           stats: (await db().query(`SELECT
             (SELECT count(*)::int FROM plans WHERE owner_id=$1 AND deleted_at IS NULL) AS "planCount",
@@ -369,6 +370,7 @@ export async function handle(req: Request, path: string[]) {
         const b = z
           .object({
             name: z.string().min(1).max(100),
+            teachingSubject: z.string().max(120).optional(),
             school: z.string().max(200),
             locale: z.enum(["kk", "ru"]),
             grades: z.array(z.number().int().min(1).max(11)).max(11),
@@ -377,8 +379,8 @@ export async function handle(req: Request, path: string[]) {
           .parse(await body(req));
         await transaction(async (c) => {
           await c.query(
-            'UPDATE "user" SET name=$2,"updatedAt"=now() WHERE id=$1',
-            [owner, b.name],
+            'UPDATE "user" SET name=$2,"teachingSubject"=COALESCE($3,"teachingSubject"),"updatedAt"=now() WHERE id=$1',
+            [owner, b.name, b.teachingSubject ?? null],
           );
           await c.query(
             "INSERT INTO profiles(owner_id,school,locale,grades,styles) VALUES($1,$2,$3,$4,$5) ON CONFLICT(owner_id) DO UPDATE SET school=$2,locale=$3,grades=$4,styles=$5",
@@ -662,14 +664,18 @@ export async function handle(req: Request, path: string[]) {
           resourceId: job.resource_id,
         });
       if (method === "POST" && action === "cancel") {
-        await db().query(
-          "UPDATE jobs SET cancel_requested=true,status=CASE WHEN status='queued' THEN 'cancelled' ELSE status END WHERE id=$1 AND status IN ('queued','running')",
-          [id],
-        );
-        await db().query(
-          "UPDATE usage_ledger SET state='released' WHERE job_id=$1 AND state='reserved' AND EXISTS(SELECT 1 FROM jobs WHERE id=$1 AND status='cancelled')",
-          [id],
-        );
+        await transaction(async (c) => {
+          const cancelled = await c.query(
+            "UPDATE jobs SET cancel_requested=true,status=CASE WHEN status='queued' THEN 'cancelled' ELSE status END,stage=CASE WHEN status='queued' THEN 'cancelled' ELSE stage END WHERE id=$1 AND owner_id=$2 AND status IN ('queued','running') RETURNING kind,resource_id,status",
+            [id, owner],
+          );
+          const row = cancelled.rows[0];
+          if (row?.status === "cancelled") {
+            await c.query("UPDATE usage_ledger SET state='released' WHERE job_id=$1 AND state='reserved'", [id]);
+            const table = row.kind === "import" ? "plans" : row.kind === "generate" ? "generations" : row.kind === "export" ? "exports" : null;
+            if (table) await c.query(`UPDATE ${table} SET status='cancelled' WHERE id=$1 AND owner_id=$2 AND deleted_at IS NULL`, [row.resource_id, owner]);
+          }
+        });
         return json({ cancelRequested: true });
       }
     }
@@ -727,7 +733,7 @@ export async function handle(req: Request, path: string[]) {
             ? row.objectiveCodes
             : ["manual"],
           grade: plan.grade,
-          subject: "informatics",
+          subject: (await c.query('SELECT "teachingSubject" FROM "user" WHERE id=$1', [owner])).rows[0]?.teachingSubject || "general",
           locale: b.locale,
           count: b.count,
           minutes: b.minutes,

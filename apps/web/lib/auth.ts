@@ -1,4 +1,6 @@
 import { betterAuth } from "better-auth";
+import { emailOTP } from "better-auth/plugins";
+import { z } from "zod";
 import nodemailer from "nodemailer";
 import { db } from "./db";
 import { env } from "./env";
@@ -28,6 +30,37 @@ function makeAuth() {
     baseURL: e.APP_URL,
     secret: e.AUTH_SECRET,
     database: db(),
+    user: {
+      additionalFields: {
+        teachingSubject: {
+          type: "string",
+          required: false,
+          defaultValue: "",
+          validator: { input: z.string().trim().max(120) },
+        },
+      },
+    },
+    plugins: [
+      emailOTP({
+        otpLength: 6,
+        expiresIn: 600,
+        allowedAttempts: 5,
+        storeOTP: "hashed",
+        overrideDefaultEmailVerification: true,
+        disableSignUp: true,
+        rateLimit: { window: 60, max: 3 },
+        async sendVerificationOTP({ email, otp, type }) {
+          if (type !== "email-verification")
+            throw new Error("Only email verification codes are enabled");
+          await mail.sendMail({
+            from: e.SMTP_FROM,
+            to: email,
+            subject: "ZiyatAI — код подтверждения / растау коды",
+            text: `ZiyatAI\n\nКод подтверждения / Растау коды: ${otp}\n\nКод действует 10 минут. Ешкімге бермеңіз / Никому не сообщайте код.\nЕсли вы не регистрировались, проигнорируйте письмо.`,
+          });
+        },
+      }),
+    ],
     emailAndPassword: {
       enabled: true,
       requireEmailVerification: true,
@@ -43,8 +76,6 @@ function makeAuth() {
     emailVerification: {
       sendOnSignUp: true,
       autoSignInAfterVerification: true,
-      sendVerificationEmail: async ({ user, url }) =>
-        send(user.email, url, "Подтверждение email / Email растау"),
     },
     advanced: {
       ...(e.API_GATEWAY === "netlify"

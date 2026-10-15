@@ -127,10 +127,10 @@ try {
     const detail = await (
       await api.get(`http://127.0.0.1:8025/api/v1/message/${mail.ID}`)
     ).json();
-    mailLink = detail.Text.match(/https?:\/\/[^\s]+/)?.[0] || "";
+    mailLink = detail.Text.match(/\b\d{6}\b/)?.[0] || "";
     return !!mailLink;
   });
-  assert.equal((await api.get(mailLink)).ok(), true);
+  assert.equal((await api.post("/api/auth/email-otp/verify-email", {headers,data:{email,otp:mailLink}})).ok(), true);
   await call("/url", { url: base + "/lite/" });
   await until(() =>
     execute("return !!document.querySelector('input[type=email]')"),
