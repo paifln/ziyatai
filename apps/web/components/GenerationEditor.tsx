@@ -23,6 +23,7 @@ import { displayLevel } from "../../../packages/domain/validation";
 import { validationMessage } from "../../../packages/domain/validation-messages";
 import { Jobs } from "./Jobs";
 import { usePolling } from "../lib/use-polling";
+import TableEditor from "./TableEditor";
 type Block = TaskDocument["contentBlocks"][number];
 const blank = (type: Block["type"] = "paragraph"): Block => ({
   type,
@@ -66,8 +67,12 @@ export default function GenerationEditor({
   const [regenerationJob, setRegenerationJob] = useState("");
   const [activeTask, setActiveTask] = useState("");
   const [teacherReviewed, setTeacherReviewed] = useState(false);
-  useEffect(()=>{setTeacherReviewed(false);},[generation?.revision]);
-  useEffect(()=>{if(dirty)setTeacherReviewed(false);},[dirty]);
+  useEffect(() => {
+    setTeacherReviewed(false);
+  }, [generation?.revision]);
+  useEffect(() => {
+    if (dirty) setTeacherReviewed(false);
+  }, [dirty]);
   const requestKeys = useRef(new Map<string, string>());
   function requestKey(data: unknown) {
     const signature = JSON.stringify(data);
@@ -93,23 +98,41 @@ export default function GenerationEditor({
     void load();
   }, [load]);
   usePolling(load, ["queued", "running"].includes(generation?.status));
-  usePolling(async () => {
-    try {
-      const next = await Promise.all(exportJobs.map((j) => ["queued", "running"].includes(j.status) ? api(`jobs/${j.id}`) : j));
-      setExportJobs(next);
-    } catch (e) { onError((e as Error).message); }
-  }, exportJobs.some((j) => ["queued", "running"].includes(j.status)));
-  useEffect(() => { onDirtyChange(dirty); }, [dirty, onDirtyChange]);
+  usePolling(
+    async () => {
+      try {
+        const next = await Promise.all(
+          exportJobs.map((j) =>
+            ["queued", "running"].includes(j.status) ? api(`jobs/${j.id}`) : j,
+          ),
+        );
+        setExportJobs(next);
+      } catch (e) {
+        onError((e as Error).message);
+      }
+    },
+    exportJobs.some((j) => ["queued", "running"].includes(j.status)),
+  );
+  useEffect(() => {
+    onDirtyChange(dirty);
+  }, [dirty, onDirtyChange]);
   usePolling(async () => {
     try {
       const result = await api(`jobs/${regenerationJob}`);
       if (["succeeded", "failed", "cancelled"].includes(result.status)) {
-        setRegenerationJob(""); setBusy(false);
-        if (result.status === "succeeded") { await load(); onSaved(); }
-        else onError(result.error?.message ?? t.failed);
+        setRegenerationJob("");
+        setBusy(false);
+        if (result.status === "succeeded") {
+          await load();
+          onSaved();
+        } else onError(result.error?.message ?? t.failed);
         await refresh();
       }
-    } catch (e) { setRegenerationJob(""); setBusy(false); onError((e as Error).message); }
+    } catch (e) {
+      setRegenerationJob("");
+      setBusy(false);
+      onError((e as Error).message);
+    }
   }, !!regenerationJob);
   useEffect(() => {
     if (!dirty) return;
@@ -273,13 +296,39 @@ export default function GenerationEditor({
             />
           ) : (
             document.tasks.map((task, index) => (
-              <section className="task-card" key={task.id} data-expanded={activeTask ? activeTask===task.id : index===0}>
+              <section
+                className="task-card"
+                key={task.id}
+                data-expanded={
+                  activeTask ? activeTask === task.id : index === 0
+                }
+              >
                 <div className="task-header">
                   <span className="task-number">{index + 1}</span>
-                  <button className="task-toggle" aria-expanded={activeTask ? activeTask===task.id : index===0} aria-controls={`task-${task.id}`} onClick={() => setActiveTask((activeTask ? activeTask===task.id : index===0) ? "closed" : task.id)}>
+                  <button
+                    className="task-toggle"
+                    aria-expanded={
+                      activeTask ? activeTask === task.id : index === 0
+                    }
+                    aria-controls={`task-${task.id}`}
+                    onClick={() =>
+                      setActiveTask(
+                        (activeTask ? activeTask === task.id : index === 0)
+                          ? "closed"
+                          : task.id,
+                      )
+                    }
+                  >
                     <strong>{displayLevel(task.level, locale)}</strong>
-                    <small>{task.points} {t.points.toLowerCase()} · {task.estimatedMinutes} {t.duration.toLowerCase()}</small>
-                    <span aria-hidden="true">{(activeTask ? activeTask===task.id : index===0) ? "−" : "+"}</span>
+                    <small>
+                      {task.points} {t.points.toLowerCase()} ·{" "}
+                      {task.estimatedMinutes} {t.duration.toLowerCase()}
+                    </small>
+                    <span aria-hidden="true">
+                      {(activeTask ? activeTask === task.id : index === 0)
+                        ? "−"
+                        : "+"}
+                    </span>
                   </button>
                   <button
                     className="icon-button"
@@ -320,231 +369,253 @@ export default function GenerationEditor({
                     <ArrowDown size={14} />
                   </button>
                 </div>
-                {(activeTask ? activeTask===task.id : index===0) ? <div id={`task-${task.id}`}>
-                <label>{t.condition}</label>
-                <BlocksEditor
-                  blocks={task.contentBlocks}
-                  onChange={(blocks) =>
-                    changeTask(index, { contentBlocks: blocks })
-                  }
-                  t={t}
-                />
-                <details>
-                  <summary
-                    style={{
-                      cursor: "pointer",
-                      fontWeight: 600,
-                      color: "var(--green)",
-                      marginBottom: 16,
-                    }}
-                  >
-                    {t.answer} · {t.how} · {t.rubric}
-                  </summary>
-                  <label>{t.answer}</label>
-                  <BlocksEditor
-                    blocks={task.answerBlocks}
-                    onChange={(blocks) =>
-                      changeTask(index, { answerBlocks: blocks })
-                    }
-                    t={t}
-                  />
-                  <label>
-                    {t.how}
-                    <textarea
-                      value={task.explanationHow}
-                      onChange={(e) =>
-                        changeTask(index, { explanationHow: e.target.value })
+                {(activeTask ? activeTask === task.id : index === 0) ? (
+                  <div id={`task-${task.id}`}>
+                    <label>{t.condition}</label>
+                    <BlocksEditor
+                      blocks={task.contentBlocks}
+                      onChange={(blocks) =>
+                        changeTask(index, { contentBlocks: blocks })
                       }
+                      t={t}
                     />
-                  </label>
-                  <label>
-                    {t.why}
-                    <textarea
-                      value={task.explanationWhy}
-                      onChange={(e) =>
-                        changeTask(index, { explanationWhy: e.target.value })
-                      }
-                    />
-                  </label>
-                  <div className="form-grid">
-                    <label>
-                      {t.points}
-                      <input
-                        type="number"
-                        min={1}
-                        max={100}
-                        value={task.points}
-                        onChange={(e) =>
-                          changeTask(index, { points: Number(e.target.value) })
-                        }
-                      />
-                    </label>
-                    <label>
-                      {t.duration}
-                      <input
-                        type="number"
-                        min={1}
-                        max={120}
-                        value={task.estimatedMinutes}
-                        onChange={(e) =>
-                          changeTask(index, {
-                            estimatedMinutes: Number(e.target.value),
-                          })
-                        }
-                      />
-                    </label>
-                  </div>
-                  <label className="mt-20">{t.rubric}</label>
-                  {task.rubric.map((r, i) => (
-                    <div className="rubric-row" key={i}>
-                      <input
-                        aria-label={`${t.rubric} ${i + 1}`}
-                        value={r.criterion}
-                        onChange={(e) =>
-                          changeTask(index, {
-                            rubric: task.rubric.map((r, j) =>
-                              j === i ? { ...r, criterion: e.target.value } : r,
-                            ),
-                          })
-                        }
-                      />
-                      <input
-                        aria-label={`${t.points} ${i + 1}`}
-                        type="number"
-                        min={0}
-                        max={100}
-                        value={r.points}
-                        onChange={(e) =>
-                          changeTask(index, {
-                            rubric: task.rubric.map((r, j) =>
-                              j === i
-                                ? { ...r, points: Number(e.target.value) }
-                                : r,
-                            ),
-                          })
-                        }
-                      />
-                      <button
-                        className="icon-button"
-                        aria-label={t.remove}
-                        onClick={() =>
-                          changeTask(index, {
-                            rubric: task.rubric.filter((_, j) => j !== i),
-                          })
-                        }
+                    <details>
+                      <summary
+                        style={{
+                          cursor: "pointer",
+                          fontWeight: 600,
+                          color: "var(--green)",
+                          marginBottom: 16,
+                        }}
                       >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  ))}
-                  <button
-                    className="text-button"
-                    onClick={() =>
-                      changeTask(index, {
-                        rubric: [...task.rubric, { criterion: "", points: 1 }],
-                      })
-                    }
-                  >
-                    <Plus size={13} />
-                    {t.rubric}
-                  </button>
-                </details>
-                {task.translation && (
-                  <details className="mt-20">
-                    <summary style={{ cursor: "pointer", fontWeight: 600 }}>
-                      {locale === "ru" ? "Русская версия" : "Орысша нұсқа"}
-                    </summary>
-                    <label className="mt-20">{t.condition}</label>
-                    <BlocksEditor
-                      blocks={task.translation.contentBlocks}
-                      onChange={(blocks) =>
-                        changeTask(index, {
-                          translation: {
-                            ...task.translation!,
-                            contentBlocks: blocks,
-                          },
-                        })
-                      }
-                      t={t}
-                    />
-                    <label>{t.answer}</label>
-                    <BlocksEditor
-                      blocks={task.translation.answerBlocks}
-                      onChange={(blocks) =>
-                        changeTask(index, {
-                          translation: {
-                            ...task.translation!,
-                            answerBlocks: blocks,
-                          },
-                        })
-                      }
-                      t={t}
-                    />
-                    <label>
-                      {t.how}
-                      <textarea
-                        value={task.translation.explanationHow}
-                        onChange={(e) =>
-                          changeTask(index, {
-                            translation: {
-                              ...task.translation!,
-                              explanationHow: e.target.value,
-                            },
-                          })
+                        {t.answer} · {t.how} · {t.rubric}
+                      </summary>
+                      <label>{t.answer}</label>
+                      <BlocksEditor
+                        blocks={task.answerBlocks}
+                        onChange={(blocks) =>
+                          changeTask(index, { answerBlocks: blocks })
                         }
+                        t={t}
                       />
-                    </label>
-                    <label>
-                      {t.why}
-                      <textarea
-                        value={task.translation.explanationWhy}
-                        onChange={(e) =>
-                          changeTask(index, {
-                            translation: {
-                              ...task.translation!,
-                              explanationWhy: e.target.value,
-                            },
-                          })
-                        }
-                      />
-                    </label>
-                    {task.translation.rubric.map((r, i) => (
-                      <label key={i}>
-                        {t.rubric} ({r.points})
-                        <input
-                          value={r.criterion}
+                      <label>
+                        {t.how}
+                        <textarea
+                          value={task.explanationHow}
                           onChange={(e) =>
                             changeTask(index, {
-                              translation: {
-                                ...task.translation!,
-                                rubric: task.translation!.rubric.map(
-                                  (criterion, j) =>
-                                    j === i
-                                      ? {
-                                          ...criterion,
-                                          criterion: e.target.value,
-                                        }
-                                      : criterion,
-                                ),
-                              },
+                              explanationHow: e.target.value,
                             })
                           }
                         />
                       </label>
-                    ))}
-                  </details>
+                      <label>
+                        {t.why}
+                        <textarea
+                          value={task.explanationWhy}
+                          onChange={(e) =>
+                            changeTask(index, {
+                              explanationWhy: e.target.value,
+                            })
+                          }
+                        />
+                      </label>
+                      <div className="form-grid">
+                        <label>
+                          {t.points}
+                          <input
+                            type="number"
+                            min={1}
+                            max={100}
+                            value={task.points}
+                            onChange={(e) =>
+                              changeTask(index, {
+                                points: Number(e.target.value),
+                              })
+                            }
+                          />
+                        </label>
+                        <label>
+                          {t.duration}
+                          <input
+                            type="number"
+                            min={1}
+                            max={120}
+                            value={task.estimatedMinutes}
+                            onChange={(e) =>
+                              changeTask(index, {
+                                estimatedMinutes: Number(e.target.value),
+                              })
+                            }
+                          />
+                        </label>
+                      </div>
+                      <label className="mt-20">{t.rubric}</label>
+                      {task.rubric.map((r, i) => (
+                        <div className="rubric-row" key={i}>
+                          <input
+                            aria-label={`${t.rubric} ${i + 1}`}
+                            value={r.criterion}
+                            onChange={(e) =>
+                              changeTask(index, {
+                                rubric: task.rubric.map((r, j) =>
+                                  j === i
+                                    ? { ...r, criterion: e.target.value }
+                                    : r,
+                                ),
+                              })
+                            }
+                          />
+                          <input
+                            aria-label={`${t.points} ${i + 1}`}
+                            type="number"
+                            min={0}
+                            max={100}
+                            value={r.points}
+                            onChange={(e) =>
+                              changeTask(index, {
+                                rubric: task.rubric.map((r, j) =>
+                                  j === i
+                                    ? { ...r, points: Number(e.target.value) }
+                                    : r,
+                                ),
+                              })
+                            }
+                          />
+                          <button
+                            className="icon-button"
+                            aria-label={t.remove}
+                            onClick={() =>
+                              changeTask(index, {
+                                rubric: task.rubric.filter((_, j) => j !== i),
+                              })
+                            }
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        className="text-button"
+                        onClick={() =>
+                          changeTask(index, {
+                            rubric: [
+                              ...task.rubric,
+                              { criterion: "", points: 1 },
+                            ],
+                          })
+                        }
+                      >
+                        <Plus size={13} />
+                        {t.rubric}
+                      </button>
+                    </details>
+                    {task.translation && (
+                      <details className="mt-20">
+                        <summary style={{ cursor: "pointer", fontWeight: 600 }}>
+                          {locale === "ru" ? "Русская версия" : "Орысша нұсқа"}
+                        </summary>
+                        <label className="mt-20">{t.condition}</label>
+                        <BlocksEditor
+                          blocks={task.translation.contentBlocks}
+                          onChange={(blocks) =>
+                            changeTask(index, {
+                              translation: {
+                                ...task.translation!,
+                                contentBlocks: blocks,
+                              },
+                            })
+                          }
+                          t={t}
+                        />
+                        <label>{t.answer}</label>
+                        <BlocksEditor
+                          blocks={task.translation.answerBlocks}
+                          onChange={(blocks) =>
+                            changeTask(index, {
+                              translation: {
+                                ...task.translation!,
+                                answerBlocks: blocks,
+                              },
+                            })
+                          }
+                          t={t}
+                        />
+                        <label>
+                          {t.how}
+                          <textarea
+                            value={task.translation.explanationHow}
+                            onChange={(e) =>
+                              changeTask(index, {
+                                translation: {
+                                  ...task.translation!,
+                                  explanationHow: e.target.value,
+                                },
+                              })
+                            }
+                          />
+                        </label>
+                        <label>
+                          {t.why}
+                          <textarea
+                            value={task.translation.explanationWhy}
+                            onChange={(e) =>
+                              changeTask(index, {
+                                translation: {
+                                  ...task.translation!,
+                                  explanationWhy: e.target.value,
+                                },
+                              })
+                            }
+                          />
+                        </label>
+                        {task.translation.rubric.map((r, i) => (
+                          <label key={i}>
+                            {t.rubric} ({r.points})
+                            <input
+                              value={r.criterion}
+                              onChange={(e) =>
+                                changeTask(index, {
+                                  translation: {
+                                    ...task.translation!,
+                                    rubric: task.translation!.rubric.map(
+                                      (criterion, j) =>
+                                        j === i
+                                          ? {
+                                              ...criterion,
+                                              criterion: e.target.value,
+                                            }
+                                          : criterion,
+                                    ),
+                                  },
+                                })
+                              }
+                            />
+                          </label>
+                        ))}
+                      </details>
+                    )}
+                    <div className="actions">
+                      <button
+                        className="button secondary"
+                        disabled={busy || dirty || generation.demo}
+                        onClick={() => regenerate(task)}
+                      >
+                        <RefreshCw size={14} />
+                        {t.regenerate}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="task-excerpt">
+                    {task.contentBlocks
+                      .find((b) => b.type === "paragraph")
+                      ?.text.slice(0, 200) ||
+                      (locale === "ru"
+                        ? "Откройте задание для редактирования"
+                        : "Өңдеу үшін тапсырманы ашыңыз")}
+                  </p>
                 )}
-                <div className="actions">
-                  <button
-                    className="button secondary"
-                    disabled={busy || dirty || generation.demo}
-                    onClick={() => regenerate(task)}
-                  >
-                    <RefreshCw size={14} />
-                    {t.regenerate}
-                  </button>
-                </div>
-                </div> : <p className="task-excerpt">{task.contentBlocks.find((b) => b.type === "paragraph")?.text.slice(0,200) || (locale === "ru" ? "Откройте задание для редактирования" : "Өңдеу үшін тапсырманы ашыңыз")}</p>}
               </section>
             ))
           )}
@@ -552,8 +623,24 @@ export default function GenerationEditor({
         <aside className="editor-side">
           <section className="card">
             <h2>{t.export}</h2>
-            <label className="checkbox teacher-review"><input type="checkbox" checked={teacherReviewed} disabled={dirty || busy || !!report?.issues?.length} onChange={(e)=>setTeacherReviewed(e.target.checked)}/><span>{locale === "ru" ? "Я проверил(а) задания, ответы и критерии" : "Тапсырмаларды, жауаптар мен критерийлерді тексердім"}</span></label>
-            <p className="review-hint">{locale === "ru" ? "Отметка убирает надпись «Черновик» только из этой выпущенной версии. После редактирования проверка нужна снова." : "Белгі осы шығарылған нұсқадан «Жоба» жазуын алып тастайды. Өңдеуден кейін қайта тексеру қажет."}</p>
+            <label className="checkbox teacher-review">
+              <input
+                type="checkbox"
+                checked={teacherReviewed}
+                disabled={dirty || busy || !!report?.issues?.length}
+                onChange={(e) => setTeacherReviewed(e.target.checked)}
+              />
+              <span>
+                {locale === "ru"
+                  ? "Я проверил(а) задания, ответы и критерии"
+                  : "Тапсырмаларды, жауаптар мен критерийлерді тексердім"}
+              </span>
+            </label>
+            <p className="review-hint">
+              {locale === "ru"
+                ? "Отметка убирает надпись «Черновик» только из этой выпущенной версии. После редактирования проверка нужна снова."
+                : "Белгі осы шығарылған нұсқадан «Жоба» жазуын алып тастайды. Өңдеуден кейін қайта тексеру қажет."}
+            </p>
             <label>
               {locale === "ru" ? "Вариант" : "Нұсқа"}
               <select
@@ -707,9 +794,48 @@ export default function GenerationEditor({
                 {locale === "ru"
                   ? "Есть ошибки структуры, баллов или ссылок на цели. Проверьте отредактированные задания."
                   : "Құрылымда, балдарда немесе мақсат сілтемелерінде қате бар. Өңделген тапсырмаларды тексеріңіз."}
-                <ul className="validation-list">{(report.details?.length ? report.details : report.issues.map((code:string)=>({code,taskIndex:null,taskId:null}))).map((detail:{code:string;taskIndex:number|null;taskId:string|null},i:number)=><li key={i}>
-                  {detail.taskId ? <button className="text-button" onClick={()=>{setPreview(false);setActiveTask(detail.taskId!);requestAnimationFrame(()=>window.document.getElementById(`task-${detail.taskId}`)?.scrollIntoView({block:"center"}));}}>{locale === "ru" ? "Задание" : "Тапсырма"} {(detail.taskIndex ?? 0)+1}: {validationMessage(detail.code,locale)}</button> : validationMessage(detail.code,locale)}
-                </li>)}</ul>
+                <ul className="validation-list">
+                  {(report.details?.length
+                    ? report.details
+                    : report.issues.map((code: string) => ({
+                        code,
+                        taskIndex: null,
+                        taskId: null,
+                      }))
+                  ).map(
+                    (
+                      detail: {
+                        code: string;
+                        taskIndex: number | null;
+                        taskId: string | null;
+                      },
+                      i: number,
+                    ) => (
+                      <li key={i}>
+                        {detail.taskId ? (
+                          <button
+                            className="text-button"
+                            onClick={() => {
+                              setPreview(false);
+                              setActiveTask(detail.taskId!);
+                              requestAnimationFrame(() =>
+                                window.document
+                                  .getElementById(`task-${detail.taskId}`)
+                                  ?.scrollIntoView({ block: "center" }),
+                              );
+                            }}
+                          >
+                            {locale === "ru" ? "Задание" : "Тапсырма"}{" "}
+                            {(detail.taskIndex ?? 0) + 1}:{" "}
+                            {validationMessage(detail.code, locale)}
+                          </button>
+                        ) : (
+                          validationMessage(detail.code, locale)
+                        )}
+                      </li>
+                    ),
+                  )}
+                </ul>
               </div>
             )}
             <button
@@ -829,79 +955,11 @@ function BlocksEditor({
               onChange={(e) => update(i, { items: e.target.value.split("\n") })}
             />
           ) : b.type === "table" ? (
-            <>
-              <div className="table-grid">
-                <table>
-                  <thead>
-                    <tr>
-                      {b.columns.map((col, j) => (
-                        <th key={j}>
-                          <input
-                            aria-label={`${t.table} ${j + 1}`}
-                            value={col}
-                            onChange={(e) =>
-                              update(i, {
-                                columns: b.columns.map((c, k) =>
-                                  k === j ? e.target.value : c,
-                                ),
-                              })
-                            }
-                          />
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {b.rows.map((row, ri) => (
-                      <tr key={ri}>
-                        {row.map((cell, ci) => (
-                          <td key={ci}>
-                            <input
-                              aria-label={`${t.table} ${ri + 1}, ${ci + 1}`}
-                              value={cell}
-                              onChange={(e) =>
-                                update(i, {
-                                  rows: b.rows.map((r, rj) =>
-                                    rj === ri
-                                      ? r.map((c, cj) =>
-                                          cj === ci ? e.target.value : c,
-                                        )
-                                      : r,
-                                  ),
-                                })
-                              }
-                            />
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="actions">
-                <button
-                  className="text-button"
-                  onClick={() =>
-                    update(i, { rows: [...b.rows, b.columns.map(() => "")] })
-                  }
-                >
-                  <Plus size={12} />
-                  {t.addRow}
-                </button>
-                <button
-                  className="text-button"
-                  onClick={() =>
-                    update(i, {
-                      columns: [...b.columns, ""],
-                      rows: b.rows.map((row) => [...row, ""]),
-                    })
-                  }
-                >
-                  <Plus size={12} />
-                  {t.table}
-                </button>
-              </div>
-            </>
+            <TableEditor
+              block={b}
+              onChange={(value) => update(i, value)}
+              t={t}
+            />
           ) : (
             <textarea
               className={b.type === "code" ? "code-input" : ""}

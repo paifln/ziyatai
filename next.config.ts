@@ -1,11 +1,18 @@
 import type { NextConfig } from "next";
-const uploadEndpoint = process.env.UPLOAD_ORIGIN || process.env.STORAGE_PUBLIC_ENDPOINT || process.env.STORAGE_ENDPOINT;
+const uploadEndpoint =
+  process.env.UPLOAD_ORIGIN ||
+  process.env.STORAGE_PUBLIC_ENDPOINT ||
+  process.env.STORAGE_ENDPOINT;
 const uploadOrigin = uploadEndpoint ? new URL(uploadEndpoint).origin : "";
 const config: NextConfig = {
   output: "standalone",
+  outputFileTracingRoot: process.cwd(),
   serverExternalPackages: ["pg", "nodemailer"],
   async rewrites() {
-    return [{ source: "/lite", destination: "/lite/index.html" }, { source: "/help", destination: "/help/index.html" }];
+    return [
+      { source: "/lite", destination: "/lite/index.html" },
+      { source: "/help", destination: "/help/index.html" },
+    ];
   },
   async headers() {
     return [

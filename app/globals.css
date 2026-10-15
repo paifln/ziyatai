@@ -823,6 +823,7 @@ label small {
   gap: 24px;
   align-items: start;
 }
+.editor-layout > * { min-width: 0; }
 .editor-side {
   position: sticky;
   top: 20px;
@@ -844,7 +845,7 @@ label small {
 .task-toggle strong { flex: 1; min-width: 100px; }
 .task-toggle small { color: var(--muted); font-size: 12px; }
 .task-toggle > span { font-size: 23px; color: var(--green); }
-.task-excerpt { font-size: 14px; margin-bottom: 0; color: var(--muted); line-height: 1.6; overflow-wrap: anywhere; }
+.task-excerpt { font-size: 14px; margin-bottom: 0; color: var(--muted); line-height: 1.6; overflow-wrap: anywhere; max-height: 4.8em; overflow: hidden; }
 .task-card[data-expanded="false"] .task-header { margin-bottom: 9px; }
 .pagination { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 20px; font-size: 13px; color: var(--muted); }
 .task-card label {
@@ -906,6 +907,7 @@ label small {
   font-family: Consolas, monospace;
 }
 .table-grid {
+  position: relative;
   overflow: auto;
 }
 .table-grid input {
@@ -1267,7 +1269,7 @@ label small {
     grid-template-columns: 1fr;
   }
   .editor-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .editor-side {
     position: static;
@@ -1468,6 +1470,9 @@ label small {
 }
 
 /* Editorial workspace: paper, olive ink, generous readable controls. */
+.table-column-header { display: flex; align-items: center; gap: 4px; min-width: 150px; }
+.table-editor-actions { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: center; }
+.table-editor-actions .pagination { margin: 8px 0; }
 .brand { letter-spacing: -1.1px; font-weight: 650; }
 .brand img { object-fit: contain; }
 .sidebar { background: #eeeee4; border-color: #d8dacc; }

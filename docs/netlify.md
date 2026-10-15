@@ -2,6 +2,8 @@
 
 Выбор на 15 октября 2026 года: **Netlify для интерфейса, отдельный контейнерный сервер для API и фоновой обработки**. Публичный deploy ещё не выполнен. Конфигурация подготовлена; аккаунт, DNS и production-провайдеры не подключены.
 
+`npm run build:netlify` проверен из отдельного Git-архива с чистым npm install и только двумя несекретными HTTPS origins. Это подтверждает сборку без credentials БД/S3/SMTP/AI, но не интеграцию с реальным Netlify аккаунтом и backend.
+
 ## Почему Netlify
 
 Netlify прямо допускает коммерческие проекты на Free; Vercel Hobby ограничен личным некоммерческим использованием. Поэтому Free удобнее для пилота продукта, который предполагается продавать. Это не обещание бесплатного сервиса при любой нагрузке. [Netlify Free](https://www.netlify.com/blog/introducing-netlify-free-plan/), [Vercel Hobby](https://vercel.com/docs/plans/hobby).

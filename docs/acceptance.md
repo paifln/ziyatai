@@ -19,7 +19,7 @@
 | AC09 | Частично проверено локально | Lease recovery/idempotency/cancellation/quota и mock provider errors. Fault injection реального OpenAI и renderer outage на production не выполнены. |
 | AC10 | Проверено локально, production проверка нужна | Signature/ZIP/XML checks, ClamAV, ACL/Origin, deletion/cleanup, secret scan, npm audit. Independent pentest и production bucket policy не проверены. |
 | AC11 | Локальный запуск; внешняя зависимость | Web, DB, S3, worker, renderer, antivirus, Mailpit. Local restore подтверждён. Public deploy/monitoring/backup schedule отсутствуют. |
-| AC12 | Реализовано и проверено локально | Lockfile, 7 migrations, README, synthetic seed, Docker builds и CI configuration. Remote — paifln/ziyatai; результат свежего GitHub Actions проверяется отдельно после push. Исправлено глобальное правило lib/, которое скрывало серверные исходники от первого коммита; добавлена защита check:source. |
+| AC12 | Проверено локально и на GitHub | Lockfile, 7 migrations, README, synthetic seed, Docker builds и CI. [GitHub Actions для 3dcec13](https://github.com/paifln/ziyatai/actions/runs/38771185954): test и integration — success. Исправлено глобальное правило lib/, которое скрывало серверные исходники от первого коммита; добавлена защита check:source и сборка из Git-архива. |
 
 Definition of Done из задания **не достигнута**: production URL и реальная AI генерация отсутствуют. Не следует выдавать local или mock результаты за production proof.
 
