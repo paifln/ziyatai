@@ -17,7 +17,7 @@ import {
   ShadingType,
 } from "docx";
 import { Styles, type GenerationDocument } from "../contracts";
-import { displayLevel } from "../domain/validation";
+import { displayLevel, displayPoints } from "../domain/validation";
 import { assertDocumentBudget } from "../domain/document-budget";
 const cm = (n: number) => Math.round(n * 567);
 export async function renderDocx(
@@ -69,7 +69,7 @@ export async function renderDocx(
               children: b.columns.map(
                 (text) =>
                   new TableCell({
-                    children: [p(text,{keepNext:true})],
+                    children: [p(text, { keepNext: true })],
                     borders,
                     shading: { type: ShadingType.CLEAR, fill: "F1F0E8" },
                     margins: { top: 100, bottom: 100, left: 100, right: 100 },
@@ -77,13 +77,18 @@ export async function renderDocx(
               ),
             }),
             ...b.rows.map(
-              (row,rowIndex) =>
+              (row, rowIndex) =>
                 new TableRow({
-                  cantSplit:true,
+                  cantSplit: true,
                   children: row.map(
                     (text) =>
                       new TableCell({
-                        children: [p(text,{keepNext:keepNext && rowIndex===b.rows.length-1})],
+                        children: [
+                          p(text, {
+                            keepNext:
+                              keepNext && rowIndex === b.rows.length - 1,
+                          }),
+                        ],
                         borders,
                         margins: {
                           top: 100,
@@ -99,7 +104,7 @@ export async function renderDocx(
         }),
       ];
     }
-    return b.text.split("\n").map((text) => p(text,{keepNext}));
+    return b.text.split("\n").map((text) => p(text, { keepNext }));
   };
   if (styles.includeLogo) children.push(p("ZiyatAI", { style: "Brand" }));
   children.push(
@@ -121,32 +126,41 @@ export async function renderDocx(
           : "Синтетикалық демонстрациялық материал. OpenAI генерациясы орындалмаған.",
       ),
     );
-  if (!teacherReviewed) children.push(
-    p(
-      ru
-        ? "Черновик. Требуется педагогическая проверка."
-        : "Жоба. Педагогикалық тексеру қажет.",
-    ),
-  );
+  if (!teacherReviewed)
+    children.push(
+      p(
+        ru
+          ? "Черновик. Требуется педагогическая проверка."
+          : "Жоба. Педагогикалық тексеру қажет.",
+      ),
+    );
   for (const level of ["easy", "medium", "advanced"]) {
     children.push(h(displayLevel(level, doc.localeMode)));
     for (const task of doc.tasks.filter((t) => t.level === level)) {
       const index = doc.tasks.findIndex((t) => t.id === task.id) + 1;
       children.push(
         p(
-          `${index}. ${ru ? "Задание" : "Тапсырма"} (${task.points} ${ru ? "баллов" : "балл"}, ${task.estimatedMinutes} ${ru ? "мин" : "мин"})`,
+          `${index}. ${ru ? "Задание" : "Тапсырма"} (${displayPoints(task.points, doc.localeMode)}, ${task.estimatedMinutes} мин)`,
           { style: "TaskTitle", keepNext: true },
         ),
       );
-      for (const b of task.contentBlocks) children.push(...block(b,styles.answerSpace));
+      for (const b of task.contentBlocks)
+        children.push(...block(b, styles.answerSpace));
       if (task.translation) {
         children.push(p("Русская версия", { keepNext: true }));
         for (const b of task.translation.contentBlocks)
-          children.push(...block(b,styles.answerSpace));
+          children.push(...block(b, styles.answerSpace));
       }
       if (styles.answerSpace) {
-        const lines = task.level === "advanced" ? 3 : task.level === "medium" ? 2 : 1;
-        for(let line=0;line<lines;line++)children.push(p("________________________________________________________________",{keepNext:line<lines-1}));
+        const lines =
+          task.level === "advanced" ? 3 : task.level === "medium" ? 2 : 1;
+        for (let line = 0; line < lines; line++)
+          children.push(
+            p(
+              "________________________________________________________________",
+              { keepNext: line < lines - 1 },
+            ),
+          );
       }
     }
   }
@@ -170,7 +184,7 @@ export async function renderDocx(
       );
       for (const r of task.rubric)
         children.push(
-          p(`${r.criterion} — ${r.points} ${ru ? "баллов" : "балл"}`),
+          p(`${r.criterion} — ${displayPoints(r.points, doc.localeMode)}`),
         );
       if (task.translation) {
         children.push(p("Русская версия", { keepNext: true }));
@@ -181,14 +195,16 @@ export async function renderDocx(
           p(`Почему: ${task.translation.explanationWhy}`),
         );
         for (const r of task.translation.rubric)
-          children.push(p(`${r.criterion} — ${r.points} баллов`));
+          children.push(p(`${r.criterion} — ${displayPoints(r.points, "ru")}`));
       }
     }
   }
   const document = new Document({
     creator: "ZiyatAI",
     title: doc.title,
-    description: teacherReviewed ? "Teacher review acknowledged for this exported version" : "Draft differentiated assignments; teacher review required",
+    description: teacherReviewed
+      ? "Teacher review acknowledged for this exported version"
+      : "Draft differentiated assignments; teacher review required",
     styles: {
       default: {
         document: {

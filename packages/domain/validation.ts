@@ -14,13 +14,33 @@ export function validateDocument(
   const doc = GenerationDoc.parse(value);
   assertDocumentBudget(doc);
   const issues: string[] = [];
-  const details: {code:string;taskId:string|null;taskIndex:number|null}[] = [];
-  let context: {taskId:string;taskIndex:number}|null = null;
+  const details: {
+    code: string;
+    taskId: string | null;
+    taskIndex: number | null;
+  }[] = [];
+  let context: { taskId: string; taskIndex: number } | null = null;
   const issue = (code: string) => {
     issues.push(code);
-    details.push({code,taskId:context?.taskId ?? null,taskIndex:context?.taskIndex ?? null});
+    details.push({
+      code,
+      taskId: context?.taskId ?? null,
+      taskIndex: context?.taskIndex ?? null,
+    });
   };
-  const blockText = (blocks: GenerationDocument["tasks"][number]["contentBlocks"]) => blocks.map((b) => b.type === "list" ? b.items.join(" ") : b.type === "table" ? [...b.columns,...b.rows.flat()].join(" ") : b.text).join(" ").trim();
+  const blockText = (
+    blocks: GenerationDocument["tasks"][number]["contentBlocks"],
+  ) =>
+    blocks
+      .map((b) =>
+        b.type === "list"
+          ? b.items.join(" ")
+          : b.type === "table"
+            ? [...b.columns, ...b.rows.flat()].join(" ")
+            : b.text,
+      )
+      .join(" ")
+      .trim();
   let arithmeticChecked = 0;
   let unexecutedCases = 0;
   if (
@@ -35,11 +55,14 @@ export function validateDocument(
       issue("LEVEL_COUNT");
   const ids = new Set<string>();
   const conditions = new Set<string>();
-  for (const [taskIndex,t] of doc.tasks.entries()) {
-    context = {taskId:t.id,taskIndex};
+  for (const [taskIndex, t] of doc.tasks.entries()) {
+    context = { taskId: t.id, taskIndex };
     if (!t.id.trim() || ids.has(t.id)) issue("DUPLICATE_ID");
     ids.add(t.id);
-    const condition = blockText(t.contentBlocks).normalize("NFKC").trim().toLowerCase();
+    const condition = blockText(t.contentBlocks)
+      .normalize("NFKC")
+      .trim()
+      .toLowerCase();
     if (conditions.has(condition)) issue("DUPLICATE_TASK");
     conditions.add(condition);
     if (
@@ -56,8 +79,7 @@ export function validateDocument(
       t.rubric.some((r) => r.points < 0 || !r.criterion.trim())
     )
       issue("POINTS");
-    if (t.estimatedMinutes < 1 || t.estimatedMinutes > 120)
-      issue("DURATION");
+    if (t.estimatedMinutes < 1 || t.estimatedMinutes > 120) issue("DURATION");
     if (
       !t.objectiveRefs.length ||
       t.objectiveRefs.some((c) => !snapshot.objectiveCodes.includes(c))
@@ -66,7 +88,14 @@ export function validateDocument(
     if (doc.localeMode === "kk+ru" && !t.translation)
       issue("TRANSLATION_MISSING");
     if (t.translation) {
-      if (!blockText(t.translation.contentBlocks) || !blockText(t.translation.answerBlocks) || !t.translation.explanationHow.trim() || !t.translation.explanationWhy.trim() || t.translation.rubric.some((r) => !r.criterion.trim())) issue("TRANSLATION_CONTENT");
+      if (
+        !blockText(t.translation.contentBlocks) ||
+        !blockText(t.translation.answerBlocks) ||
+        !t.translation.explanationHow.trim() ||
+        !t.translation.explanationWhy.trim() ||
+        t.translation.rubric.some((r) => !r.criterion.trim())
+      )
+        issue("TRANSLATION_CONTENT");
       const numbers = (blocks: typeof t.contentBlocks) =>
         blocks
           .flatMap((b) => [b.text, ...b.items, ...b.rows.flat(), ...b.columns])
@@ -114,7 +143,9 @@ export function validateDocument(
   }
   return {
     issues: [...new Set(issues)],
-    details: [...new Map(details.map((d) => [d.code+":"+d.taskIndex,d])).values()],
+    details: [
+      ...new Map(details.map((d) => [d.code + ":" + d.taskIndex, d])).values(),
+    ],
     verification: { arithmeticChecked, unexecutedCases },
     status: "needs_review" as const,
     checks: [
@@ -146,6 +177,18 @@ export function displayLevel(level: string, locale: string) {
           string
         >
       )[level];
+}
+export function displayPoints(points: number, locale: string) {
+  if (locale !== "ru") return `${points} балл`;
+  const last = Math.abs(points) % 10,
+    lastTwo = Math.abs(points) % 100;
+  const word =
+    last === 1 && lastTwo !== 11
+      ? "балл"
+      : last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14)
+        ? "балла"
+        : "баллов";
+  return `${points} ${word}`;
 }
 export function studentDocument(doc: GenerationDocument) {
   return {

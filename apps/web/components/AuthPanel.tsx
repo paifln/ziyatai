@@ -122,7 +122,7 @@ export default function AuthPanel({
               {locale === "ru" ? "Линейные алгоритмы" : "Сызықтық алгоритмдер"}
             </div>
             {(locale === "ru"
-              ? ["Базовый", "Средний", "Продвинутый"]
+              ? ["Лёгкий", "Средний", "Сложный"]
               : ["Жеңіл", "Орта", "Күрделі"]
             ).map((level, i) => (
               <div className="paper-level" key={level}>

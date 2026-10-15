@@ -70,7 +70,9 @@ export default function PlanReview({
     void load();
   }, [load]);
   usePolling(load, plan?.status === "extracting");
-  useEffect(() => { onDirtyChange(dirty); }, [dirty, onDirtyChange]);
+  useEffect(() => {
+    onDirtyChange(dirty);
+  }, [dirty, onDirtyChange]);
   useEffect(() => {
     if (!dirty) return;
     const handler = (e: BeforeUnloadEvent) => {
@@ -87,7 +89,15 @@ export default function PlanReview({
           ? {
               ...r,
               [key]: value,
-              ...(key === "dateRaw" ? {...normalizeDate(value),warnings:[...r.warnings.filter((w)=>!w.includes("date")),...normalizeDate(value).warnings]} : {}),
+              ...(key === "dateRaw"
+                ? {
+                    ...normalizeDate(value),
+                    warnings: [
+                      ...r.warnings.filter((w) => !w.includes("date")),
+                      ...normalizeDate(value).warnings,
+                    ],
+                  }
+                : {}),
               ...(key === "goals"
                 ? {
                     objectiveCodes:
@@ -102,8 +112,10 @@ export default function PlanReview({
     setDirty(true);
   }
   function add(after?: number) {
-    setQuery(""); setQuarter(""); setSort("original");
-    setPage(Math.floor((after === undefined ? rows.length : after+1)/25));
+    setQuery("");
+    setQuarter("");
+    setSort("original");
+    setPage(Math.floor((after === undefined ? rows.length : after + 1) / 25));
     const r: KtpRow = {
       id: crypto.randomUUID(),
       sourceOrder: rows.length + 1,
@@ -191,11 +203,15 @@ export default function PlanReview({
     )
     .sort((a, b) =>
       sort === "date"
-        ? (a.r.dateStart || "9999").localeCompare(b.r.dateStart || "9999") || a.index - b.index
+        ? (a.r.dateStart || "9999").localeCompare(b.r.dateStart || "9999") ||
+          a.index - b.index
         : a.index - b.index,
     );
-  const currentPage = Math.min(page,Math.max(0,Math.ceil(visible.length/25)-1));
-  const pageRows = visible.slice(currentPage*25,(currentPage+1)*25);
+  const currentPage = Math.min(
+    page,
+    Math.max(0, Math.ceil(visible.length / 25) - 1),
+  );
+  const pageRows = visible.slice(currentPage * 25, (currentPage + 1) * 25);
   const warning = (w: string) =>
     (
       ({
@@ -258,364 +274,417 @@ export default function PlanReview({
           </button>
         </div>
       </div>
-      {previewPage > 0 && (
-        <section className="card source-preview">
-          <div className="card-heading">
-            <h2>
-              {t.source} · {locale === "ru" ? "Страница" : "Бет"} {previewPage}
-            </h2>
-            <button className="text-button" onClick={() => setPreviewPage(0)}>
-              {t.cancel}
+      <fieldset className="editor-fields" disabled={busy}>
+        <legend className="sr-only">{t.plans}</legend>
+        {previewPage > 0 && (
+          <section className="card source-preview">
+            <div className="card-heading">
+              <h2>
+                {t.source} · {locale === "ru" ? "Страница" : "Бет"}{" "}
+                {previewPage}
+              </h2>
+              <button className="text-button" onClick={() => setPreviewPage(0)}>
+                {t.cancel}
+              </button>
+            </div>
+            {previewFailed ? (
+              <p className="notice warning">
+                {locale === "ru"
+                  ? "Предпросмотр недоступен. Скачайте исходник, чтобы проверить страницу."
+                  : "Алдын ала қарау қолжетімсіз. Бетті тексеру үшін бастапқы файлды жүктеңіз."}
+              </p>
+            ) : (
+              <img
+                onError={() => setPreviewFailed(true)}
+                src={`/api/ktp/${id}/preview?page=${previewPage}`}
+                alt={`${t.source} ${previewPage}`}
+                style={{ maxWidth: "100%", height: "auto" }}
+              />
+            )}
+          </section>
+        )}
+        <section className="card">
+          <div className="plan-settings">
+            <label>
+              {t.grade}
+              <select
+                aria-label={t.grade}
+                value={grade ?? ""}
+                onChange={(e) => {
+                  setGrade(e.target.value ? Number(e.target.value) : null);
+                  setDirty(true);
+                }}
+              >
+                <option value="">{t.select}</option>
+                {Array.from({ length: 11 }, (_, i) => (
+                  <option key={i} value={i + 1}>
+                    {i + 1}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              {t.year}
+              <input
+                value={year}
+                placeholder="2026–2027"
+                maxLength={20}
+                onChange={(e) => {
+                  setYear(e.target.value);
+                  setDirty(true);
+                }}
+              />
+            </label>
+            <button
+              className="button secondary"
+              onClick={() => save()}
+              disabled={busy}
+            >
+              <Save size={16} />
+              {t.save}
+            </button>
+            <button
+              className="button primary"
+              onClick={() => save(true)}
+              disabled={
+                busy ||
+                !grade ||
+                !rows.length ||
+                rows.some((r) => !r.topic.trim() || !hasGoalText(r.goals))
+              }
+            >
+              <Check size={16} />
+              {t.confirm}
             </button>
           </div>
-          {previewFailed ? <p className="notice warning">{locale === "ru" ? "Предпросмотр недоступен. Скачайте исходник, чтобы проверить страницу." : "Алдын ала қарау қолжетімсіз. Бетті тексеру үшін бастапқы файлды жүктеңіз."}</p> : <img
-            onError={() => setPreviewFailed(true)}
-            src={`/api/ktp/${id}/preview?page=${previewPage}`}
-            alt={`${t.source} ${previewPage}`}
-            style={{ maxWidth: "100%", height: "auto" }}
-          />}
+          {rows.some((r) => r.warnings.length) && (
+            <div className="notice warning">{t.missing}</div>
+          )}
+          {!rows.length && <div className="notice warning">{t.noRows}</div>}
         </section>
-      )}
-      <section className="card">
-        <div className="plan-settings">
-          <label>
-            {t.grade}
-            <select
-              aria-label={t.grade}
-              value={grade ?? ""}
-              onChange={(e) => {
-                setGrade(e.target.value ? Number(e.target.value) : null);
-                setDirty(true);
-              }}
-            >
-              <option value="">{t.select}</option>
-              {Array.from({ length: 11 }, (_, i) => (
-                <option key={i} value={i + 1}>
-                  {i + 1}
+        <section className="card">
+          <div className="toolbar">
+            <label className="search-field">
+              <span className="sr-only">{t.search}</span>
+              <Search size={16} />
+              <input
+                placeholder={t.search}
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setPage(0);
+                }}
+              />
+            </label>
+            <label>
+              <span className="sr-only">{t.quarter}</span>
+              <select
+                value={quarter}
+                onChange={(e) => {
+                  setQuarter(e.target.value);
+                  setPage(0);
+                }}
+              >
+                <option value="">
+                  {t.quarter}: {t.all}
                 </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            {t.year}
-            <input
-              value={year}
-              placeholder="2026–2027"
-              maxLength={20}
-              onChange={(e) => {
-                setYear(e.target.value);
-                setDirty(true);
-              }}
-            />
-          </label>
-          <button
-            className="button secondary"
-            onClick={() => save()}
-            disabled={busy}
-          >
-            <Save size={16} />
-            {t.save}
-          </button>
-          <button
-            className="button primary"
-            onClick={() => save(true)}
-            disabled={
-              busy ||
-              !grade ||
-              !rows.length ||
-              rows.some((r) => !r.topic.trim() || !hasGoalText(r.goals))
-            }
-          >
-            <Check size={16} />
-            {t.confirm}
-          </button>
-        </div>
-        {rows.some((r) => r.warnings.length) && (
-          <div className="notice warning">{t.missing}</div>
-        )}
-        {!rows.length && <div className="notice warning">{t.noRows}</div>}
-      </section>
-      <section className="card">
-        <div className="toolbar">
-          <label className="search-field">
-            <span className="sr-only">{t.search}</span>
-            <Search size={16} />
-            <input
-              placeholder={t.search}
-              value={query}
-              onChange={(e) => { setQuery(e.target.value); setPage(0); }}
-            />
-          </label>
-          <label>
-            <span className="sr-only">{t.quarter}</span>
-            <select
-              value={quarter}
-              onChange={(e) => { setQuarter(e.target.value); setPage(0); }}
-            >
-              <option value="">
-                {t.quarter}: {t.all}
-              </option>
-              {quarterOptions.map((q) => (
-                <option key={q}>{q}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span className="sr-only">{t.sort}</span>
-            <select value={sort} onChange={(e) => { setSort(e.target.value); setPage(0); }}>
-              <option value="original">{t.originalOrder}</option>
-              <option value="date">{t.dateOrder}</option>
-            </select>
-          </label>
-        </div>
-        <div className="table-scroll">
-          <table className="ktp-table">
-            <thead>
-              <tr>
-                <th>{t.number}</th>
-                <th>{t.date}</th>
-                <th>{t.topic}</th>
-                <th>{t.goals}</th>
-                <th>{t.hours}</th>
-                <th>{t.source}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pageRows.map(({ r, index }) => (
-                <tr key={r.id}>
-                  <td data-label={t.number}>
-                    <input
-                      aria-label={`${t.number} ${index + 1}`}
-                      value={r.lessonNumberRaw}
-                      onChange={(e) =>
-                        update(index, "lessonNumberRaw", e.target.value)
-                      }
-                      style={{ minWidth: 45, maxWidth: 55 }}
-                    />
-                  </td>
-                  <td data-label={t.date}>
-                    <input
-                      aria-label={`${t.date} ${index + 1}`}
-                      value={r.dateRaw}
-                      onChange={(e) => update(index, "dateRaw", e.target.value)}
-                      placeholder="—"
-                    />
-                    {r.warnings
-                      .filter((w) => w.includes("date"))
-                      .map((w) => (
-                        <div key={w} className="source-warning">
-                          <AlertTriangle size={12} />
-                          {warning(w)}
-                        </div>
-                      ))}
-                  </td>
-                  <td data-label={t.topic} className="topic-cell">
-                    <textarea
-                      aria-label={`${t.topic} ${index + 1}`}
-                      value={r.topic}
-                      maxLength={2000}
-                      onChange={(e) => update(index, "topic", e.target.value)}
-                    />
-                    <details className="row-details">
-                      <summary>
-                        {t.section} / {t.notes}
-                      </summary>
-                      <label>
-                        {t.section}
-                        <input
-                          value={r.section}
-                          onChange={(e) =>
-                            update(index, "section", e.target.value)
-                          }
-                        />
-                      </label>
-                      <label className="mt-20">
-                        {t.quarter}
-                        <input
-                          value={r.quarter}
-                          onChange={(e) =>
-                            update(index, "quarter", e.target.value)
-                          }
-                        />
-                      </label>
-                      <label className="mt-20">
-                        {t.notes}
-                        <textarea
-                          value={r.notes}
-                          onChange={(e) =>
-                            update(index, "notes", e.target.value)
-                          }
-                        />
-                      </label>
-                      <label className="mt-20">
-                        {t.lessonGoals}
-                        <textarea
-                          value={r.lessonGoals}
-                          onChange={(e) =>
-                            update(index, "lessonGoals", e.target.value)
-                          }
-                        />
-                      </label>
-                    </details>
-                  </td>
-                  <td data-label={t.goals} className="goal-cell">
-                    <textarea
-                      aria-label={`${t.goals} ${index + 1}`}
-                      value={r.goals}
-                      maxLength={8000}
-                      onChange={(e) => update(index, "goals", e.target.value)}
-                    />
-                    {r.warnings
-                      .filter((w) => !w.includes("date"))
-                      .map((w) => (
-                        <div key={w} className="source-warning">
-                          <AlertTriangle size={12} />
-                          {warning(w)}
-                        </div>
-                      ))}
-                  </td>
-                  <td data-label={t.hours}>
-                    <input
-                      aria-label={`${t.hours} ${index + 1}`}
-                      value={r.hours}
-                      onChange={(e) => update(index, "hours", e.target.value)}
-                      style={{ minWidth: 45, maxWidth: 55 }}
-                    />
-                  </td>
-                  <td data-label={t.source}>
-                    <details className="row-details">
-                      <summary>
-                        {r.source.sheet ||
-                          (r.source.page
-                            ? `${locale === "ru" ? "Стр." : "Бет"} ${r.source.page}`
-                            : t.source)}{" "}
-                        <ChevronDown
-                          size={12}
-                          style={{ verticalAlign: "middle" }}
-                        />
-                      </summary>
-                      {r.source.page && (
-                        <button
-                          className="text-button"
-                          onClick={() => { setPreviewFailed(false); setPreviewPage(r.source.page!); }}
-                        >
-                          {locale === "ru"
-                            ? "Показать оригинальную страницу"
-                            : "Түпнұсқа бетті көрсету"}
-                        </button>
-                      )}
-                      <p>{r.source.range}</p>
-                      <p>{r.source.fragment || "—"}</p>
-                      <small>
-                        {r.source.method === "ocr"
-                          ? "OCR"
-                          : r.source.method === "manual"
-                            ? locale === "ru"
-                              ? "Ручная редакция"
-                              : "Қолмен өңдеу"
-                            : locale === "ru"
-                              ? "Цифровой файл"
-                              : "Цифрлық файл"}
-                      </small>
-                    </details>
-                    <div className="row-actions">
-                      <button
-                        className="icon-button"
-                        aria-label={t.split}
-                        title={t.split}
-                        onClick={() => add(index)}
-                      >
-                        <Split size={14} />
-                      </button>
-                      {index < rows.length - 1 && (
+                {quarterOptions.map((q) => (
+                  <option key={q}>{q}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span className="sr-only">{t.sort}</span>
+              <select
+                value={sort}
+                onChange={(e) => {
+                  setSort(e.target.value);
+                  setPage(0);
+                }}
+              >
+                <option value="original">{t.originalOrder}</option>
+                <option value="date">{t.dateOrder}</option>
+              </select>
+            </label>
+          </div>
+          <div className="table-scroll">
+            <table className="ktp-table">
+              <thead>
+                <tr>
+                  <th>{t.number}</th>
+                  <th>{t.date}</th>
+                  <th>{t.topic}</th>
+                  <th>{t.goals}</th>
+                  <th>{t.hours}</th>
+                  <th>{t.source}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pageRows.map(({ r, index }) => (
+                  <tr key={r.id}>
+                    <td data-label={t.number}>
+                      <input
+                        aria-label={`${t.number} ${index + 1}`}
+                        value={r.lessonNumberRaw}
+                        onChange={(e) =>
+                          update(index, "lessonNumberRaw", e.target.value)
+                        }
+                        style={{ minWidth: 45, maxWidth: 55 }}
+                      />
+                    </td>
+                    <td data-label={t.date}>
+                      <input
+                        aria-label={`${t.date} ${index + 1}`}
+                        value={r.dateRaw}
+                        onChange={(e) =>
+                          update(index, "dateRaw", e.target.value)
+                        }
+                        placeholder="—"
+                      />
+                      {r.warnings
+                        .filter((w) => w.includes("date"))
+                        .map((w) => (
+                          <div key={w} className="source-warning">
+                            <AlertTriangle size={12} />
+                            {warning(w)}
+                          </div>
+                        ))}
+                    </td>
+                    <td data-label={t.topic} className="topic-cell">
+                      <textarea
+                        aria-label={`${t.topic} ${index + 1}`}
+                        value={r.topic}
+                        maxLength={2000}
+                        onChange={(e) => update(index, "topic", e.target.value)}
+                      />
+                      <details className="row-details">
+                        <summary>
+                          {t.section} / {t.notes}
+                        </summary>
+                        <label>
+                          {t.section}
+                          <input
+                            value={r.section}
+                            onChange={(e) =>
+                              update(index, "section", e.target.value)
+                            }
+                          />
+                        </label>
+                        <label className="mt-20">
+                          {t.quarter}
+                          <input
+                            value={r.quarter}
+                            onChange={(e) =>
+                              update(index, "quarter", e.target.value)
+                            }
+                          />
+                        </label>
+                        <label className="mt-20">
+                          {t.notes}
+                          <textarea
+                            value={r.notes}
+                            onChange={(e) =>
+                              update(index, "notes", e.target.value)
+                            }
+                          />
+                        </label>
+                        <label className="mt-20">
+                          {t.lessonGoals}
+                          <textarea
+                            value={r.lessonGoals}
+                            onChange={(e) =>
+                              update(index, "lessonGoals", e.target.value)
+                            }
+                          />
+                        </label>
+                      </details>
+                    </td>
+                    <td data-label={t.goals} className="goal-cell">
+                      <textarea
+                        aria-label={`${t.goals} ${index + 1}`}
+                        value={r.goals}
+                        maxLength={8000}
+                        onChange={(e) => update(index, "goals", e.target.value)}
+                      />
+                      {r.warnings
+                        .filter((w) => !w.includes("date"))
+                        .map((w) => (
+                          <div key={w} className="source-warning">
+                            <AlertTriangle size={12} />
+                            {warning(w)}
+                          </div>
+                        ))}
+                    </td>
+                    <td data-label={t.hours}>
+                      <input
+                        aria-label={`${t.hours} ${index + 1}`}
+                        value={r.hours}
+                        onChange={(e) => update(index, "hours", e.target.value)}
+                        style={{ minWidth: 45, maxWidth: 55 }}
+                      />
+                    </td>
+                    <td data-label={t.source}>
+                      <details className="row-details">
+                        <summary>
+                          {r.source.sheet ||
+                            (r.source.page
+                              ? `${locale === "ru" ? "Стр." : "Бет"} ${r.source.page}`
+                              : t.source)}{" "}
+                          <ChevronDown
+                            size={12}
+                            style={{ verticalAlign: "middle" }}
+                          />
+                        </summary>
+                        {r.source.page && (
+                          <button
+                            className="text-button"
+                            onClick={() => {
+                              setPreviewFailed(false);
+                              setPreviewPage(r.source.page!);
+                            }}
+                          >
+                            {locale === "ru"
+                              ? "Показать оригинальную страницу"
+                              : "Түпнұсқа бетті көрсету"}
+                          </button>
+                        )}
+                        <p>{r.source.range}</p>
+                        <p>{r.source.fragment || "—"}</p>
+                        <small>
+                          {r.source.method === "ocr"
+                            ? "OCR"
+                            : r.source.method === "manual"
+                              ? locale === "ru"
+                                ? "Ручная редакция"
+                                : "Қолмен өңдеу"
+                              : locale === "ru"
+                                ? "Цифровой файл"
+                                : "Цифрлық файл"}
+                        </small>
+                      </details>
+                      <div className="row-actions">
                         <button
                           className="icon-button"
-                          aria-label={t.merge}
-                          title={t.merge}
-                          onClick={() => {
-                            const next = rows[index + 1];
-                            setRows(
-                              rows.flatMap((row, i) =>
-                                i === index
-                                  ? [
-                                      {
-                                        ...row,
-                                        topic: `${row.topic}\n${next.topic}`,
-                                        goals: `${row.goals}\n${next.goals}`,
-                                        objectiveCodes: [
-                                          ...row.objectiveCodes,
-                                          ...next.objectiveCodes,
-                                        ],
-                                        notes: `${row.notes}\n${next.notes}`,
-                                        warnings: [
-                                          ...row.warnings,
-                                          ...next.warnings,
-                                        ],
-                                        source: {
-                                          ...row.source,
-                                          method: "manual" as const,
-                                          fragment: `${row.source.fragment}\n${next.source.fragment}`,
+                          aria-label={t.split}
+                          title={t.split}
+                          onClick={() => add(index)}
+                        >
+                          <Split size={14} />
+                        </button>
+                        {index < rows.length - 1 && (
+                          <button
+                            className="icon-button"
+                            aria-label={t.merge}
+                            title={t.merge}
+                            onClick={() => {
+                              const next = rows[index + 1];
+                              setRows(
+                                rows.flatMap((row, i) =>
+                                  i === index
+                                    ? [
+                                        {
+                                          ...row,
+                                          topic: `${row.topic}\n${next.topic}`,
+                                          goals: `${row.goals}\n${next.goals}`,
+                                          objectiveCodes: [
+                                            ...row.objectiveCodes,
+                                            ...next.objectiveCodes,
+                                          ],
+                                          notes: `${row.notes}\n${next.notes}`,
+                                          warnings: [
+                                            ...row.warnings,
+                                            ...next.warnings,
+                                          ],
+                                          source: {
+                                            ...row.source,
+                                            method: "manual" as const,
+                                            fragment: `${row.source.fragment}\n${next.source.fragment}`,
+                                          },
                                         },
-                                      },
-                                    ]
-                                  : i === index + 1
-                                    ? []
-                                    : [row],
-                              ),
-                            );
+                                      ]
+                                    : i === index + 1
+                                      ? []
+                                      : [row],
+                                ),
+                              );
+                              setDirty(true);
+                            }}
+                          >
+                            <Merge size={14} />
+                          </button>
+                        )}
+                        <button
+                          className="icon-button"
+                          onClick={() => {
+                            setRows(rows.filter((_, i) => i !== index));
                             setDirty(true);
                           }}
+                          aria-label={t.remove}
                         >
-                          <Merge size={14} />
+                          <Trash2 size={14} />
                         </button>
-                      )}
-                      <button
-                        className="icon-button"
-                        onClick={() => {
-                          setRows(rows.filter((_, i) => i !== index));
-                          setDirty(true);
-                        }}
-                        aria-label={t.remove}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {visible.length > 25 && <nav className="pagination" aria-label={locale === "ru" ? "Страницы КТП" : "КТЖ беттері"}>
-          <button className="button secondary" disabled={currentPage===0} onClick={() => setPage(Math.max(0,currentPage-1))}>{t.back}</button>
-          <span>{currentPage+1} / {Math.ceil(visible.length/25)} · {visible.length} {locale === "ru" ? "строк" : "жол"}</span>
-          <button className="button secondary" disabled={(currentPage+1)*25>=visible.length} onClick={() => setPage(currentPage+1)}>{locale === "ru" ? "Далее" : "Келесі"}</button>
-        </nav>}
-        <button className="button secondary mt-20" onClick={() => add()}>
-          <Plus size={16} />
-          {t.addRow}
-        </button>
-      </section>
-      {plan.unrecognized?.length > 0 && (
-        <section className="card">
-          <button
-            className="text-button"
-            onClick={() => setShowWarnings(!showWarnings)}
-          >
-            {t.unrecognized} ({plan.unrecognized.length}){" "}
-            <ChevronDown size={14} style={{ verticalAlign: "middle" }} />
-          </button>
-          {showWarnings &&
-            plan.unrecognized.map((s: string, i: number) => (
-              <p
-                key={i}
-                style={{ whiteSpace: "pre-wrap", fontSize: 12, marginTop: 16 }}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {visible.length > 25 && (
+            <nav
+              className="pagination"
+              aria-label={locale === "ru" ? "Страницы КТП" : "КТЖ беттері"}
+            >
+              <button
+                className="button secondary"
+                disabled={currentPage === 0}
+                onClick={() => setPage(Math.max(0, currentPage - 1))}
               >
-                {s}
-              </p>
-            ))}
+                {t.back}
+              </button>
+              <span>
+                {currentPage + 1} / {Math.ceil(visible.length / 25)} ·{" "}
+                {visible.length} {locale === "ru" ? "строк" : "жол"}
+              </span>
+              <button
+                className="button secondary"
+                disabled={(currentPage + 1) * 25 >= visible.length}
+                onClick={() => setPage(currentPage + 1)}
+              >
+                {locale === "ru" ? "Далее" : "Келесі"}
+              </button>
+            </nav>
+          )}
+          <button className="button secondary mt-20" onClick={() => add()}>
+            <Plus size={16} />
+            {t.addRow}
+          </button>
         </section>
-      )}
+        {plan.unrecognized?.length > 0 && (
+          <section className="card">
+            <button
+              className="text-button"
+              onClick={() => setShowWarnings(!showWarnings)}
+            >
+              {t.unrecognized} ({plan.unrecognized.length}){" "}
+              <ChevronDown size={14} style={{ verticalAlign: "middle" }} />
+            </button>
+            {showWarnings &&
+              plan.unrecognized.map((s: string, i: number) => (
+                <p
+                  key={i}
+                  style={{
+                    whiteSpace: "pre-wrap",
+                    fontSize: 12,
+                    marginTop: 16,
+                  }}
+                >
+                  {s}
+                </p>
+              ))}
+          </section>
+        )}
+      </fieldset>
     </>
   );
 }

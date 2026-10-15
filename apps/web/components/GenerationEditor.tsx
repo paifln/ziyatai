@@ -19,7 +19,10 @@ import {
   type GenerationDocument,
   type TaskDocument,
 } from "../../../packages/contracts";
-import { displayLevel } from "../../../packages/domain/validation";
+import {
+  displayLevel,
+  displayPoints,
+} from "../../../packages/domain/validation";
 import { validationMessage } from "../../../packages/domain/validation-messages";
 import { Jobs } from "./Jobs";
 import { usePolling } from "../lib/use-polling";
@@ -182,7 +185,7 @@ export default function GenerationEditor({
       };
       const result = await api("exports", "POST", data, requestKey(data));
       setExportJobs([
-        ...exportJobs,
+        ...exportJobs.filter((job) => job.id !== result.jobId),
         {
           id: result.jobId,
           status: "queued",
@@ -284,8 +287,16 @@ export default function GenerationEditor({
             : "Сақталмаған өзгерістер бар. Экспортқа дейін сақтаңыз."}
         </div>
       )}
+      {regenerationJob && (
+        <Jobs
+          t={t}
+          jobs={jobs.filter((job) => job.id === regenerationJob)}
+          refresh={refresh}
+        />
+      )}
       <div className="editor-layout">
-        <div>
+        <fieldset className="editor-fields" disabled={busy}>
+          <legend className="sr-only">{t.editor}</legend>
           {preview ? (
             <Preview
               doc={document}
@@ -321,8 +332,8 @@ export default function GenerationEditor({
                   >
                     <strong>{displayLevel(task.level, locale)}</strong>
                     <small>
-                      {task.points} {t.points.toLowerCase()} ·{" "}
-                      {task.estimatedMinutes} {t.duration.toLowerCase()}
+                      {displayPoints(task.points, locale)} ·{" "}
+                      {task.estimatedMinutes} мин
                     </small>
                     <span aria-hidden="true">
                       {(activeTask ? activeTask === task.id : index === 0)
@@ -619,7 +630,7 @@ export default function GenerationEditor({
               </section>
             ))
           )}
-        </div>
+        </fieldset>
         <aside className="editor-side">
           <section className="card">
             <h2>{t.export}</h2>
@@ -1056,7 +1067,7 @@ function Preview({
               <div key={task.id}>
                 <h3>
                   {doc.tasks.findIndex((t) => t.id === task.id) + 1}. (
-                  {task.points} {t.points.toLowerCase()})
+                  {displayPoints(task.points, doc.localeMode)})
                 </h3>
                 <DisplayBlocks blocks={task.contentBlocks} />
                 {task.translation && (

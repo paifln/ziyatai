@@ -36,7 +36,7 @@
     confirmed: ['Расталды', 'Подтверждено'], review: ['Тексеру қажет', 'Требует проверки'], extracting: ['Өңделуде', 'Обработка'],
     queued: ['Кезекте', 'В очереди'], running: ['Өңделуде', 'Выполняется'], needs_review: ['Мұғалім тексеруі керек', 'Нужна проверка учителя'],
     succeeded: ['Дайын', 'Готово'], failed: ['Қате', 'Ошибка'], cancelled: ['Тоқтатылды', 'Отменено'],
-    easy: ['Жеңіл', 'Базовый'], medium: ['Орта', 'Средний'], advanced: ['Күрделі', 'Продвинутый'],
+    easy: ['Жеңіл', 'Лёгкий'], medium: ['Орта', 'Средний'], advanced: ['Күрделі', 'Сложный'],
     file: ['Файл: PDF, DOCX, XLS, XLSX — 25 МБ дейін', 'Файл: PDF, DOCX, XLS, XLSX — до 25 МБ'],
     sourceLocale: ['КТЖ тілі', 'Язык исходного КТП'], import: ['Жолдарды шығару', 'Извлечь строки'],
     demo: ['Жасанды үлгі (AI емес)', 'Синтетический образец (без AI)'],
@@ -83,10 +83,11 @@
     var xhr = new XMLHttpRequest(); xhr.open(method || 'GET', '/api/' + path); xhr.timeout = 120000;
     var form = data instanceof FormData;
     if (!form && data !== undefined) xhr.setRequestHeader('Content-Type', 'application/json');
+    var signature='';
     if (method && method !== 'GET') {
-      var signature = path + ':' + (form ? uuid() : JSON.stringify(data));
-      if (!requestKeys[signature]) requestKeys[signature] = uuid();
-      xhr.setRequestHeader('Idempotency-Key', requestKeys[signature]);
+      var costly=method==='POST'&&(path==='generations'||path==='exports'||/^generations\/[^/]+\/tasks\/[^/]+\/regenerate$/.test(path));
+      if(costly){signature=path+':'+JSON.stringify(data);if(!requestKeys[signature])requestKeys[signature]=uuid();}
+      xhr.setRequestHeader('Idempotency-Key', signature?requestKeys[signature]:uuid());
     }
     xhr.onload = function () {
       var result;
@@ -96,20 +97,24 @@
         if(xhr.status===429)code='LIMIT';
         done(words[code] ? t(code) : t('error'), result, xhr.status); return;
       }
+      if(signature)delete requestKeys[signature];
       done(null, result);
     };
     xhr.onerror = xhr.ontimeout = function () { done(t('error')); };
     xhr.send(data === undefined ? null : form ? data : JSON.stringify(data));
   }
+  function lockControls() {
+    var controls = document.querySelectorAll('button,input,textarea,select'),states=[];
+    for (var i=0; i<controls.length; i++) { states.push({node:controls[i],disabled:controls[i].disabled});controls[i].disabled = true; }
+    return function(){for (var j=0; j<states.length; j++) if(document.documentElement.contains(states[j].node))states[j].node.disabled = states[j].disabled;};
+  }
   function action(path, data, done, method) {
     if (busy) return; busy = true;
-    var controls = document.querySelectorAll('button');
-    for (var i=0; i<controls.length; i++) controls[i].disabled = true;
+    var unlock=lockControls();
     note(t('loading'));
     request(path, method || 'POST', data, function (err, result) {
       busy = false;
-      var buttons = document.querySelectorAll('button');
-      for (var j=0; j<buttons.length; j++) buttons[j].disabled = false;
+      unlock();
       if (err) { note(err, true); return; }
       note(''); done(result);
     });
@@ -215,12 +220,12 @@
       function imported(f){action('ktp/imports',{uploadId:f.id,locale:lang.value,includeHidden:false},function(p){openPlan(p.id);});}
       if(profile.capabilities.directUploads){
         action('uploads/init',{name:selected.name,bytes:selected.size},function(init){
-          busy=true;submit.disabled=true;note(t('loading'));
+          busy=true;var unlock=lockControls();note(t('loading'));
           var xhr=new XMLHttpRequest();xhr.open('PUT',init.url);xhr.timeout=300000;xhr.setRequestHeader('Content-Type',init.contentType);
           xhr.upload.onprogress=function(ev){if(ev.lengthComputable)note(t('loading')+' '+Math.round(ev.loaded/ev.total*100)+'%');};
-          function failed(){busy=false;submit.disabled=false;note(t('error'),true);}
+          function failed(){busy=false;unlock();note(t('error'),true);}
           xhr.onerror=xhr.ontimeout=failed;
-          xhr.onload=function(){busy=false;submit.disabled=false;if(xhr.status>=200&&xhr.status<300)action('uploads/'+init.id+'/complete',{},imported);else failed();};
+          xhr.onload=function(){busy=false;unlock();if(xhr.status>=200&&xhr.status<300)action('uploads/'+init.id+'/complete',{},imported);else failed();};
           xhr.send(selected);
         });
       }else{var data=new FormData();data.append('file',selected);action('uploads',data,imported);}

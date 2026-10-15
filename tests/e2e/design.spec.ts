@@ -1,8 +1,43 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page, type Locator } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { randomUUID, randomBytes } from "node:crypto";
 import { writeFile } from "node:fs/promises";
 import { verifiedUser, headers, emailLink, origin } from "./helpers";
+
+async function saveWithDelayedResponse(
+  page: Page,
+  path: string,
+  save: Locator,
+  field: Locator,
+) {
+  let seen = false,
+    release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let finish!: () => void;
+  const handled = new Promise<void>((resolve) => {
+    finish = resolve;
+  });
+  await page.route(path, async (route) => {
+    seen = true;
+    await gate;
+    try {
+      await route.continue();
+    } finally {
+      finish();
+    }
+  });
+  try {
+    await save.click();
+    await expect.poll(() => seen).toBe(true);
+    await expect(field).toBeDisabled();
+  } finally {
+    release();
+    if (seen) await handled;
+    await page.unroute(path);
+  }
+}
 
 test("password reset links work while already signed in in both interfaces", async ({
   page,
@@ -137,7 +172,12 @@ test("large plans and assignment tables keep a bounded DOM and preserve edits ac
   await page
     .getByLabel("Тема урока 53", { exact: true })
     .fill("Исправленная последняя тема");
-  await page.getByRole("button", { name: "Сохранить", exact: true }).click();
+  await saveWithDelayedResponse(
+    page,
+    "**/api/ktp/*/rows",
+    page.getByRole("button", { name: "Сохранить", exact: true }),
+    page.getByLabel("Тема урока 53", { exact: true }),
+  );
   await expect
     .poll(
       async () =>
@@ -199,10 +239,12 @@ test("large plans and assignment tables keep a bounded DOM and preserve edits ac
   await expect(
     table.getByLabel("Строка 1, Столбец 1", { exact: true }),
   ).toHaveValue("r2c2");
-  await page
-    .getByRole("button", { name: "Сохранить", exact: true })
-    .first()
-    .click();
+  await saveWithDelayedResponse(
+    page,
+    "**/api/generations/*/document",
+    page.getByRole("button", { name: "Сохранить", exact: true }).first(),
+    table.getByLabel("Строка 1, Столбец 1", { exact: true }),
+  );
   await expect
     .poll(
       async () =>
@@ -481,7 +523,21 @@ test("lite imports, confirms, paginates and exports without loading React", asyn
   await page
     .getByLabel("Условие 1", { exact: true })
     .fill("Лёгкий режим: к числу 2 прибавьте 3. Покажите решение.");
+  const condition = page.getByLabel("Условие 1", { exact: true });
+  const draft = await condition.inputValue();
+  await page.route("**/api/generations/*/tasks/*", (route) =>
+    route.fulfill({ status: 409, json: { code: "CONFLICT" } }),
+  );
   await page.getByRole("button", { name: "Сохранить", exact: true }).click();
+  await expect(condition).toBeEnabled();
+  await expect(condition).toHaveValue(draft);
+  await page.unroute("**/api/generations/*/tasks/*");
+  await saveWithDelayedResponse(
+    page,
+    "**/api/generations/*/tasks/*",
+    page.getByRole("button", { name: "Сохранить", exact: true }),
+    condition,
+  );
   await expect(page.locator(".task").first()).toContainText(
     "Лёгкий режим: к числу 2 прибавьте 3.",
   );
@@ -524,4 +580,42 @@ test("lite imports, confirms, paginates and exports without loading React", asyn
   await downloaded.saveAs(".local/qa/reviewed.docx");
   const documents = await (await request.get("/api/library")).json();
   expect(documents[0].teacher_reviewed).toBe(true);
+  const oldExport = documents[0].id;
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByRole("button", { name: "Удалить", exact: true }).click();
+  await expect
+    .poll(async () =>
+      (await (await request.get("/api/library")).json()).some(
+        (item: any) => item.id === oldExport,
+      ),
+    )
+    .toBe(false);
+  await page.getByRole("button", { name: "Задания", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Открыть", exact: true })
+    .first()
+    .click();
+  await expect(page.locator(".task")).toHaveCount(9);
+  await page
+    .getByLabel("Я проверил(а) задания, ответы и критерии", { exact: true })
+    .check();
+  await page.getByRole("button", { name: "DOCX", exact: true }).click();
+  await expect
+    .poll(
+      async () => {
+        if (
+          await page.getByRole("link", { name: "Скачать", exact: true }).count()
+        )
+          return true;
+        await page
+          .getByRole("button", { name: "Обновить", exact: true })
+          .click();
+        return false;
+      },
+      { timeout: 30000, intervals: [1500] },
+    )
+    .toBe(true);
+  const recreated = await (await request.get("/api/library")).json();
+  expect(recreated[0].id).not.toBe(oldExport);
+  expect(recreated[0].teacher_reviewed).toBe(true);
 });

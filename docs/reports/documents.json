@@ -5,7 +5,5 @@
   "kazakhCharactersPreserved": true,
   "pdfPages": 4,
   "answersBeginOnPage": 3,
-  "visualInspection": "All four pages reviewed; no detached answer lines, clipped text or empty pages in the representative synthetic export",
-  "scope": "Local LibreOffice, licensed mounted Windows fonts; not a production font deployment test",
-  "date": "2026-10-15"
+  "visualInspection": "All four rendered pages reviewed; no clipping or detached answer-space line"
 }
