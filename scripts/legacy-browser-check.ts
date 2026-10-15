@@ -130,7 +130,19 @@ try {
     mailLink = detail.Text.match(/\b\d{6}\b/)?.[0] || "";
     return !!mailLink;
   });
-  assert.equal((await api.post("/api/auth/email-otp/verify-email", {headers,data:{email,otp:mailLink}})).ok(), true);
+  let verified = await api.post("/api/auth/email-otp/verify-email", {
+    headers,
+    data: { email, otp: mailLink },
+  });
+  const verificationDeadline = Date.now() + 70000;
+  while (verified.status() === 429 && Date.now() < verificationDeadline) {
+    await new Promise((done) => setTimeout(done, 5000));
+    verified = await api.post("/api/auth/email-otp/verify-email", {
+      headers,
+      data: { email, otp: mailLink },
+    });
+  }
+  assert.equal(verified.ok(), true);
   await call("/url", { url: base + "/lite/" });
   await until(() =>
     execute("return !!document.querySelector('input[type=email]')"),

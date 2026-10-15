@@ -6,5 +6,7 @@
   "failedResetPreservesSession": true,
   "resetTokenReusableAfterFailure": true,
   "successfulResetRevokesOldSession": true,
-  "newPasswordLoginWorks": true
+  "newPasswordLoginWorks": true,
+  "applicationSourceCommit": "6dee156a035c8927ced67d09627dd32a5f18866b",
+  "localDate": "2026-10-16"
 }

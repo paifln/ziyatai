@@ -7,8 +7,8 @@
     {
       "component": "web",
       "image": "ziyatai-web:release",
-      "digest": "sha256:c67af757c6740f501c9dae221b0667c6feef405042896e9927b3d851406b9944",
-      "scannedAt": "2026-10-15T18:06:18.366292415Z",
+      "digest": "sha256:7de4ceb65d1b7d38e54709ad923a1e2f94a5dbcf69a997627fb902ed513f98bd",
+      "scannedAt": "2026-10-15T19:31:12.153811512Z",
       "os": {
         "Family": "ubuntu",
         "Name": "24.04"
@@ -30,16 +30,16 @@
     },
     {
       "component": "renderer",
-      "image": "ziyatai-renderer:local",
-      "digest": "sha256:109f10cb0d22f3fb250f77582dc13a5ffac1541d70143d38a89bbd36d97334f8",
-      "scannedAt": "2026-10-15T16:19:01.880917619Z",
+      "image": "ziyatai-renderer:release",
+      "digest": "sha256:08dad417eaf33878ec8a42ed80ab20ccbfc80833a7702c301373960215f5257c",
+      "scannedAt": "2026-10-15T19:30:32.534751937Z",
       "os": {
         "Family": "ubuntu",
         "Name": "24.04"
       },
       "targets": [
         {
-          "target": "ziyatai-renderer:local (ubuntu 24.04)",
+          "target": "ziyatai-renderer:release (ubuntu 24.04)",
           "type": "ubuntu",
           "packageCount": 265
         },
@@ -55,8 +55,8 @@
     {
       "component": "worker",
       "image": "ziyatai-worker:release",
-      "digest": "sha256:5ec97a1e6fdfa826aa91b6056eb676c84745b25a3d0701358f1f2ea9241bc4f7",
-      "scannedAt": "2026-10-15T18:06:26.21082682Z",
+      "digest": "sha256:e50cdba402d7a3a1acce23bda7677baefe26fda0178d801bbbc85a71d1bbbecf",
+      "scannedAt": "2026-10-15T19:30:22.100465846Z",
       "os": {
         "Family": "ubuntu",
         "Name": "24.04"

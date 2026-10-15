@@ -21,11 +21,11 @@ Firefox ESR 115 относится к ветке с поддержкой Windows
 
 **ОС Windows 7 и физический школьный ПК в этом прогоне не использовались.** Их TLS/root certificates, шрифты, драйверы и фактическую скорость нужно проверить на месте. Современный Chromium отдельно проверен на ширинах 360, 768 и 1440 px; проверяются отсутствие overflow, клавиатура, Escape, доступность WCAG A/AA и защита несохранённых правок.
 
-Дополнительно пройдены **7 сценариев в Playwright WebKit 27.2**: адаптивность и доступность, меню/несохранённые правки, большая таблица, Lite и полный UI import/edit/DOCX на desktop/phone/tablet. Проверены ширины 360/768/1440 и сенсорные viewport 390×664 / 810×1080; получение настоящих сгенерированных `touchstart` событий проверяется во время навигации. В mobile UA указан iOS минимум 16.4 для открытия основного UI; сам движок — WebKit 27.2 на Windows. Это не проверка Safari 16.4 или физического iPhone/iPad. [Отчёт WebKit](reports/webkit-browser.json).
+Дополнительно пройдены **8 сценариев в Playwright WebKit 27.2**: адаптивность и доступность, меню/несохранённые правки, большая таблица, Lite, регистрация с email-кодом и полный UI import/edit/DOCX на desktop/phone/tablet. Проверены ширины 360/768/1440 и сенсорные viewport 390×664 / 810×1080; получение настоящих сгенерированных `touchstart` событий проверяется во время навигации. В mobile UA указан iOS минимум 16.4 для открытия основного UI; сам движок — WebKit 27.2 на Windows. Это не проверка Safari 16.4 или физического iPhone/iPad. [Отчёт WebKit](reports/webkit-browser.json).
 
 ## Производительность
 
-[Отчёт](reports/browser-performance.json) измеряет compiled production build при симуляции CPU slowdown ×6 и сети 1,6 Mbps down / 750 Kbps up / 150 ms latency. Это лабораторная симуляция, не публичный CDN и не физический старый процессор. Lite передаёт около 11 KB JavaScript и показывает основной контент примерно за 1,1–1,2 секунды, основной интерфейс — примерно за 2,8–3,2 секунды. На общем Windows-хосте была фоновая активность; snapshot CPU в начале — 49%, нагрузка не поддерживалась постоянной. Точные значения, digest образа и версия браузера находятся в отчёте; это отдельные прогоны стартовых страниц без входа, а не статистический production benchmark.
+[Отчёт](reports/browser-performance.json) измеряет compiled production build при симуляции CPU slowdown ×6 и сети 1,6 Mbps down / 750 Kbps up / 150 ms latency. Это лабораторная симуляция, не публичный CDN и не физический старый процессор. Lite передаёт около 12 KB JavaScript и показывает основной контент примерно за 1,1 секунды, основной интерфейс — за 2,9–3,0 секунды. В основном UI один локальный шрифт Inter (около 91 KB), в Lite web fonts отсутствуют. На общем Windows-хосте параллельно выполнялся synthetic E2E. Точные значения, digest образа и версия браузера находятся в отчёте; это отдельные прогоны стартовых страниц без входа, а не статистический production benchmark.
 
 В простое кабинет не опрашивает бизнес-API. Опрос включается только для незавершённой операции; скрытая или offline вкладка приостанавливает его. Обновление по возвращении и кнопке сохраняется. Большие КТП показываются по 25 строк, Lite — по 10. В редакторе формы создаются для открытого задания, остальные показывают краткое условие. Таблицы заданий также редактируются по 10 строк: для таблицы 200×20 одновременно создаются 220 полей вместо 4020. Переход страницы не удаляет данные; экспорт использует полную таблицу.
 
@@ -45,7 +45,7 @@ npx playwright test tests/e2e/design.spec.ts
 ```powershell
 npx playwright install webkit
 $env:QA_BROWSER = 'webkit'
-npx playwright test tests/e2e/design.spec.ts tests/e2e/ui.spec.ts --grep 'large plans|both sign-in|workspace stays|lite imports|teacher UI'
+npx playwright test tests/e2e/design.spec.ts tests/e2e/ui.spec.ts tests/e2e/revision.spec.ts --grep 'large plans|both sign-in|workspace stays|lite imports|teacher UI|registration'
 Remove-Item Env:QA_BROWSER
 ```
 

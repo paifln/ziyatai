@@ -7,7 +7,7 @@
   "main": {
     "width": 1440,
     "height": 915,
-    "heading": "Келесі сабаққа қажеттінің бәрі",
+    "heading": "РњРµРЅС–ТЈ РљРўР–",
     "overflow": false
   },
   "lite": {
@@ -23,5 +23,7 @@
   "limitations": [
     "Does not verify Windows 7 OS TLS, fonts, drivers or hardware performance",
     "Live OpenAI is not configured"
-  ]
+  ],
+  "applicationSourceCommit": "6dee156a035c8927ced67d09627dd32a5f18866b",
+  "localDate": "2026-10-16"
 }

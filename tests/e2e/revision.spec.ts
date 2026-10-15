@@ -87,6 +87,7 @@ test("registration verifies a one-time email code and stores the selected subjec
   await page.screenshot({
     path: ".local/qa/revision-workspace.png",
     fullPage: true,
+    animations: "disabled",
   });
 });
 

@@ -1,20 +1,21 @@
 {
-  "date": "2026-10-15",
+  "date": "2026-10-16",
   "engine": "Playwright WebKit 27.2 (build 2370)",
   "platform": "Windows host; WebKit Desktop Safari plus mobile/touch emulation",
-  "applicationSourceCommit": "51bcea35cac9875cc1388d61ea5fa5133e533a3b",
-  "testsPassed": 7,
+  "applicationSourceCommit": "6dee156a035c8927ced67d09627dd32a5f18866b",
+  "testsPassed": 8,
   "errors": 0,
   "cases": [
     "design.spec.ts / large plans and assignment tables keep a bounded DOM and preserve edits across pages",
     "design.spec.ts / both sign-in experiences are accessible and fit phones, tablets and desktops",
     "design.spec.ts / workspace stays readable on small screens and protects unsaved edits",
     "design.spec.ts / lite imports, confirms, paginates and exports without loading React",
+    "revision.spec.ts / registration verifies a one-time email code and stores the selected subject",
     "ui.spec.ts / desktop / teacher UI imports a file, confirms rows, edits a task and downloads an export",
     "ui.spec.ts / phone / teacher UI imports a file, confirms rows, edits a task and downloads an export",
     "ui.spec.ts / tablet / teacher UI imports a file, confirms rows, edits a task and downloads an export"
   ],
-  "scope": "Local compiled application: responsive/a11y, offline draft recovery, menu, 200x20 table, Lite edit/recreate export, and teacher direct-upload/import/edit/DOCX flow on desktop/phone/tablet",
+  "scope": "Local compiled application: responsive/a11y, offline draft recovery, menu, 200x20 table, Lite edit/recreate export, and teacher direct-upload/import/edit/DOCX flow on desktop/phone/tablet; actual email OTP registration, wrong code, consumed code and teaching subject persistence",
   "physicalIOSDevice": false,
   "liveOpenAI": false,
   "offlineExtension": {

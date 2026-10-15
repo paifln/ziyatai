@@ -1,0 +1,36 @@
+{
+  "localDate": "2026-10-16",
+  "applicationSourceCommit": "6dee156a035c8927ced67d09627dd32a5f18866b",
+  "buildConfigurationCommit": "13062e734c897c643ebbfacc9c16cc252689385c",
+  "images": {
+    "web": "sha256:7de4ceb65d1b7d38e54709ad923a1e2f94a5dbcf69a997627fb902ed513f98bd",
+    "worker": "sha256:e50cdba402d7a3a1acce23bda7677baefe26fda0178d801bbbc85a71d1bbbecf",
+    "renderer": "sha256:08dad417eaf33878ec8a42ed80ab20ccbfc80833a7702c301373960215f5257c"
+  },
+  "checks": {
+    "chromiumE2ePassed": 20,
+    "webkitE2ePassed": 8,
+    "unitPassed": 52,
+    "parserPassed": 28,
+    "typecheck": true,
+    "eslint": true,
+    "npmAuditFindings": 0,
+    "sourceVisibilityCheck": true,
+    "firefox115ActualWin32": true,
+    "physicalWindows7": false,
+    "physicalIPhoneIPad": false,
+    "ownerWorkbookRows": 426,
+    "ownerWorkbookSheets": 11,
+    "publicDeployment": false,
+    "externalEmailDelivery": false,
+    "liveOpenAICall": false
+  },
+  "securityScope": "Exact image HIGH/CRITICAL scans passed; 50 MEDIUM renderer records remain open; local old PostgreSQL is not the scanned new production image",
+  "documentation": "See acceptance.md and connect-services.md for external launch dependencies",
+  "githubCi": {
+    "checkedCommit": "13062e734c897c643ebbfacc9c16cc252689385c",
+    "runUrl": "https://github.com/paifln/ziyatai/actions/runs/38794775633",
+    "test": "success",
+    "integration": "success"
+  }
+}

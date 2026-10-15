@@ -7,6 +7,7 @@ test("all formats, review, versions, exports, private ACL and persistence", asyn
   request,
   playwright,
 }) => {
+  test.setTimeout(240000); // Includes server-enforced auth cooldown and serial OCR.
   const user = await verifiedUser(request);
   await page.context().addCookies((await request.storageState()).cookies);
   await page.goto("/");
@@ -19,6 +20,7 @@ test("all formats, review, versions, exports, private ACL and persistence", asyn
   await page.screenshot({
     path: ".local/qa/dashboard-1440.png",
     fullPage: true,
+    animations: "disabled",
   });
   const planIds: string[] = [];
   for (const file of [

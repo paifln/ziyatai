@@ -1,5 +1,9 @@
 # API ZiyatAI
 
+Регистрация `/api/auth/sign-up/email` принимает `teachingSubject` (строка до 120 символов). Подтверждение: `POST /api/auth/email-otp/verify-email` с `{email, otp}`; повторная отправка: `POST /api/auth/email-otp/send-verification-otp` с `{email, type: "email-verification"}`. Код содержит 6 цифр, действует 600 секунд, хранится хешированным; действуют ограничение попыток и rate limit. После подтверждения создаётся сессия. Сброс пароля сохраняет отдельный одноразовый link flow.
+
+`GET /api/profile` возвращает `teachingSubject`; `PATCH /api/profile` позволяет изменить его. Предмет попадает в immutable source snapshot новых AI-заданий. Уже созданные задания не меняются при редактировании профиля.
+
 Все бизнес endpoints требуют подтверждённого email, cookie сессии и проверки владельца. Для POST/PATCH/DELETE необходим Origin, равный APP_URL. Ответы не кешируются. Ошибка: code, безопасное message, requestId, необязательные fieldErrors. Чужой ресурс даёт 404, конфликт revision — 409.
 
 Типизированные runtime контракты находятся в packages/contracts. Один catch-all Route Handler маршрутизирует фиксированный набор ресурсов. Auth endpoints обслуживает Better Auth.

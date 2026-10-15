@@ -1,0 +1,30 @@
+{
+  "localDate": "2026-10-16",
+  "applicationSourceCommit": "6dee156",
+  "fileSha256": "94ffef90430d0e1fd5609a7bed1487afab89a5bac6f6d167b31ed3d6d4b43b86",
+  "fileBytes": 238080,
+  "sourceFileCommitted": false,
+  "backendImportAndClassSelectionE2ePassed": true,
+  "rows": 426,
+  "sheets": {
+    "1 класс": 17,
+    "2 класс": 34,
+    "3 класс__": 34,
+    "4 класс": 34,
+    "5 классы": 35,
+    "6 класс": 34,
+    "7 класс": 34,
+    "8 класс+": 34,
+    "9 класс +": 34,
+    "10 класс+": 68,
+    "11 класс": 68
+  },
+  "rowsWithoutGoalInSource": 8,
+  "selectedFirstClassRows": 17,
+  "selectedGrade": 1,
+  "sourcePreserved": true,
+  "limitations": [
+    "Eight source assessment rows have no learning goals and remain for manual review",
+    "Missing dates and goals were not invented"
+  ]
+}
