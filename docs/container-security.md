@@ -16,6 +16,16 @@ Web/worker в текущем отчёте пересобраны из Git-арх
 
 ## Проверка перед выпуском
 
+### Дополнительная проверка renderer
+
+[Расширенный отчёт](reports/renderer-advisories.json) включает MEDIUM: 50 записей для 35 CVE в системных пакетах; HIGH/CRITICAL по классификации Trivy — 0. Для этих 50 записей scanner не указал FixedVersion. Это **не означает**, что upstream исправлений нет, и не является принятием риска.
+
+Например, Ubuntu относит [CVE-2026-88053](https://ubuntu.com/security/CVE-2026-88053) к Medium, а два upstream advisory Tesseract — к High: [ReadNormProtos](https://github.com/tesseract-ocr/tesseract/security/advisories/GHSA-5j2p-r5vc-q7f3), [GenericVector model parsing](https://github.com/tesseract-ocr/tesseract/security/advisories/GHSA-88qp-4g94-3rf3). В них названа версия 5.5.4, но проверка официальных git refs не нашла такого опубликованного тега (последний стабильный — 5.5.3). Подмена версии в отчёте или автоматическая установка несуществующего релиза не выполнялась. Canonical также публикует [USN-8882-1](https://ubuntu.com/security/notices/USN-8882-1); доступность конкретного обновлённого пакета/ESM нужно проверить в выбранном production окружении.
+
+Два названных upstream advisory требуют вредоносных model files. API принимает PDF/DOCX/XLS/XLSX, не `.traineddata`; OCR запускается с фиксированными `kaz+rus` и `--psm 6`. В отчёт записаны SHA256 установленных моделей и фактический readonly rootfs локального renderer. Production renderer изолирован от egress/БД/S3, имеет CPU/RAM/PID/time limits. Эти ограничения уменьшают воздействие, но не исправляют библиотечные CVE и не доказывают недостижимость всех уязвимых путей. До публичной приёмки нужен разбор оставшихся находок и проверенный vendor update/backport либо обоснованное решение владельца эксплуатации.
+
+Повтор дополнительного scan: используйте ту же команду Trivy с `--severity MEDIUM,HIGH,CRITICAL`; для этого прогона не применяют exclusions или `--ignore-unfixed`. Отчёт относится только к указанному renderer digest, не ко всем шести образам.
+
 Соберите образы из передаваемого commit, затем проверьте каждый точный digest, включая внешние сервисы. Пример:
 
 ```powershell

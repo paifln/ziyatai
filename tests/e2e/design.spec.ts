@@ -449,6 +449,39 @@ test("workspace stays readable on small screens and protects unsaved edits", asy
     .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
     .analyze();
   expect(results.violations).toEqual([]);
+  const edited = page
+    .locator(".task-card")
+    .first()
+    .getByLabel("Текст", { exact: true })
+    .first();
+  await page.context().setOffline(true);
+  try {
+    await page
+      .getByRole("button", { name: "Сохранить", exact: true })
+      .first()
+      .click();
+    await expect(
+      page.getByRole("alert").filter({ hasText: "Нет связи с сервером" }),
+    ).toBeVisible();
+    await expect(edited).toBeEnabled();
+    await expect(edited).toHaveValue("Не потерять эти изменения");
+  } finally {
+    await page.context().setOffline(false);
+  }
+  await page
+    .getByRole("button", { name: "Сохранить", exact: true })
+    .first()
+    .click();
+  await expect(
+    page.getByText("Изменения сохранены", { exact: true }),
+  ).toBeVisible();
+  const history = await (await request.get("/api/history")).json();
+  const saved = await (
+    await request.get(`/api/generations/${history[0].id}`)
+  ).json();
+  expect(saved.document.tasks[0].contentBlocks[0].text).toBe(
+    "Не потерять эти изменения",
+  );
 });
 
 test("lite imports, confirms, paginates and exports without loading React", async ({
@@ -533,6 +566,15 @@ test("lite imports, confirms, paginates and exports without loading React", asyn
   await expect(condition).toBeEnabled();
   await expect(condition).toHaveValue(draft);
   await page.unroute("**/api/generations/*/tasks/*");
+  await page.context().setOffline(true);
+  try {
+    await page.getByRole("button", { name: "Сохранить", exact: true }).click();
+    await expect(page.locator("#message")).toHaveClass("error");
+    await expect(condition).toBeEnabled();
+    await expect(condition).toHaveValue(draft);
+  } finally {
+    await page.context().setOffline(false);
+  }
   await saveWithDelayedResponse(
     page,
     "**/api/generations/*/tasks/*",

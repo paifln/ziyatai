@@ -5,5 +5,11 @@
   "kazakhCharactersPreserved": true,
   "pdfPages": 4,
   "answersBeginOnPage": 3,
-  "visualInspection": "All four rendered pages reviewed; no clipping or detached answer-space line"
+  "visualInspection": "All four rendered pages reviewed; no clipping or detached answer-space line",
+  "localFontFamiliesMatched": [
+    "Times New Roman",
+    "Arial",
+    "Calibri"
+  ],
+  "fontScope": "fc-match in the local renderer with licensed readonly Windows font mount; this does not verify font deployment on a future server"
 }

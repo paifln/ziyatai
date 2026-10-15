@@ -98,6 +98,17 @@ E2E требует запущенных web, worker, PostgreSQL, S3, renderer, C
 - [Лицензии сторонних компонентов](THIRD_PARTY_NOTICES.md), [проверка шести production образов](docs/container-security.md)
 - [Прогресс](docs/progress.md), [приёмка и внешние блокеры](docs/acceptance.md)
 
+## Передача исходников
+
+Для передачи исходников можно создать архив только отслеживаемых Git файлов:
+
+```powershell
+New-Item -ItemType Directory -Force .local | Out-Null
+git archive --format=zip --output=.local/ziyatai-source.zip HEAD
+```
+
+Архив содержит код, документацию и `.env.example`; credentials и провайдеры настраиваются отдельно в окружении получателя. Git не включает локальную `.env.local`, тестовые выгрузки и каталоги сборок.
+
 ## Troubleshooting
 
 Если БД недоступна, проверьте Docker и `docker compose -f infra/compose.local.yml --env-file .env.local ps`. Миграции защищены advisory lock и checksum; уже применённые файлы не редактируют. Для изменения схемы добавляют новую миграцию.

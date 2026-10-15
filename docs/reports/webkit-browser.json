@@ -1,18 +1,49 @@
 {
   "date": "2026-10-15",
   "engine": "Playwright WebKit 27.2 (build 2370)",
-  "platform": "Windows host; Desktop Safari emulation with 360/768/1440 CSS pixel viewport checks",
+  "platform": "Windows host; WebKit Desktop Safari plus mobile/touch emulation",
   "applicationSourceCommit": "51bcea35cac9875cc1388d61ea5fa5133e533a3b",
-  "testsPassed": 5,
+  "testsPassed": 7,
   "errors": 0,
   "cases": [
-    "large plans and assignment tables keep a bounded DOM and preserve edits across pages",
-    "both sign-in experiences are accessible and fit phones, tablets and desktops",
-    "workspace stays readable on small screens and protects unsaved edits",
-    "lite imports, confirms, paginates and exports without loading React",
-    "teacher UI imports a file, confirms rows, edits a task and downloads an export"
+    "design.spec.ts / large plans and assignment tables keep a bounded DOM and preserve edits across pages",
+    "design.spec.ts / both sign-in experiences are accessible and fit phones, tablets and desktops",
+    "design.spec.ts / workspace stays readable on small screens and protects unsaved edits",
+    "design.spec.ts / lite imports, confirms, paginates and exports without loading React",
+    "ui.spec.ts / desktop / teacher UI imports a file, confirms rows, edits a task and downloads an export",
+    "ui.spec.ts / phone / teacher UI imports a file, confirms rows, edits a task and downloads an export",
+    "ui.spec.ts / tablet / teacher UI imports a file, confirms rows, edits a task and downloads an export"
   ],
-  "scope": "Local compiled application: responsive/a11y, menu and unsaved draft, 200x20 table, Lite import/edit/recreate export, main teacher workflow with direct S3 upload and DOCX download",
+  "scope": "Local compiled application: responsive/a11y, offline draft recovery, menu, 200x20 table, Lite edit/recreate export, and teacher direct-upload/import/edit/DOCX flow on desktop/phone/tablet",
   "physicalIOSDevice": false,
-  "liveOpenAI": false
+  "liveOpenAI": false,
+  "offlineExtension": {
+    "cases": 2,
+    "passed": 2,
+    "additionalDistinctCases": 0,
+    "scope": "The workspace/Lite cases were extended to disconnect, fail a save without losing the draft, reconnect, and persist the same text; focused rerun on WebKit 27.2 passed."
+  },
+  "emulatedDevices": [
+    {
+      "kind": "phone",
+      "viewport": {
+        "width": 390,
+        "height": 664
+      },
+      "deviceScaleFactor": 3,
+      "hasTouch": true,
+      "touchStartObserved": true
+    },
+    {
+      "kind": "tablet",
+      "viewport": {
+        "width": 810,
+        "height": 1080
+      },
+      "deviceScaleFactor": 2,
+      "hasTouch": true,
+      "touchStartObserved": true
+    }
+  ],
+  "deviceUserAgentNote": "Playwright device layout descriptors with iOS OS token normalized to 16_4 to exercise the supported main UI. This is WebKit 27.2 on Windows, not Safari 16.4 or physical iOS."
 }

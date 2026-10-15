@@ -27,7 +27,7 @@ Definition of Done из задания **не достигнута**: production
 
 - TypeScript, ESLint и production Docker build проходят. Unit/provider/browser-contract/gateway tests: 52 passed, 9 файлов.
 - Parser pytest: 27 passed. [Цифровой отчёт](reports/parser.json): DOCX 15/15 строк и 75/75 полей; XLSX 12/12 и 60/60; XLS 6/6 и 30/30; PDF 6/6 и 30/30. Только synthetic samples, нормализация NFKC/whitespace.
-- API/browser E2E на собранных локальных контейнерах: 15 passed. Включены основные форматы, reset (в том числе из действующей сессии в обоих интерфейсах), security/deletion, OCR/mixed PDF, кнопки upload/confirm/editor/export, signed S3 upload и невозможность перезаписать чистый источник, большие таблицы, ограничения chunked JSON, запрет teacherReviewed при неверных баллах, Lite editing/export, responsive/a11y и отсутствие idle polling.
+- API/browser E2E на собранных локальных контейнерах: 17 passed. Включены основные форматы, reset (в том числе из действующей сессии в обоих интерфейсах), security/deletion, OCR/mixed PDF, кнопки upload/confirm/editor/export, signed S3 upload и невозможность перезаписать чистый источник, большие таблицы, ограничения chunked JSON, запрет teacherReviewed при неверных баллах, Lite editing/export, responsive/a11y и отсутствие idle polling.
 - [Очередь](reports/queue.json): expired lease reclaimed с attempt 2, unique job, cancelled не claim, третья reservation откатывается.
 - [Password reset fault test](reports/auth-reset.json): Better Auth 1.7.10, сбой удаления сессии не меняет пароль и не расходует ссылку; успешный повтор отзывает старую сессию. [Signed gateway](reports/netlify-gateway.json): локальная HTTP проверка подписи, входа, ACL и двух provider IP; настоящий Netlify ingress остаётся отдельной проверкой.
 - [Antivirus](reports/antivirus.json): ClamAV 1.4.6, clean DOCX accepted, harmless standard EICAR rejected.
@@ -36,9 +36,10 @@ Definition of Done из задания **не достигнута**: production
 - npm audit: 0 vulnerabilities на момент проверки. Secret scanner не нашёл узнаваемых OpenAI keys/PEM private keys в tracked/unignored source. Это не абсолютная гарантия отсутствия любых секретов.
 - DOCX/PDF structural checks: TNR 14, answer page 3 из 4, glyphs ӘҒҚҢӨҰҮҺІ, отсутствие answers в student. UI проверялся на 360/768/1440 px.
 - [Firefox ESR 115](reports/legacy-browser.json): настоящий win32 browser на текущем Windows, вход/импорт/правка/подтверждение/export. Физическая Windows 7 не использовалась.
-- [WebKit 27.2](reports/webkit-browser.json): 5 дополнительных UI сценариев, включая responsive/a11y, большие таблицы и DOCX. Эмуляция на Windows, не физический iPhone/iPad.
+- [WebKit 27.2](reports/webkit-browser.json): 7 дополнительных UI сценариев, включая responsive/a11y, большие таблицы, сенсорную навигацию phone/tablet и DOCX. Эмуляция на Windows, не физический iPhone/iPad.
 - [Скорость](reports/browser-performance.json): отдельный замер compiled bundle под ограничениями CPU/сети; без внешних шрифтов. [Очистка](reports/upload-cleanup.json) проверяет повтор после сбоя S3 и сохранность используемого источника.
 - [Container scan](container-security.md): отчёт точных образов включает unfixed HIGH/CRITICAL; blanket ignore не используется. [Proxy check](reports/proxy.json) проверяет локальную маршрутизацию и обе конфигурации; публичный TLS ещё не проверен.
+- [Дополнительный renderer review](reports/renderer-advisories.json): 50 MEDIUM записей для 35 CVE, включая различия рейтингов Ubuntu/upstream Tesseract. Они не объявлены исправленными или автоматически принятыми. Подробности и ограничения эксплуатации — в security record.
 
 ## Блокеры и продолжение
 
