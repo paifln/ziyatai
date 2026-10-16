@@ -793,6 +793,28 @@ export default function GenerationEditor({
                 </select>
               </label>
               <label>
+                {locale === "ru" ? "Макет печати" : "Басып шығару макеті"}
+                <select
+                  value={styles.layout}
+                  onChange={(e) =>
+                    setStyles({
+                      ...styles,
+                      layout: e.target.value as
+                        "portrait" | "landscape-columns",
+                    })
+                  }
+                >
+                  <option value="portrait">
+                    {locale === "ru" ? "A4 · книжный" : "A4 · тік"}
+                  </option>
+                  <option value="landscape-columns">
+                    {locale === "ru"
+                      ? "A4 · альбомный, две колонки"
+                      : "A4 · көлденең, екі баған"}
+                  </option>
+                </select>
+              </label>
+              <label>
                 {t.font}
                 <select
                   value={styles.font}
@@ -1151,7 +1173,7 @@ function Preview({
 }) {
   return (
     <article
-      className="preview-paper"
+      className={`preview-paper ${styles.layout === "landscape-columns" ? "preview-landscape" : ""}`}
       style={{
         fontFamily: styles.font,
         fontSize: `${styles.size}pt`,
@@ -1163,48 +1185,67 @@ function Preview({
       <p>
         {doc.grade} {t.grade.toLowerCase()}
       </p>
-      <p>{snapshot.goals}</p>
-      {["easy", "medium", "advanced"].map((level) => (
-        <section key={level}>
-          <h2>{displayLevel(level, doc.localeMode)}</h2>
-          {doc.tasks
-            .filter((task) => task.level === level)
-            .map((task) => (
-              <div key={task.id}>
-                <h3>
-                  {doc.tasks.findIndex((t) => t.id === task.id) + 1}. (
-                  {displayPoints(task.points, doc.localeMode)})
-                </h3>
-                <DisplayBlocks blocks={task.contentBlocks} />
-                {task.translation && (
-                  <DisplayBlocks blocks={task.translation.contentBlocks} />
-                )}
-                <div className="preview-task-actions">
-                  <button
-                    className="text-button"
-                    onClick={() => onEditTask(task.id)}
-                  >
-                    <Edit3 size={13} />
-                    {doc.localeMode === "ru"
-                      ? "Доработать задание"
-                      : "Тапсырманы өңдеу"}
-                  </button>
-                  {onRegenerate && (
+      {!snapshot.goalsSkipped && <p>{snapshot.goals}</p>}
+      <div className="preview-student-tasks">
+        {["easy", "medium", "advanced"].map((level) => (
+          <section key={level}>
+            <h2>{displayLevel(level, doc.localeMode)}</h2>
+            {doc.tasks
+              .filter((task) => task.level === level)
+              .map((task) => (
+                <div key={task.id}>
+                  <h3>
+                    {doc.tasks.findIndex((t) => t.id === task.id) + 1}. (
+                    {displayPoints(task.points, doc.localeMode)})
+                  </h3>
+                  <DisplayBlocks blocks={task.contentBlocks} />
+                  {task.translation && (
+                    <DisplayBlocks blocks={task.translation.contentBlocks} />
+                  )}
+                  {styles.answerSpace && (
+                    <div aria-hidden="true" className="preview-answer-lines">
+                      {Array.from(
+                        {
+                          length:
+                            task.level === "advanced"
+                              ? 8
+                              : task.level === "medium"
+                                ? 6
+                                : 4,
+                        },
+                        (_, i) => (
+                          <div key={i} />
+                        ),
+                      )}
+                    </div>
+                  )}
+                  <div className="preview-task-actions">
                     <button
                       className="text-button"
-                      onClick={() => onRegenerate(task)}
+                      onClick={() => onEditTask(task.id)}
                     >
-                      <RefreshCw size={13} />
+                      <Edit3 size={13} />
                       {doc.localeMode === "ru"
-                        ? "Другой вариант"
-                        : "Басқа нұсқа"}
+                        ? "Доработать задание"
+                        : "Тапсырманы өңдеу"}
                     </button>
-                  )}
+                    {onRegenerate && (
+                      <button
+                        className="text-button"
+                        onClick={() => onRegenerate(task)}
+                      >
+                        <RefreshCw size={13} />
+                        {doc.localeMode === "ru"
+                          ? "Другой вариант"
+                          : "Басқа нұсқа"}
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
-        </section>
-      ))}
+              ))}
+          </section>
+        ))}
+      </div>
       {audience === "full" && (
         <section
           style={{

@@ -15,6 +15,8 @@ import {
   WidthType,
   BorderStyle,
   ShadingType,
+  PageOrientation,
+  SectionType,
 } from "docx";
 import { Styles, type GenerationDocument } from "../contracts";
 import { displayLevel, displayPoints } from "../domain/validation";
@@ -129,8 +131,8 @@ export async function renderDocx(
     children.push(
       p(
         ru
-          ? "Синтетический демонстрационный материал. Генерация OpenAI не выполнялась."
-          : "Синтетикалық демонстрациялық материал. OpenAI генерациясы орындалмаған.",
+          ? "Синтетический демонстрационный материал. Генерация ZiyatAI не выполнялась."
+          : "Синтетикалық демонстрациялық материал. ZiyatAI генерациясы орындалмаған.",
       ),
     );
   if (!teacherReviewed)
@@ -141,6 +143,7 @@ export async function renderDocx(
           : "Жоба. Педагогикалық тексеру қажет.",
       ),
     );
+  const taskStart = children.length;
   for (const level of ["easy", "medium", "advanced"]) {
     children.push(h(displayLevel(level, doc.localeMode)));
     for (const task of doc.tasks.filter((t) => t.level === level)) {
@@ -160,20 +163,31 @@ export async function renderDocx(
       }
       if (styles.answerSpace) {
         const lines =
-          task.level === "advanced" ? 3 : task.level === "medium" ? 2 : 1;
+          task.level === "advanced" ? 8 : task.level === "medium" ? 6 : 4;
         for (let line = 0; line < lines; line++)
           children.push(
-            p(
-              "________________________________________________________________",
-              { keepNext: line < lines - 1 },
-            ),
+            p("", {
+              keepNext: line < lines - 1,
+              spacing: { before: 0, after: 100, line: 360 },
+              border: {
+                bottom: { style: BorderStyle.SINGLE, size: 2, color: "B8B8B8" },
+                between: {
+                  style: BorderStyle.SINGLE,
+                  size: 2,
+                  color: "B8B8B8",
+                },
+              },
+            }),
           );
       }
     }
   }
+  const taskEnd = children.length;
   if (audience === "full") {
     children.push(
-      new Paragraph({ children: [new PageBreak()] }),
+      ...(styles.layout === "portrait"
+        ? [new Paragraph({ children: [new PageBreak()] })]
+        : []),
       h(ru ? "Ответы и объяснения" : "Жауаптар және түсіндірмелер"),
     );
     for (let i = 0; i < doc.tasks.length; i++) {
@@ -275,32 +289,67 @@ export async function renderDocx(
         },
       ],
     },
-    sections: [
-      {
-        properties: {
-          page: {
-            size: { width: 11906, height: 16838 },
-            margin: {
-              top: cm(styles.marginTop),
-              bottom: cm(styles.marginBottom),
-              left: cm(styles.marginLeft),
-              right: cm(styles.marginRight),
-            },
+    sections: (styles.layout === "landscape-columns"
+      ? [
+          {
+            content: children.slice(0, taskStart),
+            columns: 1,
+            type: SectionType.CONTINUOUS,
+          },
+          {
+            content: children.slice(taskStart, taskEnd),
+            columns: 2,
+            type: SectionType.CONTINUOUS,
+          },
+          ...(audience === "full"
+            ? [
+                {
+                  content: children.slice(taskEnd),
+                  columns: 1,
+                  type: SectionType.NEXT_PAGE,
+                },
+              ]
+            : []),
+        ]
+      : [{ content: children, columns: 1, type: SectionType.NEXT_PAGE }]
+    ).map(({ content, columns, type }) => ({
+      properties: {
+        type,
+        column: {
+          count: columns,
+          space: 567,
+          equalWidth: true,
+          separate: columns === 2,
+        },
+        page: {
+          size: {
+            width: 11906,
+            height: 16838,
+            orientation:
+              styles.layout === "landscape-columns"
+                ? PageOrientation.LANDSCAPE
+                : PageOrientation.PORTRAIT,
+          },
+          margin: {
+            top: cm(styles.marginTop),
+            bottom: cm(styles.marginBottom),
+            left: cm(styles.marginLeft),
+            right: cm(styles.marginRight),
           },
         },
-        footers: {
-          default: new Footer({
-            children: [
-              new Paragraph({
-                alignment: AlignmentType.CENTER,
-                children: [new TextRun({ children: [PageNumber.CURRENT] })],
-              }),
-            ],
-          }),
-        },
-        children,
       },
-    ],
+      footers: {
+        default: new Footer({
+          children: [
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              children: [new TextRun({ children: [PageNumber.CURRENT] })],
+            }),
+          ],
+        }),
+      },
+      children: content,
+    })),
   });
   return Packer.toBuffer(document);
 }

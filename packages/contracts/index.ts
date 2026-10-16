@@ -58,6 +58,7 @@ export type GenerationDocument = z.infer<typeof GenerationDoc>;
 export type TaskDocument = z.infer<typeof Task>;
 export const Row = z.object({
   dateSkipped: z.boolean().optional(),
+  goalsSkipped: z.boolean().optional(),
   id: z.string().uuid(),
   sourceOrder: z.number().int(),
   lessonNumberRaw: z.string(),
@@ -102,6 +103,7 @@ export const Styles = z.object({
   lineSpacing: z
     .union([z.literal(1), z.literal(1.15), z.literal(1.5)])
     .default(1.15),
+  layout: z.enum(["portrait", "landscape-columns"]).default("portrait"),
   answerSpace: z.boolean().default(true),
   includeLogo: z.boolean().default(true),
 });

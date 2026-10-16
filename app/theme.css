@@ -241,3 +241,98 @@ html:root[data-theme="dark"] .preview-paper {
     display: none;
   }
 }
+
+/* Paper and task code own both colours, independent of the surrounding theme. */
+.preview-block pre {
+  color: #243c30;
+  background: #f0f4ef;
+  border: 1px solid #dce5da;
+  border-radius: 10px;
+  line-height: 1.65;
+  tab-size: 4;
+}
+html:root[data-theme="dark"] .preview-block pre {
+  color: #edf4eb;
+  background: #15241c;
+  border-color: #425448;
+}
+html:root[data-theme="dark"] .preview-paper .preview-block pre,
+.preview-paper .preview-block pre {
+  color: #243c30;
+  background: #f0f4ef;
+  border-color: #dce5da;
+}
+.preview-paper {
+  --ink: #202923;
+  --muted: #637068;
+  --line: #e1e6df;
+  color: #202923;
+  color-scheme: light;
+}
+.preview-answer-lines > div {
+  height: 28px;
+  border-bottom: 1px solid #b8b8b8;
+}
+.preview-answer-lines {
+  margin: 12px 0 20px;
+}
+.preview-landscape {
+  max-width: 1080px;
+}
+@media (min-width: 850px) {
+  .preview-landscape .preview-student-tasks {
+    columns: 2;
+    column-gap: 30px;
+    column-rule: 1px solid #ddd;
+  }
+  .preview-landscape .preview-student-tasks h2 {
+    break-after: avoid;
+  }
+  .preview-landscape .preview-student-tasks h3 {
+    break-after: avoid;
+  }
+}
+/* Quiet, visible scroll handles in tables, navigation and the page itself. */
+:root {
+  --scroll-thumb: #a9b6aa;
+  --scroll-track: #f1f4ef;
+}
+html:root[data-theme="dark"] {
+  --scroll-thumb: #637e69;
+  --scroll-track: #1d2620;
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scroll-thumb) var(--scroll-track);
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--scroll-track);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scroll-thumb);
+  border: 2px solid var(--scroll-track);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #7b927f;
+}
+:root:not([data-theme="dark"]) {
+  --bg: #f6f5f0;
+  --muted: #5b685f;
+  --line: #dedfd5;
+  --green-soft: #eaf0e3;
+}
+html:root:not([data-theme="dark"]) .card,
+html:root:not([data-theme="dark"]) .task-review-card {
+  box-shadow: 0 4px 24px #263e2c06;
+}
+html:root:not([data-theme="dark"]) .topbar {
+  background: #fffef9;
+}
+html:root:not([data-theme="dark"]) :where(input, textarea, select) {
+  background-color: #fffefb;
+}

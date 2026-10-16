@@ -1256,8 +1256,33 @@
         update("topic", v);
       });
       field(section, t("goals"), r.goals, "textarea", function (v) {
+        r.goalsSkipped = false;
         update("goals", v);
       });
+      if (
+        /(^|[^А-Яа-яA-Za-z0-9])(СОР|СОЧ|БЖБ|ТЖБ)($|[^А-Яа-яA-Za-z0-9])/i.test(
+          r.topic
+        )
+      ) {
+        var skipGoals = add(
+          section,
+          button(
+            r.goalsSkipped
+              ? text("Мақсаттарды қайтару", "Вернуть цели")
+              : text("Мақсатсыз · БЖБ/ТЖБ", "Без целей · СОР/СОЧ"),
+            function () {
+              r.goalsSkipped = !r.goalsSkipped;
+              dirty = true;
+              renderPlan();
+            }
+          )
+        );
+        skipGoals.setAttribute("aria-pressed", String(!!r.goalsSkipped));
+        skipGoals.title = text(
+          "Бастапқы мәтін сақталады",
+          "Исходный текст сохранится"
+        );
+      }
       var pair = add(section, el("div", null, "fields"));
       field(pair, t("date"), r.dateRaw, "text", function (v) {
         r.dateSkipped = false;
@@ -1511,6 +1536,18 @@
         content,
         el("p", text("Мұғалім мақұлдады", "Одобрено учителем"), "notice")
       );
+    var layout = select(
+      content,
+      text("Басып шығару макеті", "Макет печати"),
+      [
+        ["portrait", text("A4 · тік", "A4 · книжный")],
+        [
+          "landscape-columns",
+          text("A4 · көлденең, екі баған", "A4 · альбомный, две колонки"),
+        ],
+      ],
+      "portrait"
+    );
     ["docx", "pdf"].forEach(function (format) {
       var exportButton = add(
         actions,
@@ -1522,7 +1559,9 @@
               revision: generation.revision,
               format: format,
               audience: audience.value,
-              styles: profile.styles || {},
+              styles: Object.assign({}, profile.styles || {}, {
+                layout: layout.value,
+              }),
               teacherReviewed: !!generation.reviewed_at,
             },
             function () {

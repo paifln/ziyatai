@@ -120,8 +120,8 @@ export function syntheticDemo(locale: "kk" | "ru") {
     tasks,
     warnings: [
       ru
-        ? "Синтетическое демо: OpenAI не вызывался."
-        : "Синтетикалық демо: OpenAI шақырылмаған.",
+        ? "Синтетическое демо: ZiyatAI не вызывался."
+        : "Синтетикалық демо: ZiyatAI шақырылмаған.",
     ],
   };
   return { row, snapshot, document };

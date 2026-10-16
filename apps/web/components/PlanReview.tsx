@@ -22,7 +22,10 @@ import type { Texts, UiLocale } from "../lib/i18n";
 import type { KtpRow } from "../../../packages/contracts";
 import { Jobs } from "./Jobs";
 import { usePolling } from "../lib/use-polling";
-import { hasGoalText } from "../../../packages/domain/goals";
+import {
+  hasRequiredGoals,
+  isAssessmentTopic,
+} from "../../../packages/domain/goals";
 import { normalizeDate } from "../../../packages/domain/dates";
 export default function PlanReview({
   id,
@@ -101,6 +104,7 @@ export default function PlanReview({
                 : {}),
               ...(key === "goals"
                 ? {
+                    goalsSkipped: false,
                     objectiveCodes:
                       value.match(/\b\d{1,2}\.\d+\.\d+\.\d+\b/g) ?? [],
                   }
@@ -520,7 +524,7 @@ export default function PlanReview({
                 busy ||
                 !grade ||
                 !rows.length ||
-                rows.some((r) => !r.topic.trim() || !hasGoalText(r.goals))
+                rows.some((r) => !r.topic.trim() || !hasRequiredGoals(r))
               }
             >
               <Check size={16} />
@@ -711,12 +715,55 @@ export default function PlanReview({
                     <td data-label={t.goals} className="goal-cell">
                       <textarea
                         aria-label={`${t.goals} ${index + 1}`}
+                        disabled={r.goalsSkipped && isAssessmentTopic(r.topic)}
                         value={r.goals}
                         maxLength={8000}
                         onChange={(e) => update(index, "goals", e.target.value)}
                       />
+                      {isAssessmentTopic(r.topic) && (
+                        <button
+                          type="button"
+                          className="text-button"
+                          aria-pressed={!!r.goalsSkipped}
+                          title={
+                            locale === "ru"
+                              ? "Для СОР/СОЧ можно пропустить цели. Исходный текст сохранится."
+                              : "БЖБ/ТЖБ үшін мақсаттарды өткізуге болады. Бастапқы мәтін сақталады."
+                          }
+                          onClick={() => {
+                            setRows(
+                              rows.map((row, i) =>
+                                i === index
+                                  ? { ...row, goalsSkipped: !row.goalsSkipped }
+                                  : row,
+                              ),
+                            );
+                            setDirty(true);
+                          }}
+                        >
+                          <Check size={13} />
+                          {locale === "ru"
+                            ? r.goalsSkipped
+                              ? "Цели пропущены · вернуть"
+                              : "Без целей · СОР/СОЧ"
+                            : r.goalsSkipped
+                              ? "Мақсаттар өткізілді · қайтару"
+                              : "Мақсатсыз · БЖБ/ТЖБ"}
+                        </button>
+                      )}
                       {r.warnings
-                        .filter((w) => !w.includes("date"))
+                        .filter(
+                          (w) =>
+                            !w.includes("date") &&
+                            !(
+                              r.goalsSkipped &&
+                              isAssessmentTopic(r.topic) &&
+                              [
+                                "missing_objective_text",
+                                "objective_code_only",
+                              ].includes(w)
+                            ),
+                        )
                         .map((w) => (
                           <div key={w} className="source-warning">
                             <AlertTriangle size={12} />

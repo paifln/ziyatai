@@ -375,6 +375,7 @@ small {
   border-top: 0;
 }
 .task pre {
+  color: #243c30;
   background: #f3f3ed;
   padding: 14px;
   white-space: pre-wrap;

@@ -2,6 +2,7 @@ import { expect, it } from "vitest";
 import { inflateRawSync } from "node:zlib";
 import { syntheticDemo } from "../packages/domain/demo";
 import { renderDocx } from "../packages/document-renderer";
+import { hasRequiredGoals, isAssessmentTopic } from "../packages/domain/goals";
 
 function documentXml(bytes: Buffer) {
   let cursor = bytes.indexOf(Buffer.from("PK\x01\x02"));
@@ -35,6 +36,60 @@ function documentXml(bytes: Buffer) {
   }
   throw new Error("Missing document.xml");
 }
+
+it("allows explicit objective omission only for assessment rows", () => {
+  for (const topic of ["СОР № 2", "Итоговый СОЧ", "БЖБ (3)", "ТЖБ"]) {
+    expect(isAssessmentTopic(topic)).toBe(true);
+    expect(hasRequiredGoals({ topic, goals: "", goalsSkipped: true })).toBe(
+      true,
+    );
+    expect(hasRequiredGoals({ topic, goals: "" })).toBe(false);
+  }
+  for (const topic of ["Сортировка", "Сочетания", "Раздел СОРТ", "Алгебра"]) {
+    expect(hasRequiredGoals({ topic, goals: "", goalsSkipped: true })).toBe(
+      false,
+    );
+  }
+  expect(hasRequiredGoals({ topic: "Алгебра", goals: "7.1.1.1" })).toBe(false);
+  expect(
+    hasRequiredGoals({ topic: "Алгебра", goals: "Решать уравнения" }),
+  ).toBe(true);
+});
+
+it("exports A4 portrait and landscape with two flowing columns and generous answer lines", async () => {
+  const { document, snapshot } = syntheticDemo("ru");
+  const portrait = documentXml(
+    await renderDocx(document, snapshot, {}, "student", true),
+  );
+  const landscape = documentXml(
+    await renderDocx(
+      document,
+      snapshot,
+      { layout: "landscape-columns" },
+      "student",
+      true,
+    ),
+  );
+  expect(portrait).toContain('w:orient="portrait"');
+  expect(landscape).toContain('w:orient="landscape"');
+  expect(landscape).toMatch(/<w:cols[^>]*w:num="2"/);
+  expect(landscape).toContain('w:w="16838"');
+  expect(landscape).toContain('w:h="11906"');
+  expect(portrait).not.toContain("Ответы и объяснения");
+  expect((portrait.match(/<w:bottom[^>]*w:color="B8B8B8"/g) || []).length).toBe(
+    54,
+  );
+  const noLines = documentXml(
+    await renderDocx(
+      document,
+      snapshot,
+      { answerSpace: false },
+      "student",
+      true,
+    ),
+  );
+  expect(noLines).not.toContain('w:color="B8B8B8"');
+});
 
 it("prints the snapshotted subject in both languages and keeps old unknown subjects neutral", async () => {
   for (const [locale, subject, expected] of [
