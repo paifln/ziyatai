@@ -10,11 +10,13 @@ ZiyatAI помогает учителям Казахстана загрузит�
 
 Подтверждение почты — шестизначный код на 10 минут; есть повторная отправка и ограничение попыток. Локальная почта доступна в [Mailpit](http://localhost:8025). Для отправки на настоящий email и включения AI выполните [короткую настройку сервисов](docs/connect-services.md).
 
-Утренняя проверка: 64 unit, 38 parser, 30 Chromium, 14 WebKit и Firefox ESR 115; 38 живых AI примеров прошли автоматические структурные проверки. [Итоговый отчёт и ограничения](docs/reports/morning-2026-10-16.json). Это не сертификация педагогической правильности и не публичная production приёмка.
+Вечерняя переработка добавляет гостевую главную, две темы, массовый пропуск дат и обязательное одобрение точной версии заданий перед печатью. [Свежий отчёт и ограничения](docs/reports/evening-2026-10-16.json), [решение по проверке учителем](docs/adr/004_review_and_public_entry.md). Проверки интерфейса и структуры AI не заменяют педагогическую экспертизу или публичную production-приёмку.
 
-![Рабочее пространство ZiyatAI на синтетическом аккаунте](docs/images/workspace.png)
+Проверено: **74 unit, 38 parser, 37 Chromium, 10 WebKit** и настоящий Firefox ESR 115.40.0. Source CI проходит, пять целевых контейнеров не имеют найденных Trivy HIGH/CRITICAL в распознанных пакетах; ограничения и прежние MEDIUM renderer отражены в отчётах.
 
-[Мобильный экран](docs/images/mobile.png) · [Логотип и дизайн](docs/design.md) · [Облегчённый режим для старых браузеров](docs/browser-support.md)
+![Гостевая главная ZiyatAI](docs/images/landing.png)
+
+[Проверка заданий](docs/images/review.png) · [Кабинет](docs/images/workspace.png) · [Мобильный экран](docs/images/mobile.png) · [Логотип и дизайн](docs/design.md) · [Облегчённый режим для старых браузеров](docs/browser-support.md)
 
 **Для показа на настроенном ПК:** дважды нажмите `Start demo.cmd`. Скрипт запустит сервисы и откроет http://localhost:3000. [Сценарий демонстрации и варианты бесплатного размещения](docs/demo.md).
 
@@ -79,6 +81,7 @@ Production план и минимальные внешние действия в
 npm run lint
 npm run typecheck
 npm run check:source
+npm run check:railway
 npm test
 npm run test:parser
 npm run test:e2e

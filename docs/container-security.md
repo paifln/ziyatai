@@ -1,5 +1,9 @@
 # Проверка контейнеров
 
+В ночь 16–17 октября Trivy 0.76.0 повторно проверил **все пять образов целевой Railway-схемы**: API, worker, renderer, PostgreSQL и ClamAV. В распознанных пакетах — **0 HIGH/CRITICAL**, включая unfixed, без ignore list. [Свежий отчёт](reports/evening-container-security.json) содержит runtime image IDs, digest конфигурации экспортированного образа, сверку layer metadata и время базы уязвимостей. API/worker собраны из `1e4e3be`; проверка выполнена локально, не в облаке. Caddy из прежней VPS-схемы в эту пятёрку не входит.
+
+Это severity-filtered прогон: прежняя MEDIUM-проверка renderer не переоценивается и не закрывается автоматически. Для bundled JavaScript worker отдельно применяется аудит npm lockfile; source CI также проходит Netlify offline packaging. Нулевой результат по известным пакетам не означает отсутствие любых уязвимостей. Следующие секции сохраняют историю изменений и ограничения публичной приёмки.
+
 15 октября 2026 года Trivy 0.76.0 проверил окончательные **web, worker, renderer, PostgreSQL, Caddy proxy и ClamAV** образы. В [отчёте](reports/container-security.json) сохраняются точные digests, время, области сканирования и все HIGH/CRITICAL находки, включая unfixed. Blanket ignore и `--ignore-unfixed` не используются. Нулевой результат означает отсутствие известных находок в распознанных пакетах на момент сканирования, а не отсутствие любых уязвимостей или замену pentest.
 
 ## Изменения

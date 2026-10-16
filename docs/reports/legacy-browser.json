@@ -1,5 +1,5 @@
 {
-  "date": "2026-10-16T05:16:08.708Z",
+  "date": "2026-10-16T19:44:45.998Z",
   "browser": "115.40.0",
   "driver": "0.35.0",
   "binary": "Official Mozilla Firefox ESR 115, win32",
@@ -24,6 +24,5 @@
     "Does not verify Windows 7 OS TLS, fonts, drivers or hardware performance",
     "This browser scenario uses the explicitly synthetic demo, not live OpenAI"
   ],
-  "applicationSourceCommit": "1db586acc60a36f5f83565b1039e985633db17e0",
-  "webImageId": "sha256:2c7b17dff05a72890bb8210cbef9a14f6d1071d2d99ebe73d449e2d4acf8fbdc"
+  "applicationCommit": "1e4e3be"
 }

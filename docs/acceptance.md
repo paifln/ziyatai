@@ -1,5 +1,19 @@
 # Приёмка ZiyatAI
 
+## Вечерняя переработка 16–17 октября
+
+Реализованы гостевая главная, светлая/тёмная тема, массовый пропуск дат с отменой и серверное одобрение конкретной версии заданий перед DOCX/PDF. После правки одобрение сбрасывается. В карточках проверки раскрываются ответы и критерии; подготовку файлов можно отменить и повторить. [ADR](adr/004_review_and_public_entry.md), [сводный отчёт](reports/evening-2026-10-16.json).
+
+Финальные проверки: **74 unit, 38 parser, 37 Chromium без пропусков, 10 WebKit** и настоящий Firefox ESR 115.40.0 win32. Chromium включает файл владельца и PDF-рендеринг; WebKit повторён на окончательных контейнерах. В source [CI `1e4e3be`](https://github.com/paifln/ziyatai/actions/runs/38954170086) обе jobs успешны: проверки кода/парсера, offline Netlify packaging и Linux integration. Полный Chromium прогон использует `8f668b4`; после него менялись только Docker ignore rules, код приложения совпадает. Физические Windows 7/iPhone/iPad не проверены.
+
+Новая локальная подсказка на экранах кода/reset открывает Mailpit и объясняет отсутствие внешней доставки. Основной интерфейс и Lite проверены на 360px в тёмной теме с реальным и отключённым флагом Mailpit: формы работают, нет горизонтального переполнения или найденных axe нарушений. [Проверка](reports/local-mail-preview.json). Пять контейнеров Railway-схемы повторно проверены Trivy: [0 известных HIGH/CRITICAL](reports/evening-container-security.json), без исключения unfixed; прежние MEDIUM renderer не объявляются закрытыми.
+
+На настоящем OpenAI проверены три задания по математике, запрет PDF до одобрения, сохранение одобрения, загрузка PDF и повторный запрет после редактирования. Первый холодный экспорт превысил ожидание UI-теста, результат восстановлен без повторного AI-запроса. После исправлений отдельная проверка холодного renderer получила PDF с первой попытки за 9,2 секунды; отмена и повтор DOCX через интерфейс прошли. Автоматическое подтверждение в тесте проверяет механизм и не считается педагогической экспертизой. [Живой сценарий](reports/evening-live-approval.json), [очередь](reports/evening-export-controls.json).
+
+Восстановление согласованного snapshot после миграции 009 сверяет хэши всех 19 public tables, включая данные одобрения; 781 версия КТП совпала. [Restore](reports/restore.json). Это локальная проверка БД, не доказательство backup файлов S3 или production-расписания.
+
+Целевая схема размещения — **Netlify + Railway**. [Инструкция](railway.md) содержит роли контейнеров, migration/health commands, private networking, storage, SMTP, шрифты и стоимость. `check:deploy` проверяет настройки без сети и вывода секретов. Отдельный S3 с lifecycle пока обязателен для публичного варианта: поддержка виртуального bucket URL сама по себе не делает Railway bucket полностью совместимым. Настоящие аккаунты, домены, SMTP и staging ещё не подключены.
+
 ## Утренняя переработка 16 октября
 
 Полный итоговый прогон: **64 unit, 38 parser, 30 Chromium E2E, 14 WebKit E2E** и настоящий Firefox ESR 115. После логического переноса БД все **30 Chromium сценариев повторно прошли**; существующая сессия и её планы сохранились. [Утренний отчёт](reports/morning-2026-10-16.json) фиксирует исходники, image IDs и CI. Физические Windows 7/iPhone/iPad не проверялись.
@@ -71,12 +85,12 @@ Definition of Done из задания **не достигнута**: production
 
 | Не выполнено | Почему | Минимальное действие владельца | Как подтвердить завершение |
 | --- | --- | --- | --- |
-| Public HTTPS web/worker/DB | Нет подключённого Netlify и backend сервера/домена | Подключить frontend Netlify и backend в согласованном регионе, определить APP_URL | Деплой по netlify.md/deploy.md, readiness, полный E2E на URL, deployment record с SHA/digests/date |
+| Public HTTPS web/worker/DB | Нет подключённых Netlify/Railway и production доменов | Подключить frontend Netlify и backend Railway в согласованном регионе, определить APP_URL | Деплой по railway.md/netlify.md, readiness, полный E2E на URL, deployment record с SHA/digests/date |
 | Private production storage | Нет endpoint/bucket/account | Создать private bucket и server-side secret manager entries | Anonymous GET запрещён; upload/download/deletion двух пользователей |
-| Real AI generation/regen/eval | OPENAI_API_KEY/OPENAI_MODEL отсутствуют | Внести ключ/model id непосредственно в secret manager, установить бюджет | live-ai-smoke, минимум 30 live сценариев, ручная rubric 1–5 и expert review |
+| Педагогическая и production AI приёмка | Локальный ключ/model работают, живые структурные сценарии пройдены; экспертной оценки и облачного окружения нет | Перенести настройки через secret manager Railway, задать бюджет и привлечь предметных экспертов | Staging generation/regen/approval/export, ручная rubric 1–5 и expert review |
 | Real external email | Используется локальная Mailpit | Подключить SMTP sender и DNS для отправки | Письмо дошло во внешний ящик, verify/reset на HTTPS |
 | Exact deployment font preset | Шрифты законно доступны только локально | Предоставить лицензированный deployment font directory | fc-match точного семейства, визуальный export на production |
-| Real KTP/правовая актуальность | Нет разрешённых образцов; полный приказ не получен | Разрешённые обезличенные файлы и проверка применимых актов/согласия/регионов | Повторный parser corpus report, privacy/legal decision record |
+| Расширенный корпус КТП/правовая актуальность | Файл владельца проверен: 426 строк/11 листов; разнообразие школ и правовая проверка ограничены | Дополнительные разрешённые обезличенные файлы и проверка применимых актов/согласия/регионов | Расширенный parser corpus report, privacy/legal decision record |
 | Monitoring/backups | Нет production инфраструктуры | Подключить backup storage/schedule и alerts | Production restore drill + тест доставки алертов |
 | Production security acceptance | Образы проверены локально; публичное окружение отсутствует | Проверить реальные ingress, bucket policy, секреты и обновления на выбранном сервере | Повторный scan exact digests и staging ACL/TLS/upload tests по container-security.md |
 

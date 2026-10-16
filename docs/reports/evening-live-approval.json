@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-16T18:22:37.052Z",
+  "applicationCommit": "edb4762",
+  "scope": "Local compiled application, real OpenAI generation with synthetic mathematics KTP/account",
+  "model": "gpt-5.4-mini",
+  "tasks": 3,
+  "automaticValidationIssues": [],
+  "pdfBlockedBeforeApproval": true,
+  "noAutomaticExport": true,
+  "approvalPersisted": true,
+  "pdfDownloadedViaLibraryUI": true,
+  "approvalResetAfterUIEdit": true,
+  "pdfBlockedAfterEdit": true,
+  "pdfAttempts": 2,
+  "pdfJobElapsedMs": 45804.055,
+  "initialUITestWaitMs": 45000,
+  "initialUITestWaitExceeded": true,
+  "recovery": "Same generated result retrieved through normal password reset/sign-in and library; no repeated AI request",
+  "automatedAcknowledgement": true,
+  "pedagogicalExpertReview": "not performed"
+}
