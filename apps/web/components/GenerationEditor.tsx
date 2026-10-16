@@ -933,7 +933,7 @@ export default function GenerationEditor({
             </div>
           </section>
           <section className="card">
-            <h2>{t.review}</h2>
+            <h2>{locale === "ru" ? "Автопроверка" : "Автотексеру"}</h2>
             <p style={{ fontSize: 12 }}>{t.teacherWarning}</p>
             {report?.stale && (
               <div className="notice warning">

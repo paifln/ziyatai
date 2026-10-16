@@ -64,5 +64,5 @@ jobs:
       - run: npm run start > /tmp/ziyatai-web.log 2>&1 &
       - run: npx playwright install --with-deps chromium
       # The full PDF/TNR suite needs licensed fonts and runs on the local/staging host.
-      - run: npx playwright test tests/e2e/design.spec.ts tests/e2e/direct-upload.spec.ts tests/e2e/ui.spec.ts tests/e2e/security.spec.ts tests/e2e/revision.spec.ts tests/e2e/usability.spec.ts tests/e2e/release-review.spec.ts tests/e2e/themes.spec.ts
+      - run: npx playwright test tests/e2e/design.spec.ts tests/e2e/direct-upload.spec.ts tests/e2e/ui.spec.ts tests/e2e/security.spec.ts tests/e2e/revision.spec.ts tests/e2e/usability.spec.ts tests/e2e/release-review.spec.ts tests/e2e/themes.spec.ts tests/e2e/approval-state.spec.ts
       - run: docker compose -f infra/compose.local.yml --env-file .env.local logs --tail=10

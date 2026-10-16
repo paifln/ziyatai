@@ -1018,11 +1018,9 @@ export async function handle(req: Request, path: string[]) {
               [id, b.revision],
             )
           ).rows[0];
-          if (
-            !v ||
-            validateDocument(v.document, g.source_snapshot).issues.length
-          )
-            throw new AppError("REVIEW_REQUIRED", 422);
+          if (!v) throw new AppError("REVIEW_REQUIRED", 422);
+          const report = validateDocument(v.document, g.source_snapshot);
+          if (report.issues.length) throw new AppError("REVIEW_REQUIRED", 422);
           // An in-flight regeneration can replace the document. Let it finish before approval.
           const pending = await c.query(
             "SELECT 1 FROM jobs WHERE resource_id=$1 AND kind IN ('generate','regenerate') AND status IN ('queued','running')",
@@ -1031,8 +1029,8 @@ export async function handle(req: Request, path: string[]) {
           if (pending.rowCount) throw new AppError("CONFLICT", 409);
           const approved = (
             await c.query(
-              "UPDATE generation_versions SET reviewed_at=COALESCE(reviewed_at,now()),reviewed_by=$3 WHERE generation_id=$1 AND revision=$2 RETURNING reviewed_at",
-              [id, b.revision, owner],
+              "UPDATE generation_versions SET reviewed_at=COALESCE(reviewed_at,now()),reviewed_by=$3,validation=$4 WHERE generation_id=$1 AND revision=$2 RETURNING reviewed_at",
+              [id, b.revision, owner, { ...report, doc: undefined }],
             )
           ).rows[0];
           await c.query(
