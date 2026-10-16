@@ -87,6 +87,7 @@ export default function PlanReview({
               [key]: value,
               ...(key === "dateRaw"
                 ? {
+                    dateSkipped: false,
                     ...normalizeDate(value),
                     warnings: [
                       ...r.warnings.filter((w) => !w.includes("date")),
@@ -522,11 +523,50 @@ export default function PlanReview({
                       <input
                         aria-label={`${t.date} ${index + 1}`}
                         value={r.dateRaw}
+                        disabled={r.dateSkipped}
                         onChange={(e) =>
                           update(index, "dateRaw", e.target.value)
                         }
                         placeholder="—"
                       />
+                      <button
+                        type="button"
+                        className="text-button"
+                        aria-pressed={!!r.dateSkipped}
+                        title={
+                          locale === "ru"
+                            ? "Оставить дату этого урока пустой. Дату можно добавить позже."
+                            : "Осы сабақтың күнін бос қалдыру. Күнді кейін қосуға болады."
+                        }
+                        onClick={() => {
+                          setRows(
+                            rows.map((row, i) =>
+                              i === index
+                                ? {
+                                    ...row,
+                                    dateSkipped: !row.dateSkipped,
+                                    dateRaw: "",
+                                    dateStart: null,
+                                    dateEnd: null,
+                                    warnings: row.warnings.filter(
+                                      (w) => !w.includes("date"),
+                                    ),
+                                  }
+                                : row,
+                            ),
+                          );
+                          setDirty(true);
+                        }}
+                        disabled={!r.dateSkipped && !!r.dateRaw.trim()}
+                      >
+                        {r.dateSkipped
+                          ? locale === "ru"
+                            ? "Без даты · изменить"
+                            : "Күнсіз · өзгерту"
+                          : locale === "ru"
+                            ? "Пропустить"
+                            : "Өткізу"}
+                      </button>
                       {r.warnings
                         .filter((w) => w.includes("date"))
                         .map((w) => (

@@ -57,6 +57,7 @@ export const GenerationDoc = z
 export type GenerationDocument = z.infer<typeof GenerationDoc>;
 export type TaskDocument = z.infer<typeof Task>;
 export const Row = z.object({
+  dateSkipped: z.boolean().optional(),
   id: z.string().uuid(),
   sourceOrder: z.number().int(),
   lessonNumberRaw: z.string(),

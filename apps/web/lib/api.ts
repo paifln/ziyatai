@@ -678,7 +678,8 @@ export async function handle(req: Request, path: string[]) {
         throw new AppError("FILE_INVALID", 422);
       const normalized = b.rows.map((r, i) => ({
         ...r,
-        ...normalizeDate(r.dateRaw),
+        ...normalizeDate(r.dateSkipped ? "" : r.dateRaw),
+        dateRaw: r.dateSkipped ? "" : r.dateRaw,
         objectiveCodes: r.goals.match(/\b\d{1,2}\.\d+\.\d+\.\d+\b/g) ?? [],
         sourceOrder: i + 1,
         warnings: r.warnings
@@ -688,7 +689,7 @@ export async function handle(req: Request, path: string[]) {
               w !== "missing_objective_text" &&
               !w.includes("date"),
           )
-          .concat(normalizeDate(r.dateRaw).warnings)
+          .concat(r.dateSkipped ? [] : normalizeDate(r.dateRaw).warnings)
           .concat(
             !r.goals.trim()
               ? ["missing_objective_text"]
