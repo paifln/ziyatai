@@ -107,11 +107,9 @@ export default function GenerationEditor({
   usePolling(load, ["queued", "running"].includes(generation?.status));
   async function refreshExports(all = false) {
     const next = await Promise.all(
-      exportJobs.map(async (job) =>
-        all || ["queued", "running"].includes(job.status)
-          ? { ...job, ...(await api(`jobs/${job.id}`)) }
-          : job,
-      ),
+      exportJobs
+        .filter((job) => all || ["queued", "running"].includes(job.status))
+        .map(async (job) => ({ ...job, ...(await api(`jobs/${job.id}`)) })),
     );
     const byId = new Map(next.map((job) => [job.id, job]));
     setExportJobs((current) => current.map((job) => byId.get(job.id) ?? job));
