@@ -1,6 +1,52 @@
 * {
   box-sizing: border-box;
 }
+html[data-theme="dark"] {
+  color-scheme: dark;
+}
+html[data-theme="dark"] body {
+  background: #141a17;
+  color: #e8eee6;
+}
+html[data-theme="dark"] a {
+  color: #b9d7ac;
+}
+html[data-theme="dark"] .button {
+  background: #1d2620;
+  color: #e8eee6;
+  border-color: #4d6051;
+}
+html[data-theme="dark"] summary {
+  color: #b9d7ac;
+}
+html[data-theme="dark"] #mode-note {
+  color: #b8c4b8;
+}
+html[data-theme="dark"] header,
+html[data-theme="dark"] .panel,
+html[data-theme="dark"] dialog,
+html[data-theme="dark"] button,
+html[data-theme="dark"] input,
+html[data-theme="dark"] select,
+html[data-theme="dark"] textarea {
+  background-color: #1d2620;
+  color: #e8eee6;
+  border-color: #4d6051;
+}
+html[data-theme="dark"] button.primary {
+  background: #b9d7ac;
+  color: #193323;
+}
+html[data-theme="dark"] .notice {
+  background: #3b3221;
+  color: #e4c68b;
+  border-color: #5a4d32;
+}
+html[data-theme="dark"] .muted,
+html[data-theme="dark"] small,
+html[data-theme="dark"] footer {
+  color: #b8c4b8;
+}
 body {
   margin: 0;
   font:

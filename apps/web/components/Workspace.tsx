@@ -21,6 +21,8 @@ import {
 import { api, authClient } from "../lib/client";
 import { dictionary, type UiLocale } from "../lib/i18n";
 import AuthPanel from "./AuthPanel";
+import Landing from "./Landing";
+import { ThemeToggle } from "./ui/ThemeToggle";
 import { ConfirmProvider, useConfirm } from "./ui/ConfirmProvider";
 import { subjectLabel } from "../../../packages/domain/subjects";
 import { Jobs } from "./Jobs";
@@ -46,16 +48,36 @@ const nav = [
 ] as const;
 type View =
   (typeof nav)[number]["key"] | "upload" | "review" | "editor" | "profile";
-export default function Workspace() {
+export default function Workspace({
+  authMode,
+  initialGuest,
+  initialLocale,
+}: {
+  authMode?: "login" | "signup";
+  initialGuest?: boolean;
+  initialLocale?: UiLocale;
+}) {
   return (
     <ConfirmProvider>
-      <WorkspaceContent />
+      <WorkspaceContent
+        authMode={authMode}
+        initialGuest={initialGuest}
+        initialLocale={initialLocale}
+      />
     </ConfirmProvider>
   );
 }
-function WorkspaceContent() {
+function WorkspaceContent({
+  authMode,
+  initialGuest,
+  initialLocale,
+}: {
+  authMode?: "login" | "signup";
+  initialGuest?: boolean;
+  initialLocale?: UiLocale;
+}) {
   const confirm = useConfirm();
-  const [locale, setLocaleState] = useState<UiLocale>("kk");
+  const [locale, setLocaleState] = useState<UiLocale>(initialLocale ?? "kk");
   const t = dictionary[locale];
   const { data: session, isPending } = authClient.useSession();
   const [sessionLoaded, setSessionLoaded] = useState(false);
@@ -237,6 +259,8 @@ function WorkspaceContent() {
   const openPlan = (p: any) => navigate("review", p.id);
   if (passwordReset)
     return <AuthPanel t={t} locale={locale} setLocale={setLocale} />;
+  if (isPending && !sessionLoaded && initialGuest && !authMode)
+    return <Landing locale={locale} setLocale={setLocale} />;
   if (isPending && !sessionLoaded)
     return (
       <div className="loading-screen">
@@ -248,7 +272,16 @@ function WorkspaceContent() {
       </div>
     );
   if (!session)
-    return <AuthPanel t={t} locale={locale} setLocale={setLocale} />;
+    return authMode || passwordReset ? (
+      <AuthPanel
+        t={t}
+        locale={locale}
+        setLocale={setLocale}
+        initialMode={authMode}
+      />
+    ) : (
+      <Landing locale={locale} setLocale={setLocale} />
+    );
   const title =
     view === "review"
       ? t.plans
@@ -349,6 +382,7 @@ function WorkspaceContent() {
             <strong>{title}</strong>
           </div>
           <div className="topbar-right">
+            <ThemeToggle locale={locale} />
             <a
               className="button help-button"
               href="/help/"

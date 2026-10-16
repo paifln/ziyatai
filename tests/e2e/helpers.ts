@@ -2,6 +2,17 @@ import { expect, type APIRequestContext } from "@playwright/test";
 import { randomBytes } from "node:crypto";
 export const origin = "http://localhost:3000";
 export const headers = { Origin: origin };
+export async function approveGeneration(
+  request: APIRequestContext,
+  id: string,
+  revision: number,
+) {
+  const response = await request.post(`/api/generations/${id}/approve`, {
+    headers,
+    data: { revision, teacherReviewed: true },
+  });
+  expect(response.ok(), await response.text()).toBe(true);
+}
 async function authRequest<T extends { status: () => number }>(
   send: () => Promise<T>,
 ): Promise<T> {

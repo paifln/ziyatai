@@ -26,11 +26,11 @@ try {
     [gid, owner, sample.row.id, sample.snapshot, sample.document.title],
   );
   await db().query(
-    "INSERT INTO generation_versions(id,generation_id,revision,document,validation,model,prompt_version) VALUES($1,$2,1,$3,'{}','synthetic','test')",
-    [vid, gid, sample.document],
+    "INSERT INTO generation_versions(id,generation_id,revision,document,validation,model,prompt_version,reviewed_at,reviewed_by) VALUES($1,$2,1,$3,'{}','synthetic','test',now(),$4)",
+    [vid, gid, sample.document, owner],
   );
   await db().query(
-    "INSERT INTO exports(id,owner_id,generation_id,generation_version_id,format,audience,styles) VALUES($1,$2,$3,$4,'docx','student','{}')",
+    "INSERT INTO exports(id,owner_id,generation_id,generation_version_id,format,audience,styles,teacher_reviewed) VALUES($1,$2,$3,$4,'docx','student','{}',true)",
     [eid, owner, gid, vid],
   );
   const jobId = await transaction((c) =>

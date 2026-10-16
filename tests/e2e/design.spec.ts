@@ -1,4 +1,4 @@
-import { test, expect, type Page, type Locator } from "@playwright/test";
+﻿import { test, expect, type Page, type Locator } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { randomUUID, randomBytes } from "node:crypto";
 import { writeFile } from "node:fs/promises";
@@ -211,6 +211,9 @@ test("large plans and assignment tables keep a bounded DOM and preserve edits ac
     ).ok(),
   ).toBe(true);
   await page.goto(`/?generation=${demo.id}`);
+  await page
+    .getByRole("button", { name: "Редактировать", exact: true })
+    .click();
   const table = page.locator(".task-card").first();
   await expect(table.locator(".table-grid input")).toHaveCount(220);
   await expect(
@@ -359,7 +362,7 @@ test("both sign-in experiences are accessible and fit phones, tablets and deskto
 }) => {
   for (const width of [360, 768, 1440]) {
     await page.setViewportSize({ width, height: 900 });
-    for (const path of ["/", "/lite/"]) {
+    for (const path of ["/login", "/lite/"]) {
       await page.goto(path);
       await expect(page.getByLabel("Email", { exact: true })).toBeVisible();
       expect(
@@ -372,7 +375,7 @@ test("both sign-in experiences are accessible and fit phones, tablets and deskto
         .analyze();
       expect(results.violations).toEqual([]);
       await page.screenshot({
-        path: `.local/qa/redesign-${path === "/" ? "auth" : "lite"}-${width}.png`,
+        path: `.local/qa/redesign-${path === "/login" ? "auth" : "lite"}-${width}.png`,
         fullPage: true,
         animations: "disabled",
       });
@@ -423,6 +426,9 @@ test("workspace stays readable on small screens and protects unsaved edits", asy
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page
     .getByRole("button", { name: "Посмотреть пример заданий", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Редактировать", exact: true })
     .click();
   await page
     .locator(".task-card")
@@ -584,6 +590,12 @@ test("lite imports, confirms, paginates and exports without loading React", asyn
   await page
     .getByLabel("Я проверил(а) задания, ответы и критерии", { exact: true })
     .check();
+  await page
+    .getByRole("button", { name: "Одобрить задания", exact: true })
+    .click();
+  await expect(
+    page.getByText("Одобрено учителем", { exact: true }),
+  ).toBeVisible();
   const results = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
     .analyze();
@@ -639,9 +651,9 @@ test("lite imports, confirms, paginates and exports without loading React", asyn
     .first()
     .click();
   await expect(page.locator(".task")).toHaveCount(9);
-  await page
-    .getByLabel("Я проверил(а) задания, ответы и критерии", { exact: true })
-    .check();
+  await expect(
+    page.getByText("Одобрено учителем", { exact: true }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "DOCX", exact: true }).click();
   await expect
     .poll(

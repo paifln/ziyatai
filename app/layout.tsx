@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
+import { headers, cookies } from "next/headers";
 import "./globals.css";
+import "./theme.css";
+import "./landing.css";
+import "./review.css";
 import { browserSupportScript } from "../packages/domain/browser-support";
+import { themeScript } from "../packages/domain/theme";
 export const metadata: Metadata = {
   title: "ZiyatAI — оқу тапсырмалары",
   description:
@@ -13,13 +17,23 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const nonce = (await headers()).get("x-nonce") ?? undefined;
+  const [requestHeaders, requestCookies] = await Promise.all([
+    headers(),
+    cookies(),
+  ]);
+  const nonce = requestHeaders.get("x-nonce") ?? undefined;
+  const locale =
+    requestCookies.get("ziyatai-locale")?.value === "ru" ? "ru" : "kk";
   return (
-    <html lang="kk">
+    <html lang={locale} suppressHydrationWarning>
       <head>
         <script
           nonce={nonce}
           dangerouslySetInnerHTML={{ __html: browserSupportScript }}
+        />
+        <script
+          nonce={nonce}
+          dangerouslySetInnerHTML={{ __html: themeScript }}
         />
       </head>
       <body>

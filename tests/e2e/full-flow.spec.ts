@@ -1,7 +1,14 @@
 import { test, expect } from "@playwright/test";
 import { randomBytes, randomUUID } from "node:crypto";
 import { readFile, mkdir, writeFile } from "node:fs/promises";
-import { verifiedUser, jobDone, emailLink, origin, headers } from "./helpers";
+import {
+  verifiedUser,
+  jobDone,
+  emailLink,
+  origin,
+  headers,
+  approveGeneration,
+} from "./helpers";
 test("all formats, review, versions, exports, private ACL and persistence", async ({
   page,
   request,
@@ -12,9 +19,7 @@ test("all formats, review, versions, exports, private ACL and persistence", asyn
   await page.context().addCookies((await request.storageState()).cookies);
   await page.goto("/");
   await page.getByRole("button", { name: "РУС", exact: true }).click();
-  await expect(
-    page.getByRole("heading", { name: "Мои КТП" }),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Мои КТП" })).toBeVisible();
   await mkdir(".local/qa", { recursive: true });
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.screenshot({
@@ -54,8 +59,22 @@ test("all formats, review, versions, exports, private ACL and persistence", asyn
     const plan = await (await request.get(`/api/ktp/${result.id}`)).json();
     expect(plan.rows).toHaveLength(3);
     plan.rows[0].topic += " • исправлено";
-    const codeOnly=JSON.parse(JSON.stringify(plan.rows));codeOnly[0].goals="(7.3.2.1): / 7.3.2.2;";codeOnly[0].objectiveCodes=[];
-    expect((await request.post(`/api/ktp/${result.id}/confirm`,{headers,data:{revision:plan.revision,rows:codeOnly,grade:7,schoolYear:"2026–2027"}})).status()).toBe(422);
+    const codeOnly = JSON.parse(JSON.stringify(plan.rows));
+    codeOnly[0].goals = "(7.3.2.1): / 7.3.2.2;";
+    codeOnly[0].objectiveCodes = [];
+    expect(
+      (
+        await request.post(`/api/ktp/${result.id}/confirm`, {
+          headers,
+          data: {
+            revision: plan.revision,
+            rows: codeOnly,
+            grade: 7,
+            schoolYear: "2026–2027",
+          },
+        })
+      ).status(),
+    ).toBe(422);
     const confirmed = await request.post(`/api/ktp/${result.id}/confirm`, {
       headers,
       data: {
@@ -102,10 +121,18 @@ test("all formats, review, versions, exports, private ACL and persistence", asyn
     "Ә Ғ Қ Ң",
   );
   const exportIds: string[] = [];
+  await approveGeneration(request, generationId, 2);
   for (const format of ["docx", "pdf"]) {
     const ex = await request.post("/api/exports", {
       headers: { ...headers, "Idempotency-Key": randomUUID() },
-      data: { generationId, revision: 2, format, audience: "full", styles: {} },
+      data: {
+        generationId,
+        revision: 2,
+        format,
+        audience: "full",
+        styles: {},
+        teacherReviewed: true,
+      },
     });
     expect(ex.status(), await ex.text()).toBe(202);
     const result = await ex.json();
@@ -118,6 +145,7 @@ test("all formats, review, versions, exports, private ACL and persistence", asyn
   const exStudent = await request.post("/api/exports", {
     headers: { ...headers, "Idempotency-Key": randomUUID() },
     data: {
+      teacherReviewed: true,
       generationId,
       revision: 2,
       format: "docx",

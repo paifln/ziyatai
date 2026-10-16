@@ -14,7 +14,7 @@ function storage() {
   return (instance ??= new S3Client({
     endpoint: e.STORAGE_ENDPOINT,
     region: e.STORAGE_REGION,
-    forcePathStyle: true,
+    forcePathStyle: e.STORAGE_FORCE_PATH_STYLE === "true",
     requestChecksumCalculation: "WHEN_REQUIRED",
     credentials: {
       accessKeyId: e.STORAGE_ACCESS_KEY,
@@ -47,16 +47,44 @@ export async function storageReady() {
   await storage().send(new HeadBucketCommand({ Bucket: env().STORAGE_BUCKET }));
 }
 export async function signedUpload(key: string, bytes: number, type: string) {
-  const e=env();
-  const client=e.STORAGE_PUBLIC_ENDPOINT ? new S3Client({endpoint:e.STORAGE_PUBLIC_ENDPOINT,region:e.STORAGE_REGION,forcePathStyle:true,requestChecksumCalculation:"WHEN_REQUIRED",credentials:{accessKeyId:e.STORAGE_ACCESS_KEY,secretAccessKey:e.STORAGE_SECRET_KEY}}) : storage();
-  const url = await getSignedUrl(client, new PutObjectCommand({
-    Bucket: env().STORAGE_BUCKET, Key: key, ContentType: type, ContentLength: bytes,
-  }), { expiresIn: 300, signableHeaders: new Set(["content-length", "content-type"]) });
+  const e = env();
+  const client = e.STORAGE_PUBLIC_ENDPOINT
+    ? new S3Client({
+        endpoint: e.STORAGE_PUBLIC_ENDPOINT,
+        region: e.STORAGE_REGION,
+        forcePathStyle: e.STORAGE_FORCE_PATH_STYLE === "true",
+        requestChecksumCalculation: "WHEN_REQUIRED",
+        credentials: {
+          accessKeyId: e.STORAGE_ACCESS_KEY,
+          secretAccessKey: e.STORAGE_SECRET_KEY,
+        },
+      })
+    : storage();
+  const url = await getSignedUrl(
+    client,
+    new PutObjectCommand({
+      Bucket: env().STORAGE_BUCKET,
+      Key: key,
+      ContentType: type,
+      ContentLength: bytes,
+    }),
+    {
+      expiresIn: 300,
+      signableHeaders: new Set(["content-length", "content-type"]),
+    },
+  );
   // The signature must enforce the reserved size; never issue unbounded upload URLs.
-  if (!new URL(url).searchParams.get("X-Amz-SignedHeaders")?.split(";").includes("content-length"))
+  if (
+    !new URL(url).searchParams
+      .get("X-Amz-SignedHeaders")
+      ?.split(";")
+      .includes("content-length")
+  )
     throw new Error("Object storage signer did not bind Content-Length");
   return url;
 }
 export async function objectMetadata(key: string) {
-  return storage().send(new HeadObjectCommand({ Bucket: env().STORAGE_BUCKET, Key: key }));
+  return storage().send(
+    new HeadObjectCommand({ Bucket: env().STORAGE_BUCKET, Key: key }),
+  );
 }

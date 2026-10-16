@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useUnsavedChanges } from "../lib/use-unsaved-changes";
 import { useCallback, useEffect, useState, useRef } from "react";
 import {
@@ -12,6 +12,7 @@ import {
   RefreshCw,
   Eye,
   Edit3,
+  ClipboardCheck,
 } from "lucide-react";
 import { api } from "../lib/client";
 import type { Texts, UiLocale } from "../lib/i18n";
@@ -28,6 +29,8 @@ import { validationMessage } from "../../../packages/domain/validation-messages"
 import { Jobs } from "./Jobs";
 import { usePolling } from "../lib/use-polling";
 import TableEditor from "./TableEditor";
+import { DisplayBlocks } from "./generations/DisplayBlocks";
+import { TaskReview } from "./generations/TaskReview";
 type Block = TaskDocument["contentBlocks"][number];
 const blank = (type: Block["type"] = "paragraph"): Block => ({
   type,
@@ -63,7 +66,7 @@ export default function GenerationEditor({
     [versions, setVersions] = useState<any[]>([]),
     [busy, setBusy] = useState(false),
     [dirty, setDirty] = useState(false),
-    [preview, setPreview] = useState(false),
+    [mode, setMode] = useState<"review" | "edit" | "print">("review"),
     [audience, setAudience] = useState<"full" | "student">("full"),
     [styles, setStyles] = useState(Styles.parse(profileStyles)),
     [exportJobs, setExportJobs] = useState<any[]>([]),
@@ -172,7 +175,7 @@ export default function GenerationEditor({
         format,
         audience,
         styles,
-        teacherReviewed,
+        teacherReviewed: !!generation.reviewed_at && !dirty,
       };
       const result = await api("exports", "POST", data, requestKey(data));
       setExportJobs([
@@ -185,6 +188,23 @@ export default function GenerationEditor({
           format,
         },
       ]);
+      await refresh();
+    } catch (e) {
+      onError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function approve() {
+    if (!teacherReviewed || dirty || !document) return;
+    setBusy(true);
+    try {
+      await api(`generations/${id}/approve`, "POST", {
+        revision: generation.revision,
+        teacherReviewed: true,
+      });
+      await load();
+      onSaved();
       await refresh();
     } catch (e) {
       onError((e as Error).message);
@@ -208,6 +228,16 @@ export default function GenerationEditor({
       setBusy(false);
       onError((e as Error).message);
     }
+  }
+  function editTask(taskId: string) {
+    setActiveTask(taskId);
+    setMode("edit");
+    requestAnimationFrame(() =>
+      window.document
+        .getElementById(`task-${taskId}`)
+        ?.querySelector<HTMLTextAreaElement>("textarea")
+        ?.focus(),
+    );
   }
   if (!generation)
     return (
@@ -244,23 +274,51 @@ export default function GenerationEditor({
             {t.editor} · {t.versions} {generation.revision}
           </span>
           <h1 style={{ fontSize: 26, marginTop: 8 }}>{generation.title}</h1>
-          <span className="badge gold">{t.draft}</span>
+          <span
+            className={`badge ${generation.reviewed_at && !dirty ? "green" : "gold"}`}
+          >
+            {generation.reviewed_at && !dirty
+              ? locale === "ru"
+                ? "Одобрено учителем"
+                : "Мұғалім мақұлдады"
+              : t.draft}
+          </span>
           {generation.demo && (
             <div className="notice warning">{t.demoLabel}</div>
           )}
         </div>
         <div className="actions">
-          <button
-            className="button secondary"
-            onClick={() => setPreview(!preview)}
+          <div
+            className="editor-view-switch"
+            role="group"
+            aria-label={locale === "ru" ? "Вид заданий" : "Тапсырма көрінісі"}
           >
-            {preview ? <Edit3 size={16} /> : <Eye size={16} />}{" "}
-            {preview
-              ? t.editor
-              : locale === "ru"
-                ? "Предпросмотр"
-                : "Алдын ала қарау"}
-          </button>
+            {(
+              [
+                {
+                  key: "review",
+                  label: locale === "ru" ? "Проверка" : "Тексеру",
+                  icon: ClipboardCheck,
+                },
+                {
+                  key: "edit",
+                  label: locale === "ru" ? "Редактировать" : "Өңдеу",
+                  icon: Edit3,
+                },
+                { key: "print", label: "Макет", icon: Eye },
+              ] as const
+            ).map(({ key, label, icon: Icon }) => (
+              <button
+                type="button"
+                key={key}
+                aria-pressed={mode === key}
+                onClick={() => setMode(key)}
+              >
+                <Icon size={15} />
+                {label}
+              </button>
+            ))}
+          </div>
           <button
             className="button primary"
             onClick={save}
@@ -271,6 +329,29 @@ export default function GenerationEditor({
           </button>
         </div>
       </div>
+      <section
+        className="approval-banner"
+        aria-label={
+          locale === "ru" ? "Подготовка к печати" : "Басып шығаруға дайындау"
+        }
+      >
+        <div className="approval-step complete">
+          <span>1</span>
+          {locale === "ru" ? "Задания готовы" : "Тапсырмалар дайын"}
+        </div>
+        <div
+          className={`approval-step ${generation.reviewed_at && !dirty ? "complete" : "current"}`}
+        >
+          <span>2</span>
+          {locale === "ru" ? "Проверка учителем" : "Мұғалімнің тексеруі"}
+        </div>
+        <div
+          className={`approval-step ${generation.reviewed_at && !dirty ? "current" : ""}`}
+        >
+          <span>3</span>
+          {locale === "ru" ? "Листы для печати" : "Басып шығару парақтары"}
+        </div>
+      </section>
       {dirty && (
         <div className="notice warning">
           {locale === "ru"
@@ -288,13 +369,23 @@ export default function GenerationEditor({
       <div className="editor-layout">
         <fieldset className="editor-fields" disabled={busy}>
           <legend className="sr-only">{t.editor}</legend>
-          {preview ? (
+          {mode === "review" ? (
+            <TaskReview
+              document={document}
+              t={t}
+              locale={locale}
+              onEditTask={editTask}
+              onRegenerate={!generation.demo && !dirty ? regenerate : undefined}
+            />
+          ) : mode === "print" ? (
             <Preview
               doc={document}
               snapshot={generation.source_snapshot}
               audience={audience}
               styles={styles}
               t={t}
+              onEditTask={editTask}
+              onRegenerate={!generation.demo && !dirty ? regenerate : undefined}
             />
           ) : (
             document.tasks.map((task, index) => (
@@ -623,144 +714,189 @@ export default function GenerationEditor({
           )}
         </fieldset>
         <aside className="editor-side">
-          <section className="card">
-            <h2>{t.export}</h2>
-            <label className="checkbox teacher-review">
-              <input
-                type="checkbox"
-                checked={teacherReviewed}
-                disabled={dirty || busy || !!report?.issues?.length}
-                onChange={(e) => setTeacherReviewed(e.target.checked)}
-              />
-              <span>
+          <section className="card" id="teacher-approval">
+            <h2>
+              {generation.reviewed_at && !dirty
+                ? locale === "ru"
+                  ? "Можно печатать"
+                  : "Басып шығаруға дайын"
+                : locale === "ru"
+                  ? "Всё подходит классу?"
+                  : "Сыныпқа сәйкес келе ме?"}
+            </h2>
+            {!generation.reviewed_at && (
+              <p className="review-hint">
                 {locale === "ru"
-                  ? "Я проверил(а) задания, ответы и критерии"
-                  : "Тапсырмаларды, жауаптар мен критерийлерді тексердім"}
-              </span>
-            </label>
-            <p className="review-hint">
-              {locale === "ru"
-                ? "Отметка убирает надпись «Черновик» только из этой выпущенной версии. После редактирования проверка нужна снова."
-                : "Белгі осы шығарылған нұсқадан «Жоба» жазуын алып тастайды. Өңдеуден кейін қайта тексеру қажет."}
-            </p>
-            <label>
-              {locale === "ru" ? "Вариант" : "Нұсқа"}
-              <select
-                value={audience}
-                onChange={(e) => setAudience(e.target.value as any)}
-              >
-                <option value="full">{t.full}</option>
-                <option value="student">{t.student}</option>
-              </select>
-            </label>
-            <label>
-              {t.font}
-              <select
-                value={styles.font}
-                onChange={(e) =>
-                  setStyles({ ...styles, font: e.target.value as any })
-                }
-              >
-                {["Times New Roman", "Arial", "Calibri"].map((f) => (
-                  <option key={f}>{f}</option>
-                ))}
-              </select>
-            </label>
-            <div className="form-grid">
-              <label>
-                {t.fontSize}
-                <input
-                  type="number"
-                  min={10}
-                  max={18}
-                  value={styles.size}
-                  onChange={(e) =>
-                    setStyles({ ...styles, size: Number(e.target.value) })
-                  }
-                />
-              </label>
-              <label>
-                {t.spacing}
-                <select
-                  value={styles.lineSpacing}
-                  onChange={(e) =>
-                    setStyles({
-                      ...styles,
-                      lineSpacing: Number(e.target.value) as any,
-                    })
+                  ? "Прочитайте задания, ответы и критерии. Если нужно — отредактируйте или перегенерируйте отдельное задание. PDF и DOCX станут доступны после вашего одобрения."
+                  : "Тапсырмаларды, жауаптар мен критерийлерді оқыңыз. Қажет болса, өңдеңіз немесе жеке тапсырманы қайта жасаңыз. PDF пен DOCX мақұлдағаннан кейін қолжетімді болады."}
+              </p>
+            )}
+            {(!generation.reviewed_at || dirty) && (
+              <>
+                <label className="checkbox teacher-review">
+                  <input
+                    type="checkbox"
+                    checked={teacherReviewed}
+                    disabled={dirty || busy || !!report?.issues?.length}
+                    onChange={(e) => setTeacherReviewed(e.target.checked)}
+                  />
+                  <span>
+                    {locale === "ru"
+                      ? "Я проверил(а) задания, ответы и критерии"
+                      : "Тапсырмаларды, жауаптар мен критерийлерді тексердім"}
+                  </span>
+                </label>
+                <p className="review-hint">
+                  {locale === "ru"
+                    ? "Одобрение сохранится для этой версии. После изменений нужно проверить задания ещё раз."
+                    : "Мақұлдау осы нұсқа үшін сақталады. Өзгерткеннен кейін қайта тексеру қажет."}
+                </p>
+                <button
+                  className="button primary wide"
+                  onClick={approve}
+                  disabled={
+                    !teacherReviewed ||
+                    dirty ||
+                    busy ||
+                    !!report?.issues?.length
                   }
                 >
-                  <option value={1}>1</option>
-                  <option value={1.15}>1.15</option>
-                  <option value={1.5}>1.5</option>
+                  <Check size={16} />
+                  {locale === "ru"
+                    ? "Одобрить задания"
+                    : "Тапсырмаларды мақұлдау"}
+                </button>
+              </>
+            )}
+            <details
+              className="print-options"
+              open={!!generation.reviewed_at && !dirty}
+            >
+              <summary>
+                {locale === "ru" ? "Настройки листов" : "Парақ баптаулары"}
+              </summary>
+              <label>
+                {locale === "ru" ? "Вариант" : "Нұсқа"}
+                <select
+                  value={audience}
+                  onChange={(e) => setAudience(e.target.value as any)}
+                >
+                  <option value="full">{t.full}</option>
+                  <option value="student">{t.student}</option>
                 </select>
               </label>
-            </div>
-            <details className="mt-20">
-              <summary>{t.margins}</summary>
+              <label>
+                {t.font}
+                <select
+                  value={styles.font}
+                  onChange={(e) =>
+                    setStyles({ ...styles, font: e.target.value as any })
+                  }
+                >
+                  {["Times New Roman", "Arial", "Calibri"].map((f) => (
+                    <option key={f}>{f}</option>
+                  ))}
+                </select>
+              </label>
               <div className="form-grid">
-                {(
-                  [
-                    "marginLeft",
-                    "marginRight",
-                    "marginTop",
-                    "marginBottom",
-                  ] as const
-                ).map((key, i) => (
-                  <label key={key}>
-                    {[t.left, t.right, t.top, t.bottom][i]}
-                    <input
-                      type="number"
-                      min={1}
-                      max={4}
-                      step={0.5}
-                      value={styles[key]}
-                      onChange={(e) =>
-                        setStyles({ ...styles, [key]: Number(e.target.value) })
-                      }
-                    />
-                  </label>
-                ))}
+                <label>
+                  {t.fontSize}
+                  <input
+                    type="number"
+                    min={10}
+                    max={18}
+                    value={styles.size}
+                    onChange={(e) =>
+                      setStyles({ ...styles, size: Number(e.target.value) })
+                    }
+                  />
+                </label>
+                <label>
+                  {t.spacing}
+                  <select
+                    value={styles.lineSpacing}
+                    onChange={(e) =>
+                      setStyles({
+                        ...styles,
+                        lineSpacing: Number(e.target.value) as any,
+                      })
+                    }
+                  >
+                    <option value={1}>1</option>
+                    <option value={1.15}>1.15</option>
+                    <option value={1.5}>1.5</option>
+                  </select>
+                </label>
+              </div>
+              <details className="mt-20">
+                <summary>{t.margins}</summary>
+                <div className="form-grid">
+                  {(
+                    [
+                      "marginLeft",
+                      "marginRight",
+                      "marginTop",
+                      "marginBottom",
+                    ] as const
+                  ).map((key, i) => (
+                    <label key={key}>
+                      {[t.left, t.right, t.top, t.bottom][i]}
+                      <input
+                        type="number"
+                        min={1}
+                        max={4}
+                        step={0.5}
+                        value={styles[key]}
+                        onChange={(e) =>
+                          setStyles({
+                            ...styles,
+                            [key]: Number(e.target.value),
+                          })
+                        }
+                      />
+                    </label>
+                  ))}
+                </div>
+              </details>
+              <label className="checkbox">
+                <input
+                  type="checkbox"
+                  checked={styles.answerSpace}
+                  onChange={(e) =>
+                    setStyles({ ...styles, answerSpace: e.target.checked })
+                  }
+                />
+                {t.answerSpace}
+              </label>
+              <label className="checkbox">
+                <input
+                  type="checkbox"
+                  checked={styles.includeLogo}
+                  onChange={(e) =>
+                    setStyles({ ...styles, includeLogo: e.target.checked })
+                  }
+                />
+                {t.logo}
+              </label>
+              <div className="actions">
+                <button
+                  className="button primary"
+                  disabled={busy || dirty || !generation.reviewed_at}
+                  onClick={() => exportFile("docx")}
+                >
+                  <Download size={14} />
+                  DOCX
+                </button>
+                <button
+                  className="button secondary"
+                  disabled={busy || dirty || !generation.reviewed_at}
+                  onClick={() => exportFile("pdf")}
+                >
+                  <Download size={14} />
+                  PDF
+                </button>
               </div>
             </details>
-            <label className="checkbox">
-              <input
-                type="checkbox"
-                checked={styles.answerSpace}
-                onChange={(e) =>
-                  setStyles({ ...styles, answerSpace: e.target.checked })
-                }
-              />
-              {t.answerSpace}
-            </label>
-            <label className="checkbox">
-              <input
-                type="checkbox"
-                checked={styles.includeLogo}
-                onChange={(e) =>
-                  setStyles({ ...styles, includeLogo: e.target.checked })
-                }
-              />
-              {t.logo}
-            </label>
-            <div className="actions">
-              <button
-                className="button primary"
-                disabled={busy || dirty}
-                onClick={() => exportFile("docx")}
-              >
-                <Download size={14} />
-                DOCX
-              </button>
-              <button
-                className="button secondary"
-                disabled={busy || dirty}
-                onClick={() => exportFile("pdf")}
-              >
-                <Download size={14} />
-                PDF
-              </button>
-            </div>
             {exportJobs.map((job) => (
               <div key={job.id} className="notice" role="status">
                 {["queued", "running"].includes(job.status) ? (
@@ -818,7 +954,7 @@ export default function GenerationEditor({
                           <button
                             className="text-button"
                             onClick={() => {
-                              setPreview(false);
+                              setMode("edit");
                               setActiveTask(detail.taskId!);
                               requestAnimationFrame(() =>
                                 window.document
@@ -983,56 +1119,22 @@ function BlocksEditor({
     </div>
   );
 }
-function DisplayBlocks({ blocks }: { blocks: Block[] }) {
-  return (
-    <div className="preview-block">
-      {blocks.map((b, i) =>
-        b.type === "code" ? (
-          <pre key={i}>{b.text}</pre>
-        ) : b.type === "list" ? (
-          <ul key={i}>
-            {b.items.map((s, j) => (
-              <li key={j}>{s}</li>
-            ))}
-          </ul>
-        ) : b.type === "table" ? (
-          <table key={i}>
-            <thead>
-              <tr>
-                {b.columns.map((s, j) => (
-                  <th key={j}>{s}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {b.rows.map((r, j) => (
-                <tr key={j}>
-                  {r.map((s, k) => (
-                    <td key={k}>{s}</td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <p key={i}>{b.text}</p>
-        ),
-      )}
-    </div>
-  );
-}
 function Preview({
   doc,
   snapshot,
   audience,
   styles,
   t,
+  onEditTask,
+  onRegenerate,
 }: {
   doc: GenerationDocument;
   snapshot: any;
   audience: string;
   styles: any;
   t: Texts;
+  onEditTask: (id: string) => void;
+  onRegenerate?: (task: TaskDocument) => void;
 }) {
   return (
     <article
@@ -1064,6 +1166,28 @@ function Preview({
                 {task.translation && (
                   <DisplayBlocks blocks={task.translation.contentBlocks} />
                 )}
+                <div className="preview-task-actions">
+                  <button
+                    className="text-button"
+                    onClick={() => onEditTask(task.id)}
+                  >
+                    <Edit3 size={13} />
+                    {doc.localeMode === "ru"
+                      ? "Доработать задание"
+                      : "Тапсырманы өңдеу"}
+                  </button>
+                  {onRegenerate && (
+                    <button
+                      className="text-button"
+                      onClick={() => onRegenerate(task)}
+                    >
+                      <RefreshCw size={13} />
+                      {doc.localeMode === "ru"
+                        ? "Другой вариант"
+                        : "Басқа нұсқа"}
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
         </section>
@@ -1098,6 +1222,19 @@ function Preview({
                   {r.criterion} — {r.points}
                 </p>
               ))}
+              {task.translation && (
+                <div className="preview-translation">
+                  <h4>Русская версия</h4>
+                  <DisplayBlocks blocks={task.translation.answerBlocks} />
+                  <p>Как решать: {task.translation.explanationHow}</p>
+                  <p>Почему: {task.translation.explanationWhy}</p>
+                  {task.translation.rubric.map((r, j) => (
+                    <p key={j}>
+                      {r.criterion} — {r.points}
+                    </p>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
         </section>

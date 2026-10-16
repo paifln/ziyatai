@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { ArrowRight } from "lucide-react";
+import { ThemeToggle } from "./ui/ThemeToggle";
 import { Form } from "./ui/Form";
 import { PasswordField } from "./ui/PasswordField";
 import { LessonPreview } from "./auth/LessonPreview";
@@ -11,10 +12,12 @@ export default function AuthPanel({
   t,
   locale,
   setLocale,
+  initialMode,
 }: {
   t: Texts;
   locale: UiLocale;
   setLocale: (l: UiLocale) => void;
+  initialMode?: "login" | "signup";
 }) {
   const [mode, setMode] = useState<
     "login" | "signup" | "reset" | "new" | "verify"
@@ -22,7 +25,7 @@ export default function AuthPanel({
     typeof window !== "undefined" &&
     new URLSearchParams(window.location.search).has("token")
       ? "new"
-      : "login",
+      : (initialMode ?? "login"),
   );
   const [email, setEmail] = useState(""),
     [password, setPassword] = useState(""),
@@ -138,6 +141,9 @@ export default function AuthPanel({
   }
   return (
     <main className="auth-page">
+      <div className="auth-theme">
+        <ThemeToggle locale={locale} />
+      </div>
       <section className="auth-story">
         <a className="brand" href="/">
           <img src="/brand-owl.png" alt="" width="46" height="46" />

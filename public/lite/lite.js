@@ -4,6 +4,7 @@
 (function () {
   "use strict";
   var content = document.getElementById("content");
+  var datesBeforeSkip = null;
   var message = document.getElementById("message");
   var navigation = document.getElementById("navigation");
   if (
@@ -128,8 +129,8 @@
       "Не удалось выполнить действие. Проверьте соединение и данные.",
     ],
     REVIEW_REQUIRED: [
-      "Алдымен тапсырмалар мен бағалау бойынша ескертулерді түзетіңіз.",
-      "Сначала исправьте замечания к заданиям, ответам или баллам.",
+      "Тапсырмаларды тексеріп, ескертулерді түзетіңіз де, мақұлдаңыз.",
+      "Проверьте задания, исправьте замечания и нажмите «Одобрить задания».",
     ],
     edit: ["Өңдеу", "Редактировать"],
     remove: ["Жою", "Удалить"],
@@ -830,12 +831,22 @@
             )
           );
           if (resource === "library") {
-            if (item.status === "succeeded")
+            if (item.status === "succeeded" && item.teacher_reviewed)
               add(
                 row,
                 link(
                   t("download"),
                   "/api/exports/" + encodeURIComponent(item.id) + "/download"
+                )
+              );
+            if (!item.teacher_reviewed)
+              add(
+                row,
+                button(
+                  text("Тапсырмаларды тексеру", "Проверить задания"),
+                  function () {
+                    openGeneration(item.generation_id);
+                  }
                 )
               );
           } else
@@ -1045,6 +1056,7 @@
           }
           dirty = false;
           plan = p;
+          datesBeforeSkip = null;
           generation = null;
           renderPlan();
         }
@@ -1086,6 +1098,61 @@
       plan.school_year = v;
       dirty = true;
     });
+    var skipDates = add(
+      actions,
+      button(
+        datesBeforeSkip
+          ? text("Күндерді қайтару", "Вернуть даты")
+          : text("Барлық күндерді өткізу", "Пропустить все даты"),
+        function () {
+          if (datesBeforeSkip) {
+            plan.rows.forEach(function (r, i) {
+              var old = datesBeforeSkip[i];
+              r.dateRaw = old.dateRaw;
+              r.dateStart = old.dateStart;
+              r.dateEnd = old.dateEnd;
+              r.dateSkipped = old.dateSkipped;
+              r.warnings = r.warnings
+                .filter(function (w) {
+                  return w.indexOf("date") < 0;
+                })
+                .concat(
+                  old.warnings.filter(function (w) {
+                    return w.indexOf("date") >= 0;
+                  })
+                );
+            });
+            datesBeforeSkip = null;
+            dirty = true;
+            renderPlan();
+          } else
+            confirmAction(
+              text(
+                "Барлық сабақ күндерін өткізу керек пе? Сақтағанға дейін қайтаруға болады.",
+                "Пропустить даты всех уроков? До сохранения их можно вернуть."
+              ),
+              function () {
+                datesBeforeSkip = JSON.parse(JSON.stringify(plan.rows));
+                plan.rows.forEach(function (r) {
+                  r.dateRaw = "";
+                  r.dateStart = null;
+                  r.dateEnd = null;
+                  r.dateSkipped = true;
+                  r.warnings = r.warnings.filter(function (w) {
+                    return w.indexOf("date") < 0;
+                  });
+                });
+                dirty = true;
+                renderPlan();
+              }
+            );
+        }
+      )
+    );
+    skipDates.title = text(
+      "Барлық беттердегі күндерді өткізу",
+      "Пропустить даты на всех страницах"
+    );
     function save(confirm) {
       action(
         "ktp/" + plan.id + "/" + (confirm ? "confirm" : "rows"),
@@ -1162,6 +1229,7 @@
       });
       var pair = add(section, el("div", null, "fields"));
       field(pair, t("date"), r.dateRaw, "text", function (v) {
+        r.dateSkipped = false;
         update("dateRaw", v);
       });
       field(pair, t("hours"), r.hours, "text", function (v) {
@@ -1363,6 +1431,8 @@
     var reviewLabel = add(content, el("label")),
       review = add(reviewLabel, el("input"));
     review.type = "checkbox";
+    review.checked = !!generation.reviewed_at;
+    review.disabled = !!generation.reviewed_at;
     add(
       reviewLabel,
       document.createTextNode(
@@ -1378,13 +1448,40 @@
       el(
         "small",
         text(
-          "Белгі осы нұсқадан «Жоба» жазуын алып тастайды.",
-          "Отметка убирает надпись «Черновик» из этой версии."
+          "Алдымен тапсырмалар мен жауаптарды тексеріп, мақұлдаңыз. Файлдар содан кейін қолжетімді болады.",
+          "Сначала проверьте задания и ответы, затем одобрите их. После этого станут доступны файлы."
         )
       )
     );
-    ["docx", "pdf"].forEach(function (format) {
+    if (!generation.reviewed_at) {
+      var approve = add(
+        content,
+        button(
+          text("Тапсырмаларды мақұлдау", "Одобрить задания"),
+          function () {
+            if (!review.checked) return;
+            action(
+              "generations/" + generation.id + "/approve",
+              { revision: generation.revision, teacherReviewed: true },
+              function () {
+                openGeneration(generation.id);
+              }
+            );
+          },
+          true
+        )
+      );
+      approve.disabled = true;
+      review.onchange = function () {
+        approve.disabled = !review.checked;
+      };
+    } else
       add(
+        content,
+        el("p", text("Мұғалім мақұлдады", "Одобрено учителем"), "notice")
+      );
+    ["docx", "pdf"].forEach(function (format) {
+      var exportButton = add(
         actions,
         button(format.toUpperCase(), function () {
           action(
@@ -1395,7 +1492,7 @@
               format: format,
               audience: audience.value,
               styles: profile.styles || {},
-              teacherReviewed: review.checked,
+              teacherReviewed: !!generation.reviewed_at,
             },
             function () {
               go("library");
@@ -1404,6 +1501,7 @@
           );
         })
       );
+      exportButton.disabled = !generation.reviewed_at;
     });
     var panel = add(content, el("section", null, "panel"));
     generation.document.tasks.forEach(function (task, i) {

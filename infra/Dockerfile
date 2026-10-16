@@ -1,3 +1,4 @@
+ARG ZIYATAI_TARGET=web
 FROM node:24.22.0-bookworm-slim@sha256:a5f4366e834695d5f363b920c104953a535d3a9864d1bdf74566a0ebe01daee5 AS source
 ENV NEXT_TELEMETRY_DISABLED=1
 WORKDIR /app
@@ -28,6 +29,8 @@ RUN groupadd -g 1001 ziyatai && useradd -u 1001 -g ziyatai -M ziyatai
 FROM base AS web
 COPY --from=builder --chown=ziyatai:ziyatai /app/.next/standalone ./
 COPY --from=worker-build --chown=ziyatai:ziyatai /app/dist/preflight.mjs ./preflight.mjs
+COPY --from=worker-build --chown=ziyatai:ziyatai /app/dist/migrate.mjs ./migrate.mjs
+COPY --from=source --chown=ziyatai:ziyatai /app/migrations ./migrations
 COPY --from=builder --chown=ziyatai:ziyatai /app/apps/worker/parser.py ./apps/worker/parser.py
 USER ziyatai
 ENV HOSTNAME=0.0.0.0 PORT=3000
@@ -42,3 +45,7 @@ COPY --from=source --chown=ziyatai:ziyatai /app/migrations ./migrations
 COPY --from=source /app/public/licenses.txt ./THIRD_PARTY_NOTICES.txt
 USER ziyatai
 CMD ["sh","-c","node dist/preflight.mjs && exec node dist/worker.mjs"]
+
+# Railway builds the final stage. A public build argument chooses the service;
+# ordinary Compose builds continue selecting the explicit web/worker targets.
+FROM ${ZIYATAI_TARGET} AS railway

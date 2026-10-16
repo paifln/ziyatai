@@ -14,6 +14,8 @@ import {
   Split,
   Merge,
   Search,
+  CalendarOff,
+  Undo2,
 } from "lucide-react";
 import { api } from "../lib/client";
 import type { Texts, UiLocale } from "../lib/i18n";
@@ -60,6 +62,7 @@ export default function PlanReview({
   const [previewFailed, setPreviewFailed] = useState(false);
   const [page, setPage] = useState(0);
   const [sheet, setSheet] = useState("");
+  const [datesBeforeSkip, setDatesBeforeSkip] = useState<KtpRow[] | null>(null);
   const load = useCallback(async () => {
     try {
       const p = await api(`ktp/${id}`);
@@ -67,6 +70,7 @@ export default function PlanReview({
       setRows(p.rows ?? []);
       setGrade(p.grade);
       setYear(p.school_year ?? "");
+      setDatesBeforeSkip(null);
       setDirty(false);
     } catch (e) {
       onError((e as Error).message);
@@ -422,6 +426,77 @@ export default function PlanReview({
                 }}
               />
             </label>
+            <button
+              type="button"
+              className="button secondary compact-button"
+              title={
+                locale === "ru"
+                  ? "Оставить все уроки без дат, включая строки на других страницах и листах. Изменения сохраняются вместе с КТП."
+                  : "Барлық беттер мен парақтардағы сабақ күндерін өткізу. Өзгерістер КТЖ-мен бірге сақталады."
+              }
+              disabled={busy || !rows.length}
+              onClick={async () => {
+                if (datesBeforeSkip) {
+                  const previous = new Map(
+                    datesBeforeSkip.map((r) => [r.id, r]),
+                  );
+                  setRows(
+                    rows.map((r) => {
+                      const old = previous.get(r.id);
+                      return old
+                        ? {
+                            ...r,
+                            dateRaw: old.dateRaw,
+                            dateStart: old.dateStart,
+                            dateEnd: old.dateEnd,
+                            dateSkipped: old.dateSkipped,
+                            warnings: [
+                              ...r.warnings.filter((w) => !w.includes("date")),
+                              ...old.warnings.filter((w) => w.includes("date")),
+                            ],
+                          }
+                        : r;
+                    }),
+                  );
+                  setDatesBeforeSkip(null);
+                } else {
+                  if (
+                    rows.some((r) => r.dateRaw.trim()) &&
+                    !(await confirm(
+                      locale === "ru"
+                        ? "Пропустить все даты, включая уже заполненные? До сохранения их можно вернуть одной кнопкой."
+                        : "Толтырылған күндерді қоса, барлық күндерді өткізу керек пе? Сақтағанға дейін оларды бір батырмамен қайтаруға болады.",
+                    ))
+                  )
+                    return;
+                  setDatesBeforeSkip(rows);
+                  setRows(
+                    rows.map((r) => ({
+                      ...r,
+                      dateRaw: "",
+                      dateStart: null,
+                      dateEnd: null,
+                      dateSkipped: true,
+                      warnings: r.warnings.filter((w) => !w.includes("date")),
+                    })),
+                  );
+                }
+                setDirty(true);
+              }}
+            >
+              {datesBeforeSkip ? (
+                <Undo2 size={15} />
+              ) : (
+                <CalendarOff size={15} />
+              )}
+              {datesBeforeSkip
+                ? locale === "ru"
+                  ? "Вернуть даты"
+                  : "Күндерді қайтару"
+                : locale === "ru"
+                  ? "Пропустить все даты"
+                  : "Барлық күндерді өткізу"}
+            </button>
             <button
               className="button secondary"
               onClick={() => save()}

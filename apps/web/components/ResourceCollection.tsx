@@ -15,6 +15,7 @@ import { usePolling, useResume } from "../lib/use-polling";
 import type { Texts, UiLocale } from "../lib/i18n";
 
 interface Material {
+  generation_id?: string;
   id: string;
   title: string;
   status: string;
@@ -223,19 +224,33 @@ export default function ResourceCollection({
                   </div>
                 )}
                 <span
-                  className={`badge ${item.status === "succeeded" ? "green" : ["failed", "cancelled"].includes(item.status) ? "red" : "gold"}`}
+                  className={`badge ${["succeeded", "approved"].includes(item.status) ? "green" : ["failed", "cancelled"].includes(item.status) ? "red" : "gold"}`}
                 >
                   {(t as unknown as Record<string, string>)[item.status] ||
                     (item.status === "needs_review" ? t.review : t.processing)}
                 </span>
-                {kind === "library" && item.status === "succeeded" && (
-                  <a
-                    className="icon-button"
-                    href={`/api/exports/${item.id}/download`}
-                    aria-label={`${t.download}: ${item.title}`}
+                {kind === "library" &&
+                  item.status === "succeeded" &&
+                  item.teacher_reviewed && (
+                    <a
+                      className="icon-button"
+                      href={`/api/exports/${item.id}/download`}
+                      aria-label={`${t.download}: ${item.title}`}
+                    >
+                      <Download size={17} />
+                    </a>
+                  )}
+                {kind === "library" && !item.teacher_reviewed && (
+                  <button
+                    className="text-button"
+                    onClick={() =>
+                      item.generation_id && onOpen(item.generation_id)
+                    }
                   >
-                    <Download size={17} />
-                  </a>
+                    {locale === "ru"
+                      ? "Проверить задания"
+                      : "Тапсырмаларды тексеру"}
+                  </button>
                 )}
                 <button
                   className="icon-button"

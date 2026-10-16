@@ -239,6 +239,12 @@ try {
   );
   const review = await element("css selector", "#content input[type=checkbox]");
   await call(`/element/${review}/click`, {});
+  await click("Одобрить задания");
+  await until(() =>
+    execute(
+      "return document.getElementById('content').textContent.indexOf('Одобрено учителем')>=0",
+    ),
+  );
   await click("DOCX");
   await until(async () => {
     if (

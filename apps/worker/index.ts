@@ -88,16 +88,25 @@ async function importPlan(job: Job) {
   try {
     const path = join(dir, `source.${ext}`);
     const sourceBytes = await getObject(f.object_key);
-    if (sourceBytes.length !== Number(f.bytes)) throw new AppError("FILE_INVALID",422);
+    if (sourceBytes.length !== Number(f.bytes))
+      throw new AppError("FILE_INVALID", 422);
     if (f.scan_status === "pending") {
       await stage(job, "scanning");
       let type;
-      try { type = await inspectFile(sourceBytes, f.original_name); }
-      catch (error) {
-        if (["FILE_INVALID","FILE_TYPE","FILE_SIZE","FILE_UNSAFE"].includes((error as AppError).code))
+      try {
+        type = await inspectFile(sourceBytes, f.original_name);
+      } catch (error) {
+        if (
+          ["FILE_INVALID", "FILE_TYPE", "FILE_SIZE", "FILE_UNSAFE"].includes(
+            (error as AppError).code,
+          )
+        )
           await transaction(async (c) => {
-            await check(c,job);
-            await c.query("UPDATE uploads SET status='rejected',scan_status='rejected' WHERE id=$1 AND owner_id=$2",[f.id,job.owner_id]);
+            await check(c, job);
+            await c.query(
+              "UPDATE uploads SET status='rejected',scan_status='rejected' WHERE id=$1 AND owner_id=$2",
+              [f.id, job.owner_id],
+            );
           });
         throw error;
       }
@@ -105,18 +114,37 @@ async function importPlan(job: Job) {
       // never the key an untrusted client can overwrite after its successful scan.
       const cleanKey = `${job.owner_id}/uploads/${randomUUID()}.${type.ext}`;
       let published = false;
-      await putObject(cleanKey,sourceBytes,type.mime);
+      await putObject(cleanKey, sourceBytes, type.mime);
       try {
         await transaction(async (c) => {
-          await check(c,job); await active("plans",job,c);
-          const updated = await c.query("UPDATE uploads SET object_key=$3,mime=$4,checksum=$5,scan_status=$6 WHERE id=$1 AND owner_id=$2 AND deleted_at IS NULL AND scan_status='pending' RETURNING id",[f.id,job.owner_id,cleanKey,type.mime,createHash('sha256').update(sourceBytes).digest('hex'),env().SCAN_REQUIRED==='true'?'clean':'unscanned-development']);
-          if (!updated.rowCount) throw new AppError("CONFLICT",409);
+          await check(c, job);
+          await active("plans", job, c);
+          const updated = await c.query(
+            "UPDATE uploads SET object_key=$3,mime=$4,checksum=$5,scan_status=$6 WHERE id=$1 AND owner_id=$2 AND deleted_at IS NULL AND scan_status='pending' RETURNING id",
+            [
+              f.id,
+              job.owner_id,
+              cleanKey,
+              type.mime,
+              createHash("sha256").update(sourceBytes).digest("hex"),
+              env().SCAN_REQUIRED === "true"
+                ? "clean"
+                : "unscanned-development",
+            ],
+          );
+          if (!updated.rowCount) throw new AppError("CONFLICT", 409);
         });
         published = true;
-      } finally { if (!published) await deleteObject(cleanKey); }
+      } finally {
+        if (!published) await deleteObject(cleanKey);
+      }
       await deleteObject(f.object_key);
-    } else if (!["clean","unscanned-development"].includes(f.scan_status)) throw new AppError("FILE_UNSAFE",422);
-    else if (createHash('sha256').update(sourceBytes).digest('hex') !== f.checksum) throw new AppError("FILE_INVALID",422);
+    } else if (!["clean", "unscanned-development"].includes(f.scan_status))
+      throw new AppError("FILE_UNSAFE", 422);
+    else if (
+      createHash("sha256").update(sourceBytes).digest("hex") !== f.checksum
+    )
+      throw new AppError("FILE_INVALID", 422);
     await writeFile(path, sourceBytes);
     const e = env();
     let output: string;
@@ -281,6 +309,8 @@ async function exportDocument(job: Job) {
     )
   ).rows[0];
   if (!v) throw new AppError("NOT_FOUND", 404);
+  if (!ex.teacher_reviewed || !v.reviewed_at || v.reviewed_by !== job.owner_id)
+    throw new AppError("REVIEW_REQUIRED", 422);
   const dir = await mkdtemp(join(tmpdir(), "ziyatai-render-"));
   let key: string | undefined;
   let published = false;
@@ -548,7 +578,10 @@ async function janitor() {
     "DELETE FROM api_limits WHERE window_start<now()-interval '1 day'",
   );
   const cleanup = await cleanupAbandonedUploads();
-  if (cleanup.failed) console.error(JSON.stringify({ code: "UPLOAD_CLEANUP_RETRY", count: cleanup.failed }));
+  if (cleanup.failed)
+    console.error(
+      JSON.stringify({ code: "UPLOAD_CLEANUP_RETRY", count: cleanup.failed }),
+    );
   for (const name of await readdir(tmpdir()))
     if (name.startsWith("ziyatai-")) {
       const path = join(tmpdir(), name);

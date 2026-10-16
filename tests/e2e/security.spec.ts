@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
-import { verifiedUser, jobDone, headers } from "./helpers";
+import { verifiedUser, jobDone, headers, approveGeneration } from "./helpers";
 import { request as httpRequest } from "node:http";
 
 test("chunked JSON is bounded and teacher review cannot bypass invalid scoring", async ({
@@ -52,6 +52,12 @@ test("chunked JSON is bounded and teacher review cannot bypass invalid scoring",
   const updated = await (
     await request.get(`/api/generations/${demo.id}`)
   ).json();
+  const approval = await request.post(`/api/generations/${demo.id}/approve`, {
+    headers,
+    data: { revision: updated.revision, teacherReviewed: true },
+  });
+  expect(approval.status()).toBe(422);
+  expect((await approval.json()).code).toBe("REVIEW_REQUIRED");
   const rejected = await request.post("/api/exports", {
     headers: { ...headers, "Idempotency-Key": randomUUID() },
     data: {
@@ -92,7 +98,9 @@ test("negative uploads, idempotent exports, cancellation and deletion revoke acc
     await request.post("/api/demo", { headers, data: { locale: "ru" } })
   ).json();
   const key = randomUUID();
+  await approveGeneration(request, g.id, 1);
   const data = {
+    teacherReviewed: true,
     generationId: g.id,
     revision: 1,
     format: "docx",

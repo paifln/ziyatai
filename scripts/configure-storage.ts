@@ -10,7 +10,7 @@ const e = env();
 const client = new S3Client({
   endpoint: e.STORAGE_ENDPOINT,
   region: e.STORAGE_REGION,
-  forcePathStyle: true,
+  forcePathStyle: e.STORAGE_FORCE_PATH_STYLE === "true",
   requestChecksumCalculation: "WHEN_REQUIRED",
   credentials: {
     accessKeyId: e.STORAGE_ACCESS_KEY,

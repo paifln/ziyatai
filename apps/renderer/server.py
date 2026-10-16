@@ -1,5 +1,5 @@
 """Private, serial execution boundary: no DB, S3 or OpenAI credentials."""
-import os,sys,json,tempfile,subprocess,hmac,signal,io
+import os,sys,json,tempfile,subprocess,hmac,signal,io,socket
 from pathlib import Path
 from http.server import HTTPServer,BaseHTTPRequestHandler
 sys.path.insert(0,'/scripts')
@@ -50,4 +50,11 @@ class Handler(BaseHTTPRequestHandler):
    safe=str(e) if str(e) in ('FILE_INVALID','FILE_SIZE','OCR_UNAVAILABLE','FONT_UNAVAILABLE') else 'RENDER_UNAVAILABLE' if self.path=='/render' else 'FILE_INVALID'
    payload=json.dumps({'code':safe}).encode();self.send_response(413 if safe=='FILE_SIZE' else 422);self.send_header('Content-Type','application/json');self.end_headers();self.wfile.write(payload)
   finally:signal.alarm(0)
-HTTPServer(('0.0.0.0',8090),Handler).serve_forever()
+host=os.environ.get('RENDERER_HOST','::' if socket.has_dualstack_ipv6() else '0.0.0.0')
+class RendererServer(HTTPServer):
+ address_family=socket.AF_INET6 if ':' in host else socket.AF_INET
+ def server_bind(self):
+  if self.address_family==socket.AF_INET6 and socket.has_dualstack_ipv6():
+   self.socket.setsockopt(socket.IPPROTO_IPV6,socket.IPV6_V6ONLY,0)
+  super().server_bind()
+RendererServer((host,int(os.environ.get('PORT','8090'))),Handler).serve_forever()

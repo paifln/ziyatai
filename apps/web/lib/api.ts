@@ -964,6 +964,14 @@ export async function handle(req: Request, path: string[]) {
         throw new AppError("NOT_FOUND", 404);
       const key = uid.parse(req.headers.get("idempotency-key"));
       const jobId = await transaction(async (c) => {
+        const locked = (
+          await c.query(
+            "SELECT revision FROM generations WHERE id=$1 AND owner_id=$2 AND deleted_at IS NULL FOR UPDATE",
+            [id, owner],
+          )
+        ).rows[0];
+        if (!locked) throw new AppError("NOT_FOUND", 404);
+        if (locked.revision !== b.revision) throw new AppError("CONFLICT", 409);
         const j = await enqueue(
           c,
           owner,
@@ -980,6 +988,59 @@ export async function handle(req: Request, path: string[]) {
         return j;
       });
       return json({ jobId }, 202);
+    }
+    if (
+      resource === "generations" &&
+      id &&
+      action === "approve" &&
+      method === "POST"
+    ) {
+      const b = z
+        .object({
+          revision: z.number().int().positive(),
+          teacherReviewed: z.literal(true),
+        })
+        .parse(await body(req));
+      return json(
+        await transaction(async (c) => {
+          const g = (
+            await c.query(
+              "SELECT * FROM generations WHERE id=$1 AND owner_id=$2 AND deleted_at IS NULL FOR UPDATE",
+              [id, owner],
+            )
+          ).rows[0];
+          if (!g) throw new AppError("NOT_FOUND", 404);
+          if (g.revision !== b.revision) throw new AppError("CONFLICT", 409);
+          const v = (
+            await c.query(
+              "SELECT * FROM generation_versions WHERE generation_id=$1 AND revision=$2",
+              [id, b.revision],
+            )
+          ).rows[0];
+          if (
+            !v ||
+            validateDocument(v.document, g.source_snapshot).issues.length
+          )
+            throw new AppError("REVIEW_REQUIRED", 422);
+          // An in-flight regeneration can replace the document. Let it finish before approval.
+          const pending = await c.query(
+            "SELECT 1 FROM jobs WHERE resource_id=$1 AND kind IN ('generate','regenerate') AND status IN ('queued','running')",
+            [id],
+          );
+          if (pending.rowCount) throw new AppError("CONFLICT", 409);
+          const approved = (
+            await c.query(
+              "UPDATE generation_versions SET reviewed_at=COALESCE(reviewed_at,now()),reviewed_by=$3 WHERE generation_id=$1 AND revision=$2 RETURNING reviewed_at",
+              [id, b.revision, owner],
+            )
+          ).rows[0];
+          await c.query(
+            "UPDATE generations SET status='approved' WHERE id=$1",
+            [id],
+          );
+          return { revision: b.revision, reviewedAt: approved.reviewed_at };
+        }),
+      );
     }
     if (
       resource === "generations" &&
@@ -1009,6 +1070,8 @@ export async function handle(req: Request, path: string[]) {
         .parse(await body(req));
       const g = await currentGeneration(b.generationId, owner, b.revision);
       if (!g.document) throw new AppError("NOT_FOUND", 404);
+      if (!g.reviewed_at || g.reviewed_by !== owner || !b.teacherReviewed)
+        throw new AppError("REVIEW_REQUIRED", 422);
       if (
         b.teacherReviewed &&
         validateDocument(g.document, g.source_snapshot).issues.length
@@ -1041,10 +1104,17 @@ export async function handle(req: Request, path: string[]) {
         if (count.rows[0].count >= 100) throw new AppError("LIMIT", 429);
         const eid = randomUUID();
         const locked = await c.query(
-          "SELECT 1 FROM generations WHERE id=$1 AND owner_id=$2 AND deleted_at IS NULL FOR UPDATE",
+          "SELECT revision FROM generations WHERE id=$1 AND owner_id=$2 AND deleted_at IS NULL FOR UPDATE",
           [g.id, owner],
         );
         if (!locked.rowCount) throw new AppError("NOT_FOUND", 404);
+        if (locked.rows[0].revision !== b.revision)
+          throw new AppError("CONFLICT", 409);
+        const pending = await c.query(
+          "SELECT 1 FROM jobs WHERE resource_id=$1 AND kind IN ('generate','regenerate') AND status IN ('queued','running')",
+          [g.id],
+        );
+        if (pending.rowCount) throw new AppError("CONFLICT", 409);
         await c.query(
           "INSERT INTO exports(id,owner_id,generation_id,generation_version_id,format,audience,styles,teacher_reviewed) VALUES($1,$2,$3,$4,$5,$6,$7,$8)",
           [
@@ -1073,6 +1143,7 @@ export async function handle(req: Request, path: string[]) {
     ) {
       const ex = await owned("exports", id, owner);
       await owned("generations", ex.generation_id, owner);
+      if (!ex.teacher_reviewed) throw new AppError("REVIEW_REQUIRED", 422);
       if (ex.status !== "succeeded" || !ex.object_key)
         throw new AppError("CONFLICT", 409);
       const bytes = await getObject(ex.object_key);
@@ -1099,7 +1170,7 @@ export async function handle(req: Request, path: string[]) {
             ).rows
           : (
               await db().query(
-                "SELECT e.id,e.format,e.audience,e.status,e.created_at,e.teacher_reviewed,g.title,v.revision FROM exports e JOIN generations g ON g.id=e.generation_id JOIN generation_versions v ON v.id=e.generation_version_id WHERE e.owner_id=$1 AND e.deleted_at IS NULL AND g.deleted_at IS NULL AND g.title ILIKE $2 ORDER BY e.created_at DESC,e.id DESC LIMIT $3 OFFSET $4",
+                "SELECT e.id,e.format,e.audience,e.status,e.created_at,e.teacher_reviewed,g.id AS generation_id,g.title,v.revision FROM exports e JOIN generations g ON g.id=e.generation_id JOIN generation_versions v ON v.id=e.generation_version_id WHERE e.owner_id=$1 AND e.deleted_at IS NULL AND g.deleted_at IS NULL AND g.title ILIKE $2 ORDER BY e.created_at DESC,e.id DESC LIMIT $3 OFFSET $4",
                 [owner, q, limit, offset],
               )
             ).rows,

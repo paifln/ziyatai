@@ -1,4 +1,4 @@
-import { test, expect, devices, type Page } from "@playwright/test";
+﻿import { test, expect, devices, type Page } from "@playwright/test";
 import { verifiedUser } from "./helpers";
 async function navigate(page: Page, label: string, touch: boolean) {
   if (
@@ -111,6 +111,9 @@ for (const screen of ["desktop", "phone", "tablet"] as const) {
       await expect(
         page.getByText("Готовый пример • AI не используется", { exact: true }),
       ).toBeVisible();
+      await page
+        .getByRole("button", { name: "Редактировать", exact: true })
+        .click();
       const first = page.locator(".task-card").first();
       await first
         .getByLabel("Текст", { exact: true })
@@ -122,6 +125,15 @@ for (const screen of ["desktop", "phone", "tablet"] as const) {
         .click();
       await expect(
         page.getByText("Изменения сохранены", { exact: true }),
+      ).toBeVisible();
+      await page
+        .getByLabel("Я проверил(а) задания, ответы и критерии", { exact: true })
+        .check();
+      await page
+        .getByRole("button", { name: "Одобрить задания", exact: true })
+        .click();
+      await expect(
+        page.getByText("Одобрено учителем", { exact: true }),
       ).toBeVisible();
       await page.getByRole("button", { name: "DOCX", exact: true }).click();
       const link = page.getByRole("link", { name: "Скачать", exact: true });

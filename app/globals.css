@@ -397,7 +397,7 @@ input[type="checkbox"] {
   font-size: 13px;
   text-align: left;
   font-weight: 450;
-  transition: background 0.15s;
+  transition: none;
 }
 .nav-link svg {
   flex-shrink: 0;

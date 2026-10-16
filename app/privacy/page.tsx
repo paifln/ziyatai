@@ -2,7 +2,7 @@ export const metadata = { title: "Политика конфиденциальн�
 export default function Privacy() {
   const contact = process.env.LEGAL_CONTACT_EMAIL;
   return (
-    <main className="legal-page">
+    <main className="legal-page" lang="ru">
       <a className="brand" href="/">
         ZiyatAI
       </a>

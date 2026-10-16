@@ -25,6 +25,7 @@ const schema = z.object({
   STORAGE_ENDPOINT: z.string().url(),
   STORAGE_PUBLIC_ENDPOINT: z.string().default(""),
   STORAGE_REGION: z.string().min(1),
+  STORAGE_FORCE_PATH_STYLE: z.enum(["true", "false"]).default("true"),
   STORAGE_BUCKET: z.string().min(1),
   STORAGE_ACCESS_KEY: z.string().min(1),
   STORAGE_SECRET_KEY: z.string().min(1),

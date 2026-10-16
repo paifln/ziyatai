@@ -107,7 +107,7 @@ test("forms explain missing values without browser validation popups and can rev
     if (request.method() === "POST" && request.url().includes("/api/auth/"))
       authPosts++;
   });
-  await page.goto("/");
+  await page.goto("/login");
   await page.getByRole("button", { name: "РУС", exact: true }).click();
   await page.getByRole("button", { name: "Войти", exact: true }).click();
   await expect(page.locator(".form-errors[role=alert]")).toContainText(
@@ -167,6 +167,7 @@ test("the lesson sample is keyboard accessible and language changes preserve the
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto("/");
   await page.getByRole("button", { name: "РУС", exact: true }).click();
+  await page.getByRole("link", { name: "Войти", exact: false }).click();
   await page.getByRole("tab", { name: "Лёгкий", exact: true }).focus();
   await page.keyboard.press("ArrowRight");
   await expect(
@@ -351,7 +352,7 @@ test("each page receives a fresh CSP nonce and an untrusted inline script cannot
     await route.fulfill({ response, body });
   });
   await page.goto("/");
-  await expect(page.getByLabel("Email", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await expect
     .poll(() =>
       page.evaluate(
