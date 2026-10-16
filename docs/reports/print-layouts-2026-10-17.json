@@ -1,0 +1,50 @@
+{
+  "date": "2026-10-17",
+  "applicationCommit": "97ab9226054a4a2a374a455a565f47dc77347104",
+  "scope": "Local compiled application; prepared synthetic teaching material, no new live AI calls or public deployment",
+  "changes": [
+    "Explicit objective omission for SOR/SOCH/BZhB/TZhB rows, checked again on the server; ordinary lessons still require objective text",
+    "Product interface uses ZiyatAI branding; operator configuration and privacy disclosures retain accurate provider information",
+    "Code blocks own contrasting foreground and background colours in review and white paper preview",
+    "Light theme palette, secondary-text contrast and themed scrollbars",
+    "Portrait A4 and landscape A4 with two flowing task columns, full-width header and a separate teacher answer section",
+    "Four, six and eight answer lines for easy, medium and advanced tasks; matching DOCX/PDF output and screen preview",
+    "Layout selection and assessment objective omission also available in Lite"
+  ],
+  "checks": {
+    "typecheck": "passed",
+    "lint": "passed",
+    "unitTests": 76,
+    "sourceVisibility": "passed",
+    "secretPatternScan": "passed",
+    "chromium": {
+      "uniqueScenariosPassed": 7,
+      "note": "Five passed in the first targeted run. The two affected cases passed after correcting the test selector and improving light-theme secondary-text contrast.",
+      "responsiveWidths": [360, 768, 1366],
+      "codeContrastMinimum": "4.5:1 in both themes",
+      "guestAccessibility": "No axe violations across both themes at 360, 768 and 1440 px"
+    },
+    "webkit": { "scenariosPassed": 3 },
+    "firefox": {
+      "version": "115.40.0 win32",
+      "result": "passed import, confirmation, task edit, teacher approval and DOCX export; Lite has no Next.js scripts or horizontal page overflow",
+      "limitation": "Current Windows host, not physical Windows 7 hardware"
+    },
+    "pdf": {
+      "preparedSampleTasks": 9,
+      "directRendererWithCode": { "portraitFullPages": 6, "landscapeFullPages": 5 },
+      "actualQueueAndDownload": { "portraitStudentPages": 4, "landscapeFullPages": 5 },
+      "pageSizesPoints": { "portrait": [595, 842], "landscape": [842, 595] },
+      "allPagesRenderedAndVisuallyInspected": true,
+      "outsidePageGlyphs": 0,
+      "fontsObserved": ["Times New Roman", "Times New Roman Bold", "Courier New"],
+      "studentExportContainsTeacherAnswerSection": false
+    }
+  },
+  "limitations": [
+    "No new live AI generation was exercised for the objective-omission option; server eligibility, persistence and the generation snapshot/prompt were updated and validated locally",
+    "The print layout resembles a school worksheet; it does not claim official regulatory certification",
+    "Existing exported files keep their original layout; generate a new export to use the new layout and answer space",
+    "Public Netlify/Railway deployment remains separate from this local verification"
+  ]
+}
