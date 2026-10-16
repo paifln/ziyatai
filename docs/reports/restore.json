@@ -1,71 +1,93 @@
 {
   "environment": "local PostgreSQL container",
   "date": "2026-10-16",
-  "backupBytes": 1449993,
-  "sourceVersions": 554,
-  "restoredVersions": 554,
+  "backupBytes": 2333475,
+  "sourceVersions": 781,
+  "restoredVersions": 781,
   "consistentSnapshot": true,
   "contentHashesMatch": true,
   "unicodeSearchVerified": true,
+  "allPublicTablesVerified": true,
+  "migrations": 9,
   "tables": [
     {
-      "table": "user",
-      "rows": 350
-    },
-    {
-      "table": "session",
-      "rows": 643
-    },
-    {
       "table": "account",
-      "rows": 350
+      "rows": 508
     },
     {
-      "table": "verification",
-      "rows": 1
+      "table": "api_limits",
+      "rows": 209
     },
     {
-      "table": "profiles",
-      "rows": 207
-    },
-    {
-      "table": "uploads",
-      "rows": 220
-    },
-    {
-      "table": "plans",
-      "rows": 369
-    },
-    {
-      "table": "plan_versions",
-      "rows": 554
-    },
-    {
-      "table": "generations",
-      "rows": 150
-    },
-    {
-      "table": "generation_versions",
-      "rows": 301
+      "table": "audit",
+      "rows": 28
     },
     {
       "table": "exports",
-      "rows": 131
+      "rows": 183
+    },
+    {
+      "table": "generation_versions",
+      "rows": 443
+    },
+    {
+      "table": "generations",
+      "rows": 228
     },
     {
       "table": "jobs",
-      "rows": 389
+      "rows": 529
     },
     {
-      "table": "usage_ledger",
+      "table": "ktp_rows",
+      "rows": 10005
+    },
+    {
+      "table": "plan_versions",
+      "rows": 781
+    },
+    {
+      "table": "plans",
+      "rows": 515
+    },
+    {
+      "table": "profiles",
+      "rows": 316
+    },
+    {
+      "table": "rateLimit",
       "rows": 4
     },
     {
       "table": "schema_migrations",
-      "rows": 8
+      "rows": 9
+    },
+    {
+      "table": "session",
+      "rows": 929
+    },
+    {
+      "table": "uploads",
+      "rows": 290
+    },
+    {
+      "table": "usage_ledger",
+      "rows": 6
+    },
+    {
+      "table": "user",
+      "rows": 508
+    },
+    {
+      "table": "verification",
+      "rows": 0
+    },
+    {
+      "table": "worker_health",
+      "rows": 11
     }
   ],
-  "durationMs": 1807,
+  "durationMs": 13948,
   "verified": true,
   "limits": "This verifies local restore, not production backup scheduling or storage encryption"
 }

@@ -30,28 +30,18 @@ function run(args: string[], input?: Buffer): Promise<Buffer> {
 const name = `ziyatai_restore_${randomBytes(6).toString("hex")}`;
 const started = Date.now();
 await mkdir(".local/backups", { recursive: true });
-const tables = [
-  "user",
-  "session",
-  "account",
-  "verification",
-  "profiles",
-  "uploads",
-  "plans",
-  "plan_versions",
-  "generations",
-  "generation_versions",
-  "exports",
-  "jobs",
-  "usage_ledger",
-  "schema_migrations",
-];
 async function fingerprint(connection: Pool | PoolClient) {
+  const tables = (
+    await connection.query<{ tablename: string }>(
+      "SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename COLLATE \"C\"",
+    )
+  ).rows.map((row) => row.tablename);
   const result: Record<string, { rows: number; sha256: string }> = {};
   for (const table of tables) {
+    const identifier = '"' + table.replaceAll('"', '""') + '"';
     const records = (
       await connection.query(
-        `SELECT to_jsonb(t)::text AS record FROM "${table}" t ORDER BY to_jsonb(t)::text COLLATE "C"`,
+        `SELECT to_jsonb(t)::text AS record FROM ${identifier} t ORDER BY to_jsonb(t)::text COLLATE "C"`,
       )
     ).rows;
     const hash = createHash("sha256");
@@ -182,6 +172,9 @@ try {
   if (!search.ru || !search.kk)
     throw new Error("Cyrillic/Kazakh case-insensitive search changed");
   const actual = await fingerprint(target);
+  const tables = Object.keys(baseline);
+  if (JSON.stringify(Object.keys(actual)) !== JSON.stringify(tables))
+    throw new Error("Restored public table set does not match the snapshot");
   for (const table of tables)
     if (
       actual[table].rows !== baseline[table].rows ||
@@ -200,6 +193,8 @@ try {
     consistentSnapshot: true,
     contentHashesMatch: true,
     unicodeSearchVerified: true,
+    allPublicTablesVerified: true,
+    migrations: actual.schema_migrations.rows,
     tables: tables.map((table) => ({ table, rows: actual[table].rows })),
     durationMs: Date.now() - started,
     verified: true,
