@@ -74,6 +74,21 @@ a:hover {
   text-underline-offset: 4px;
 }
 button,
+.mail-preview-note {
+  margin: 14px 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--green-soft);
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.mail-preview-note a {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+}
 .button {
   touch-action: manipulation;
 }

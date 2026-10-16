@@ -1,6 +1,12 @@
 * {
   box-sizing: border-box;
 }
+.mail-preview-note {
+  padding: 12px;
+  border-left: 3px solid #8aab7a;
+  font-size: 13px;
+  line-height: 1.6;
+}
 html[data-theme="dark"] {
   color-scheme: dark;
 }

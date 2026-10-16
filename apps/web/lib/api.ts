@@ -155,6 +155,18 @@ export async function handle(req: Request, path: string[]) {
       return json({ status: "ok" });
     }
     req = trustedGatewayRequest(req);
+    if (resource === "public-config" && path.length === 1 && method === "GET") {
+      const e = env();
+      return json({
+        localMailbox:
+          e.APP_ENV === "local" &&
+          e.SMTP_PORT === 1025 &&
+          !e.SMTP_USER &&
+          ["localhost", "127.0.0.1", "host.docker.internal", "mail"].includes(
+            e.SMTP_HOST,
+          ),
+      });
+    }
     const session = await auth().api.getSession({ headers: req.headers });
     if (!session || !session.user.emailVerified)
       throw new AppError("UNAUTHORIZED", 401);

@@ -1,5 +1,7 @@
 # API ZiyatAI
 
+`GET /api/public-config` доступен до входа и возвращает только `{localMailbox: boolean}`. Флаг включается для локальной Mailpit-конфигурации, а интерфейсы показывают ссылку на тестовую почту только на loopback адресе. В production значение false. Hostnames, credentials и содержимое писем не возвращаются; при Netlify gateway подпись proxy всё равно обязательна.
+
 Регистрация `/api/auth/sign-up/email` принимает `teachingSubject` (строка до 120 символов). Подтверждение: `POST /api/auth/email-otp/verify-email` с `{email, otp}`; повторная отправка: `POST /api/auth/email-otp/send-verification-otp` с `{email, type: "email-verification"}`. Код содержит 6 цифр, действует 600 секунд, хранится хешированным; действуют ограничение попыток и rate limit. После подтверждения создаётся сессия. Сброс пароля сохраняет отдельный одноразовый link flow.
 
 `GET /api/profile` возвращает `teachingSubject`; `PATCH /api/profile` позволяет изменить его. Предмет попадает в immutable source snapshot новых AI-заданий. Уже созданные задания не меняются при редактировании профиля.

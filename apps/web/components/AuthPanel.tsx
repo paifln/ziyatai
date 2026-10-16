@@ -6,7 +6,7 @@ import { Form } from "./ui/Form";
 import { PasswordField } from "./ui/PasswordField";
 import { LessonPreview } from "./auth/LessonPreview";
 import { subjects } from "../../../packages/domain/subjects";
-import { authClient } from "../lib/client";
+import { api, authClient } from "../lib/client";
 import type { Texts, UiLocale } from "../lib/i18n";
 export default function AuthPanel({
   t,
@@ -37,6 +37,22 @@ export default function AuthPanel({
   const [customSubject, setCustomSubject] = useState("");
   const [otp, setOtp] = useState("");
   const [cooldown, setCooldown] = useState(0);
+  const [localMailbox, setLocalMailbox] = useState(false);
+  useEffect(() => {
+    if (!["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname))
+      return;
+    let active = true;
+    void api("public-config")
+      .then((config) => {
+        if (active) setLocalMailbox(config.localMailbox === true);
+      })
+      .catch(() => {
+        /* Optional demo hint must not block sign-in. */
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
   useEffect(() => {
     if (!cooldown) return;
     const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
@@ -221,6 +237,22 @@ export default function AuthPanel({
                 ? "Ваши планы, задания и готовые материалы — в одном месте."
                 : "Жоспарларыңыз, тапсырмалар мен дайын материалдар — бір жерде."}
           </p>
+          {localMailbox && ["verify", "reset"].includes(mode) && (
+            <p className="mail-preview-note">
+              {locale === "ru"
+                ? "В локальной демонстрации коды и ссылки попадают в тестовую почту этого ПК, а не во внешний ящик. "
+                : "Жергілікті демода кодтар мен сілтемелер сыртқы поштаға емес, осы компьютердің сынақ поштасына түседі. "}
+              <a
+                href="http://localhost:8025"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {locale === "ru"
+                  ? "Открыть тестовую почту"
+                  : "Сынақ поштасын ашу"}
+              </a>
+            </p>
+          )}
           <Form key={mode} locale={locale} onSubmit={submit}>
             <fieldset className="editor-fields auth-fields" disabled={busy}>
               <legend className="sr-only">

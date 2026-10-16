@@ -5,6 +5,7 @@
   "use strict";
   var content = document.getElementById("content");
   var datesBeforeSkip = null;
+  var localMailbox = false;
   var message = document.getElementById("message");
   var navigation = document.getElementById("navigation");
   if (
@@ -517,11 +518,40 @@
     });
   };
   var verificationEmail = "";
+  function mailPreview(form) {
+    var slot = add(form, el("div"));
+    slot.id = "local-mail-preview";
+    updateMailPreview();
+  }
+  function updateMailPreview() {
+    var slot = document.getElementById("local-mail-preview");
+    if (!slot || !localMailbox) return;
+    slot.textContent = "";
+    var note = add(
+      slot,
+      el(
+        "p",
+        text(
+          "Жергілікті демода кодтар мен сілтемелер осы компьютердің сынақ поштасына түседі. ",
+          "В локальной демонстрации коды и ссылки попадают в тестовую почту этого ПК, а не во внешний ящик. "
+        ),
+        "mail-preview-note"
+      )
+    );
+    var link = add(
+      note,
+      el("a", text("Сынақ поштасын ашу", "Открыть тестовую почту"))
+    );
+    link.href = "http://localhost:8025";
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+  }
   function verifyForm(address) {
     authMode = "verify";
     verificationEmail = address;
     clear(text("Поштаңызды растаңыз", "Подтвердите почту"));
     var form = add(content, el("form", null, "panel auth"));
+    mailPreview(form);
     add(
       form,
       el(
@@ -588,6 +618,7 @@
       text("Сабаққа дайындық — бір жерде", "Подготовка к уроку — в одном месте")
     );
     var form = add(content, el("form", null, "panel auth"));
+    if (mode === "reset") mailPreview(form);
     add(form, el("h2", t(mode)));
     var name, email, password, subject;
     if (mode === "signup") {
@@ -1824,6 +1855,14 @@
     }
   });
   language();
+  if (
+    ["localhost", "127.0.0.1", "[::1]"].indexOf(window.location.hostname) >= 0
+  ) {
+    request("public-config", "GET", undefined, function (error, config) {
+      localMailbox = !error && config && config.localMailbox === true;
+      updateMailPreview();
+    });
+  }
   if (new URLSearchParams(window.location.search).has("token")) {
     authForm("newPassword");
     return;

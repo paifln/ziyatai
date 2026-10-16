@@ -44,6 +44,14 @@ test("registration verifies a one-time email code and stores the selected subjec
   await expect(
     page.getByRole("heading", { name: "Проверьте почту" }),
   ).toBeVisible();
+  const preview = page.getByRole("link", {
+    name: "Открыть тестовую почту",
+    exact: true,
+  });
+  await expect(preview).toHaveAttribute("href", "http://localhost:8025");
+  expect(await (await request.get("/api/public-config")).json()).toEqual({
+    localMailbox: true,
+  });
   const otp = await emailCode(request, email);
   const wrong = String((Number(otp) + 1) % 1000000).padStart(6, "0");
   await page.getByLabel("Код из письма").fill(wrong);
