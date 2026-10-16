@@ -5,6 +5,34 @@ sys.path.insert(0, str(Path('apps/worker').resolve()))
 spec=importlib.util.spec_from_file_location('ktp_parser','apps/worker/parser.py');parser=importlib.util.module_from_spec(spec);spec.loader.exec_module(parser)
 manifest=json.loads(Path('tests/fixtures/manifest.json').read_text(encoding='utf-8'))
 
+@pytest.mark.parametrize('kind',['javascript','attachment','launch','additional-action','automatic-uri'])
+def test_active_pdf_content_is_rejected_without_executing_it(tmp_path,kind):
+ from pypdf import PdfWriter
+ from pypdf.generic import DictionaryObject,NameObject,TextStringObject,ArrayObject
+ writer=PdfWriter();writer.add_blank_page(width=595,height=842)
+ if kind=='javascript':
+  action=DictionaryObject({NameObject('/S'):NameObject('/JavaScript'),NameObject('/JS'):TextStringObject('void(0);')})
+  writer.root_object[NameObject('/Names')]=DictionaryObject({NameObject('/JavaScript'):DictionaryObject({NameObject('/Names'):ArrayObject([TextStringObject('synthetic'),writer._add_object(action)])})})
+ elif kind=='attachment':writer.add_attachment('sample.txt',b'harmless synthetic fixture')
+ else:
+  action=DictionaryObject({NameObject('/S'):NameObject('/Launch' if kind=='launch' else '/URI'),NameObject('/F' if kind=='launch' else '/URI'):TextStringObject('sample.txt' if kind=='launch' else 'https://example.invalid/')})
+  if kind=='additional-action':writer.root_object[NameObject('/AA')]=DictionaryObject({NameObject('/WC'):action})
+  else:writer.root_object[NameObject('/OpenAction')]=action
+ path=tmp_path/(kind+'.pdf')
+ with path.open('wb') as output:writer.write(output)
+ with pytest.raises(ValueError,match='FILE_INVALID'):parser.inspect(path)
+
+def test_passive_pdf_destination_and_user_opened_link_remain_readable(tmp_path):
+ from pypdf import PdfWriter
+ from pypdf.generic import DictionaryObject,NameObject,TextStringObject,ArrayObject,NumberObject
+ writer=PdfWriter();page=writer.add_blank_page(width=595,height=842)
+ writer.root_object[NameObject('/OpenAction')]=ArrayObject([page.indirect_reference,NameObject('/Fit')])
+ annotation=DictionaryObject({NameObject('/Type'):NameObject('/Annot'),NameObject('/Subtype'):NameObject('/Link'),NameObject('/Rect'):ArrayObject([NumberObject(n) for n in (0,0,20,20)]),NameObject('/A'):DictionaryObject({NameObject('/S'):NameObject('/URI'),NameObject('/URI'):TextStringObject('https://example.invalid/')})})
+ page[NameObject('/Annots')]=ArrayObject([writer._add_object(annotation)])
+ path=tmp_path/'passive.pdf'
+ with path.open('wb') as output:writer.write(output)
+ parser.inspect(path)
+
 def test_large_pdf_page_rejected_before_native_bitmap_allocation(tmp_path, monkeypatch):
  from reportlab.pdfgen import canvas
  from pdf_adapter import render_page

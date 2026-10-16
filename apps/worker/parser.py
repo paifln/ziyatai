@@ -74,7 +74,30 @@ def normalize(tables):
   if len(rows)>2000:raise ValueError('FILE_SIZE')
  if not rows:warnings.append('no_lesson_rows_found')
  if unrecognized:warnings.append('unrecognized_fragments_require_review')
- return {'schemaVersion':'1.0','rows':rows,'warnings':warnings,'unrecognized':unrecognized,'parserVersion':'ktp-1.1'}
+ return {'schemaVersion':'1.0','rows':rows,'warnings':warnings,'unrecognized':unrecognized,'parserVersion':'ktp-1.2'}
+
+def inspect_pdf_catalog(document):
+ from pdfminer.pdftypes import PDFObjRef,PDFStream
+ forbidden_keys={'JS','JavaScript','AA','EmbeddedFiles','EF','AF','XFA','RichMediaContent','RichMediaSettings'}
+ forbidden_actions={'JavaScript','Launch','SubmitForm','ImportData','GoToR','GoToE','Rendition','Movie','Sound'}
+ pending=[(document.catalog,0,False)];seen=set();visited=0
+ while pending:
+  node,depth,automatic=pending.pop();visited+=1
+  if visited>100000 or depth>100:raise ValueError('FILE_SIZE')
+  if isinstance(node,PDFObjRef):
+   # The same object may also be an automatic action; inspect that context
+   # separately without following the cyclic Pages/Parent graph forever.
+   identity=(node.objid,automatic)
+   if identity in seen:continue
+   seen.add(identity);pending.append((node.resolve(),depth+1,automatic));continue
+  if isinstance(node,PDFStream):node=node.attrs
+  if isinstance(node,dict):
+   if forbidden_keys.intersection(node):raise ValueError('FILE_INVALID')
+   action=getattr(node.get('S'),'name',None)
+   if action in forbidden_actions or (automatic and action!='GoTo'):raise ValueError('FILE_INVALID')
+   pending.extend((value,depth+1,key=='OpenAction') for key,value in node.items())
+  elif isinstance(node,(list,tuple)):
+   pending.extend((value,depth+1,False) for value in node)
 
 def inspect(path):
  ext=Path(path).suffix.lower()
@@ -108,6 +131,7 @@ def inspect(path):
    if d.doc.encryption:raise ValueError('FILE_INVALID')
    if not len(d.pages):raise ValueError('FILE_INVALID')
    if len(d.pages)>150:raise ValueError('FILE_SIZE')
+   inspect_pdf_catalog(d.doc)
  elif ext=='.xls':
   import xlrd
   w=xlrd.open_workbook(path,on_demand=True)
