@@ -11,9 +11,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: {node-version: '24.22.0', cache: npm}
+        with: { node-version: "24.22.0", cache: npm }
       - uses: actions/setup-python@v5
-        with: {python-version: '3.13.8'}
+        with: { python-version: "3.13.8" }
       - run: npm ci
       - run: npm run check:source
       - run: pip install -r apps/worker/requirements.lock.txt -r tests/requirements.txt
@@ -26,7 +26,7 @@ jobs:
           ZIYATAI_API_ORIGIN: https://api.example.test
           UPLOAD_ORIGIN: https://storage.example.test
           NETLIFY_PROXY_SECRET: local-fixture-key-only-never-a-production-secret
-          DO_NOT_TRACK: '1'
+          DO_NOT_TRACK: "1"
         run: npx --yes netlify-cli@27.12.1 build --offline
       - run: npm audit --audit-level=moderate
       - run: python scripts/scan-secrets.py
@@ -38,9 +38,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: {node-version: '24.22.0', cache: npm}
+        with: { node-version: "24.22.0", cache: npm }
       - uses: actions/setup-python@v5
-        with: {python-version: '3.13.8'}
+        with: { python-version: "3.13.8" }
       - run: npm ci
       - run: pip install -r apps/worker/requirements.lock.txt -r tests/requirements.txt
       - run: docker build -f infra/Dockerfile.postgres -t ziyatai-postgres:ci .
@@ -54,9 +54,10 @@ jobs:
       - run: npx tsx --env-file=.env.local scripts/queue-check.ts && npx tsx --env-file=.env.local scripts/restore-check.ts
       - run: npx tsx --env-file=.env.local scripts/upload-cleanup-check.ts
       - run: npx tsx --env-file=.env.local scripts/auth-reset-check.ts
+      - run: npx tsx --env-file=.env.local scripts/check-renderer-boundary.ts
       - run: npm run build
       - run: npm run start > /tmp/ziyatai-web.log 2>&1 &
       - run: npx playwright install --with-deps chromium
       # The full PDF/TNR suite needs licensed fonts and runs on the local/staging host.
-      - run: npx playwright test tests/e2e/design.spec.ts tests/e2e/direct-upload.spec.ts tests/e2e/ui.spec.ts tests/e2e/security.spec.ts tests/e2e/revision.spec.ts
+      - run: npx playwright test tests/e2e/design.spec.ts tests/e2e/direct-upload.spec.ts tests/e2e/ui.spec.ts tests/e2e/security.spec.ts tests/e2e/revision.spec.ts tests/e2e/usability.spec.ts
       - run: docker compose -f infra/compose.local.yml --env-file .env.local logs --tail=10

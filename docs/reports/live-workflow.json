@@ -1,0 +1,24 @@
+{
+  "checkedAt": "2026-10-16T04:35:46.451Z",
+  "environment": "local Docker over HTTP",
+  "source": "synthetic fixture edited to mathematics; no owner workbook sent to AI",
+  "taskCount": 3,
+  "subject": "mathematics",
+  "regeneration": {
+    "revision": 2,
+    "siblingTasksUnchanged": true,
+    "taskIdsPreserved": true
+  },
+  "exports": [
+    {
+      "format": "docx",
+      "bytes": 12161
+    },
+    {
+      "format": "pdf",
+      "bytes": 70917
+    }
+  ],
+  "durationMs": 31238,
+  "pedagogicalExpertReview": "not performed"
+}

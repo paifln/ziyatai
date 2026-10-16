@@ -88,7 +88,7 @@ def inspect(path):
     if entry.flag_bits & 1:raise ValueError('FILE_INVALID')
     if entry.file_size>1000000 and entry.file_size/max(entry.compress_size,1)>200:raise ValueError('FILE_SIZE')
     if any(v in entry.filename.lower() for v in ('vbaproject','embeddings/','activex/')):raise ValueError('FILE_INVALID')
-    if entry.filename.endswith('.xml') or entry.filename.endswith('.rels'):
+    if entry.filename.lower().endswith(('.xml','.rels')):
      content=z.read(entry)
      if content.startswith((codecs.BOM_UTF32_LE,codecs.BOM_UTF32_BE)):decoded=content.decode('utf-32')
      elif content.startswith((codecs.BOM_UTF16_LE,codecs.BOM_UTF16_BE)):decoded=content.decode('utf-16')

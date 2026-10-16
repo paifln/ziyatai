@@ -1,4 +1,6 @@
 "use client";
+import { useUnsavedChanges } from "../lib/use-unsaved-changes";
+import { useConfirm } from "./ui/ConfirmProvider";
 import { useEffect, useState, useCallback } from "react";
 import {
   ArrowRight,
@@ -43,6 +45,7 @@ export default function PlanReview({
   refresh: () => Promise<void>;
   onBack: () => void;
 }) {
+  const confirm = useConfirm();
   const [plan, setPlan] = useState<any>(),
     [rows, setRows] = useState<KtpRow[]>([]),
     [grade, setGrade] = useState<number | null>(null),
@@ -73,18 +76,8 @@ export default function PlanReview({
     void load();
   }, [load]);
   usePolling(load, plan?.status === "extracting");
-  useEffect(() => {
-    onDirtyChange(dirty);
-  }, [dirty, onDirtyChange]);
-  useEffect(() => {
-    if (!dirty) return;
-    const handler = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = "";
-    };
-    window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
-  }, [dirty]);
+  useUnsavedChanges(dirty, onDirtyChange);
+
   function update(index: number, key: keyof KtpRow, value: string) {
     setRows(
       rows.map((r, i) =>
@@ -332,13 +325,13 @@ export default function PlanReview({
             <button
               className="button secondary"
               disabled={busy}
-              onClick={() => {
+              onClick={async () => {
                 if (
-                  !window.confirm(
+                  !(await confirm(
                     locale === "ru"
                       ? "Оставить в этом плане только выбранный лист? Исходный Excel сохранится целиком."
                       : "Осы жоспарда тек таңдалған парақты қалдыру керек пе? Бастапқы Excel толық сақталады.",
-                  )
+                  ))
                 )
                   return;
                 setRows(rows.filter((r) => r.source.sheet === sheet));

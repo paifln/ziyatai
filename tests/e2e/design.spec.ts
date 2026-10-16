@@ -340,9 +340,7 @@ test("idle workspace does not poll business APIs and auth responses forbid share
   expect(session.headers()["cache-control"]).toContain("no-store");
   await page.context().addCookies((await request.storageState()).cookies);
   await page.goto("/");
-  await expect(
-    page.getByRole("heading", { name: "Менің КТЖ" }),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Менің КТЖ" })).toBeVisible();
   let requests = 0;
   page.on("request", (r) => {
     if (/\/api\/(?:profile|ktp|library|jobs)(?:\?|$)/.test(r.url())) requests++;
@@ -390,9 +388,7 @@ test("workspace stays readable on small screens and protects unsaved edits", asy
   await page.context().addCookies((await request.storageState()).cookies);
   await page.goto("/");
   await page.getByRole("button", { name: "РУС", exact: true }).click();
-  await expect(
-    page.getByRole("heading", { name: "Мои КТП" }),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Мои КТП" })).toBeVisible();
   let results = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
     .analyze();
@@ -434,8 +430,11 @@ test("workspace stays readable on small screens and protects unsaved edits", asy
     .getByLabel("Текст", { exact: true })
     .first()
     .fill("Не потерять эти изменения");
-  page.once("dialog", (dialog) => dialog.dismiss());
   await page.getByRole("button", { name: "Мои КТП", exact: true }).click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Отмена", exact: true })
+    .click();
   await expect(
     page
       .locator(".task-card")
@@ -622,8 +621,11 @@ test("lite imports, confirms, paginates and exports without loading React", asyn
   const documents = await (await request.get("/api/library")).json();
   expect(documents[0].teacher_reviewed).toBe(true);
   const oldExport = documents[0].id;
-  page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: "Удалить", exact: true }).click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Удалить", exact: true })
+    .click();
   await expect
     .poll(async () =>
       (await (await request.get("/api/library")).json()).some(

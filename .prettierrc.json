@@ -1,0 +1,8 @@
+{
+  "overrides": [
+    {
+      "files": "public/lite/lite.js",
+      "options": { "trailingComma": "es5" }
+    }
+  ]
+}

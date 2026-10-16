@@ -257,7 +257,7 @@ try {
   assert.equal(file.ok(), true);
   assert.match(file.headers()["content-type"], /wordprocessingml/);
   const report = {
-    date: "2026-10-15",
+    date: new Date().toISOString(),
     browser: created.capabilities.browserVersion,
     driver: "0.35.0",
     binary: "Official Mozilla Firefox ESR 115, win32",
@@ -270,7 +270,7 @@ try {
     docxExported: true,
     limitations: [
       "Does not verify Windows 7 OS TLS, fonts, drivers or hardware performance",
-      "Live OpenAI is not configured",
+      "This browser scenario uses the explicitly synthetic demo, not live OpenAI",
     ],
   };
   await writeFile(

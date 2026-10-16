@@ -2,6 +2,16 @@ import { expect, it } from "vitest";
 import { syntheticDemo } from "../packages/domain/demo";
 import { validateDocument } from "../packages/domain/validation";
 import { renderDocx } from "../packages/document-renderer";
+it("bounds the workload for each level without adding three different pupil groups together", () => {
+  const { document, snapshot } = syntheticDemo("ru");
+  // All levels together take 30 minutes; the longest single level takes 15.
+  expect(
+    validateDocument(document, { ...snapshot, minutes: 15 }).issues,
+  ).not.toContain("TIME_BUDGET");
+  expect(
+    validateDocument(document, { ...snapshot, minutes: 14 }).issues,
+  ).toContain("TIME_BUDGET");
+});
 it("recognizes table-only conditions and rejects blank answers with the task location", () => {
   const { document, snapshot } = syntheticDemo("ru");
   document.tasks[0].contentBlocks = [

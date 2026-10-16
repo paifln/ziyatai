@@ -8,14 +8,9 @@ import {
   Library,
   Settings,
   LogOut,
-  Upload,
   ChevronRight,
-  FileText,
-  Search,
   Menu,
-  Plus,
   Check,
-  Trash2,
   X,
   PanelLeftClose,
   PanelLeftOpen,
@@ -24,22 +19,24 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { api, authClient } from "../lib/client";
-import { dictionary, type UiLocale, type Texts } from "../lib/i18n";
+import { dictionary, type UiLocale } from "../lib/i18n";
 import AuthPanel from "./AuthPanel";
+import { ConfirmProvider, useConfirm } from "./ui/ConfirmProvider";
 import { subjectLabel } from "../../../packages/domain/subjects";
 import { Jobs } from "./Jobs";
+import { PlanCollection } from "./plans/PlanCollection";
 import { usePolling, useResume } from "../lib/use-polling";
 const ResourceCollection = dynamic(() => import("./ResourceCollection"));
 const PlanReview = dynamic(() => import("./PlanReview"));
 const GenerationEditor = dynamic(() => import("./GenerationEditor"));
 const UploadPanel = dynamic(() =>
-  import("./WorkspaceForms").then((m) => m.UploadPanel),
+  import("./forms/UploadPanel").then((m) => m.UploadPanel),
 );
 const GeneratePanel = dynamic(() =>
-  import("./WorkspaceForms").then((m) => m.GeneratePanel),
+  import("./forms/GeneratePanel").then((m) => m.GeneratePanel),
 );
 const ProfilePanel = dynamic(() =>
-  import("./WorkspaceForms").then((m) => m.ProfilePanel),
+  import("./forms/ProfilePanel").then((m) => m.ProfilePanel),
 );
 const nav = [
   { key: "plans", icon: Files },
@@ -50,6 +47,14 @@ const nav = [
 type View =
   (typeof nav)[number]["key"] | "upload" | "review" | "editor" | "profile";
 export default function Workspace() {
+  return (
+    <ConfirmProvider>
+      <WorkspaceContent />
+    </ConfirmProvider>
+  );
+}
+function WorkspaceContent() {
+  const confirm = useConfirm();
   const [locale, setLocaleState] = useState<UiLocale>("kk");
   const t = dictionary[locale];
   const { data: session, isPending } = authClient.useSession();
@@ -66,8 +71,7 @@ export default function Workspace() {
     [error, setError] = useState(""),
     [toast, setToast] = useState(""),
     [loaded, setLoaded] = useState(false),
-    [busy, setBusy] = useState(false),
-    [query, setQuery] = useState("");
+    [busy, setBusy] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [profileMenu, setProfileMenu] = useState(false);
@@ -199,15 +203,14 @@ export default function Workspace() {
       return () => clearTimeout(timer);
     }
   }, [toast]);
-  function navigate(next: View, id = "") {
-    if (hasChanges && !window.confirm(discardPrompt)) return;
+  async function navigate(next: View, id = "") {
+    if (hasChanges && !(await confirm(discardPrompt))) return;
     setHasChanges(false);
     setView(next);
     setSelected(id);
     setMenu(false);
     setProfileMenu(false);
     setError("");
-    setQuery("");
     window.scrollTo(0, 0);
   }
   async function demo() {
@@ -223,7 +226,7 @@ export default function Workspace() {
     }
   }
   async function remove(resource: string, id: string) {
-    if (!window.confirm(t.deleteConfirm)) return;
+    if (!(await confirm(t.deleteConfirm, { destructive: true }))) return;
     try {
       await api(`${resource}/${id}`, "DELETE");
       await refresh();
@@ -231,16 +234,6 @@ export default function Workspace() {
       setError((e as Error).message);
     }
   }
-  const badge = (status: string) => (
-    <span
-      className={`badge ${status === "confirmed" || status === "succeeded" ? "green" : ["failed", "cancelled"].includes(status) ? "red" : "gold"}`}
-    >
-      {(t as any)[status] ??
-        (status === "needs_review" || status === "review"
-          ? t.review
-          : t.processing)}
-    </span>
-  );
   const openPlan = (p: any) => navigate("review", p.id);
   if (passwordReset)
     return <AuthPanel t={t} locale={locale} setLocale={setLocale} />;
@@ -356,7 +349,11 @@ export default function Workspace() {
             <strong>{title}</strong>
           </div>
           <div className="topbar-right">
-            <a className="button help-button" href="/help/">
+            <a
+              className="button help-button"
+              href="/help/"
+              aria-label={locale === "ru" ? "Помощь" : "Көмек"}
+            >
               <CircleHelp size={17} />
               <span>{locale === "ru" ? "Помощь" : "Көмек"}</span>
             </a>
@@ -411,7 +408,7 @@ export default function Workspace() {
                   </button>
                   <button
                     onClick={async () => {
-                      if (hasChanges && !window.confirm(discardPrompt)) return;
+                      if (hasChanges && !(await confirm(discardPrompt))) return;
                       await authClient.signOut();
                       window.location.assign("/");
                     }}
@@ -456,29 +453,6 @@ export default function Workspace() {
             <>
               {view === "plans" && (
                 <>
-                  <div className="page-heading">
-                    <div>
-                      <h1>{t.plans}</h1>
-                      <p>{t.uploadSub}</p>
-                    </div>
-                    <button
-                      className="button primary"
-                      onClick={() => navigate("upload")}
-                    >
-                      <Plus size={17} />
-                      {t.upload}
-                    </button>
-                  </div>
-                  {plans.length > 0 && profile.capabilities.demo && (
-                    <button
-                      className="text-button demo-link"
-                      onClick={demo}
-                      disabled={busy}
-                    >
-                      {t.demo}
-                    </button>
-                  )}
-                  <SearchBar t={t} query={query} setQuery={setQuery} />
                   <Jobs
                     jobs={jobs.filter(
                       (j) =>
@@ -488,58 +462,20 @@ export default function Workspace() {
                     t={t}
                     refresh={refresh}
                   />
-                  <section className="card">
-                    {plans.length ? (
-                      plans
-                        .filter((p) =>
-                          p.title.toLowerCase().includes(query.toLowerCase()),
-                        )
-                        .map((p) => (
-                          <div key={p.id}>
-                            <div className="resource-row">
-                              <div className="file-icon">
-                                <FileText size={20} />
-                              </div>
-                              <button
-                                className="resource-text text-button"
-                                style={{ textAlign: "left", color: "inherit" }}
-                                onClick={() => openPlan(p)}
-                              >
-                                <strong>{p.title}</strong>
-                                <small>
-                                  {p.grade
-                                    ? `${p.grade} ${t.grade.toLowerCase()} · `
-                                    : ""}
-                                  {p.school_year}
-                                </small>
-                              </button>
-                              {badge(p.status)}
-                              <button
-                                className="icon-button"
-                                onClick={() => remove("ktp", p.id)}
-                                aria-label={t.remove}
-                              >
-                                <Trash2 size={15} />
-                              </button>
-                              <button
-                                className="icon-button"
-                                onClick={() => openPlan(p)}
-                                aria-label={t.select}
-                              >
-                                <ChevronRight size={16} />
-                              </button>
-                            </div>
-                          </div>
-                        ))
-                    ) : (
-                      <Empty
-                        t={t}
-                        onUpload={() => navigate("upload")}
-                        onDemo={profile.capabilities.demo ? demo : undefined}
-                        busy={busy}
-                      />
-                    )}
-                  </section>
+                  <PlanCollection
+                    plans={plans}
+                    t={t}
+                    locale={locale}
+                    onUpload={() => {
+                      void navigate("upload");
+                    }}
+                    onOpen={openPlan}
+                    onRemove={(id) => {
+                      void remove("ktp", id);
+                    }}
+                    onDemo={profile.capabilities.demo ? demo : undefined}
+                    busy={busy}
+                  />
                 </>
               )}
               {view === "upload" && (
@@ -619,6 +555,8 @@ export default function Workspace() {
               )}
               {view === "profile" && (
                 <ProfilePanel
+                  locale={locale}
+                  onDirtyChange={setHasChanges}
                   t={t}
                   profile={profile}
                   onError={setError}
@@ -653,60 +591,5 @@ export default function Workspace() {
         </div>
       )}
     </>
-  );
-}
-export function SearchBar({
-  t,
-  query,
-  setQuery,
-}: {
-  t: Texts;
-  query: string;
-  setQuery: (q: string) => void;
-}) {
-  return (
-    <div className="toolbar">
-      <label className="search-field">
-        <span className="sr-only">{t.search}</span>
-        <Search size={16} />
-        <input
-          placeholder={t.search}
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-      </label>
-    </div>
-  );
-}
-export function Empty({
-  t,
-  onUpload,
-  onDemo,
-  busy,
-}: {
-  t: Texts;
-  onUpload: () => void;
-  onDemo?: () => void;
-  busy?: boolean;
-}) {
-  return (
-    <div className="empty-state">
-      <div className="empty-icon">
-        <Files size={28} />
-      </div>
-      <h3>{t.empty}</h3>
-      <p>{t.emptySub}</p>
-      <button className="button secondary" onClick={onUpload}>
-        <Upload size={15} />
-        {t.upload}
-      </button>
-      {onDemo && (
-        <div style={{ marginTop: 14 }}>
-          <button className="text-button" onClick={onDemo} disabled={busy}>
-            {busy ? t.loading : t.demo}
-          </button>
-        </div>
-      )}
-    </div>
   );
 }

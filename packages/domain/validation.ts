@@ -9,6 +9,7 @@ export function validateDocument(
     locale: string;
     count: number;
     objectiveCodes: string[];
+    minutes?: number;
   },
 ) {
   const doc = GenerationDoc.parse(value);
@@ -50,9 +51,19 @@ export function validateDocument(
   )
     issue("SNAPSHOT_MISMATCH");
   if (doc.tasks.length !== snapshot.count * 3) issue("TASK_COUNT");
-  for (const level of ["easy", "medium", "advanced"])
+  for (const level of ["easy", "medium", "advanced"]) {
     if (doc.tasks.filter((t) => t.level === level).length !== snapshot.count)
       issue("LEVEL_COUNT");
+    // Different pupils work at different levels; do not add all three groups.
+    if (
+      snapshot.minutes !== undefined &&
+      doc.tasks
+        .filter((t) => t.level === level)
+        .reduce((sum, task) => sum + task.estimatedMinutes, 0) >
+        snapshot.minutes
+    )
+      issue("TIME_BUDGET");
+  }
   const ids = new Set<string>();
   const conditions = new Set<string>();
   for (const [taskIndex, t] of doc.tasks.entries()) {

@@ -1,4 +1,5 @@
 "use client";
+import { useUnsavedChanges } from "../lib/use-unsaved-changes";
 import { useCallback, useEffect, useState, useRef } from "react";
 import {
   Check,
@@ -116,9 +117,7 @@ export default function GenerationEditor({
     },
     exportJobs.some((j) => ["queued", "running"].includes(j.status)),
   );
-  useEffect(() => {
-    onDirtyChange(dirty);
-  }, [dirty, onDirtyChange]);
+  useUnsavedChanges(dirty, onDirtyChange);
   usePolling(async () => {
     try {
       const result = await api(`jobs/${regenerationJob}`);
@@ -137,15 +136,7 @@ export default function GenerationEditor({
       onError((e as Error).message);
     }
   }, !!regenerationJob);
-  useEffect(() => {
-    if (!dirty) return;
-    const handler = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = "";
-    };
-    window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
-  }, [dirty]);
+
   function changeTask(index: number, update: Partial<TaskDocument>) {
     setDocument({
       ...document!,

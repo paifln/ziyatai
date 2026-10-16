@@ -19,6 +19,7 @@ import {
 import { Styles, type GenerationDocument } from "../contracts";
 import { displayLevel, displayPoints } from "../domain/validation";
 import { assertDocumentBudget } from "../domain/document-budget";
+import { subjectLabel } from "../domain/subjects";
 const cm = (n: number) => Math.round(n * 567);
 export async function renderDocx(
   doc: GenerationDocument,
@@ -107,9 +108,15 @@ export async function renderDocx(
     return b.text.split("\n").map((text) => p(text, { keepNext }));
   };
   if (styles.includeLogo) children.push(p("ZiyatAI", { style: "Brand" }));
+  const subject =
+    typeof snapshot.subject === "string" && snapshot.subject !== "general"
+      ? subjectLabel(snapshot.subject, ru ? "ru" : "kk")
+      : "";
   children.push(
     p(doc.title, { heading: HeadingLevel.TITLE }),
-    p(`${ru ? "Информатика • Класс" : "Информатика • Сынып"} ${doc.grade}`),
+    p(
+      `${subject ? `${subject} • ` : ""}${ru ? "Класс" : "Сынып"} ${doc.grade}`,
+    ),
     p(`${ru ? "Тема" : "Тақырып"}: ${snapshot.topic}`),
     p(`${ru ? "Цели обучения" : "Оқу мақсаттары"}: ${snapshot.goals}`),
     p(

@@ -138,9 +138,12 @@ test("owner supplied workbook retains every sheet and can be separated by class"
   await page
     .getByLabel("Лист / класс", { exact: true })
     .selectOption("1 класс");
-  page.once("dialog", (dialog) => dialog.accept());
   await page
     .getByRole("button", { name: "Работать только с этим листом", exact: true })
+    .click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Продолжить", exact: true })
     .click();
   await expect(page.getByLabel("Класс", { exact: true })).toHaveValue("1");
   await page

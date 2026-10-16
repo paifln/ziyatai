@@ -6,6 +6,7 @@ sys.path.insert(0,'/scripts')
 from parser import inspect,extract
 MAX_BYTES=26*1024*1024
 token=os.environ['RENDERER_TOKEN']
+if len(token)<32:raise RuntimeError('Renderer token must contain at least 32 characters')
 def deadline(signum,frame):raise ValueError('OCR_UNAVAILABLE')
 signal.signal(signal.SIGALRM,deadline)
 class Handler(BaseHTTPRequestHandler):
@@ -14,15 +15,20 @@ class Handler(BaseHTTPRequestHandler):
   if self.path=='/health':self.send_response(200);self.end_headers();self.wfile.write(b'{"status":"ok"}')
   else:self.send_response(404);self.end_headers()
  def do_POST(self):
-  if not hmac.compare_digest(self.headers.get('Authorization',''),'Bearer '+token):self.send_response(401);self.end_headers();return
-  size=int(self.headers.get('Content-Length','0'))
+  if not hmac.compare_digest(self.headers.get('Authorization','').encode('utf-8'),('Bearer '+token).encode('utf-8')):self.send_response(401);self.end_headers();return
+  if self.path not in ('/inspect','/parse','/preview','/render'):self.send_response(404);self.end_headers();return
+  try:size=int(self.headers.get('Content-Length','0'))
+  except ValueError:self.send_response(400);self.end_headers();return
   if not 0<size<=MAX_BYTES:self.send_response(413);self.end_headers();return
   ext=self.headers.get('X-Format','');font=self.headers.get('X-Font','Times New Roman')
   if ext not in ('pdf','docx','xls','xlsx') or font not in ('Times New Roman','Arial','Calibri'):self.send_response(415);self.end_headers();return
   try:
+   self.connection.settimeout(15)
    signal.alarm(240)
    with tempfile.TemporaryDirectory(prefix='ziyatai-sandbox-') as tmp:
-    path=Path(tmp)/('source.'+ext);path.write_bytes(self.rfile.read(size));inspect(path)
+    body=self.rfile.read(size)
+    if len(body)!=size:raise ValueError('FILE_INVALID')
+    path=Path(tmp)/('source.'+ext);path.write_bytes(body);inspect(path)
     if self.path=='/inspect':payload=b'{"valid":true}';mime='application/json'
     elif self.path=='/parse':payload=json.dumps(extract(path,self.headers.get('X-Include-Hidden')=='true'),ensure_ascii=False).encode();mime='application/json'
     elif self.path=='/preview' and ext=='pdf':

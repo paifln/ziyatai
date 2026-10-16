@@ -60,6 +60,15 @@ describe("OpenAI contract (mock only, not live API acceptance)", () => {
       model: "test-model",
       text: { format: { type: "json_schema", strict: true } },
     });
+    const call = state.parse.mock.calls[0][0];
+    expect(call.text.format.schema.properties.tasks).toMatchObject({
+      minItems: 9,
+      maxItems: 9,
+    });
+    expect(JSON.parse(call.input[1].content).required).toMatchObject({
+      totalTasks: 9,
+      tasksPerLevel: 3,
+    });
   });
   it("handles model refusal without marking results verified", async () => {
     state.parse.mockResolvedValue({
@@ -102,6 +111,7 @@ describe("OpenAI contract (mock only, not live API acceptance)", () => {
     const request = state.parse.mock.calls[0][0];
     expect(request.tools).toBeUndefined();
     expect(request.input[0].content).toContain("untrusted DATA");
-    expect(request.input[1].content).toContain(snapshot.goals);
+    expect(request.input[2].content).toContain(snapshot.goals);
+    expect(request.input[1].content).not.toContain(snapshot.goals);
   });
 });

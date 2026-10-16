@@ -5,10 +5,19 @@ import { hasGoalText } from "../../../packages/domain/goals";
 import { randomUUID, createHash } from "node:crypto";
 import { z } from "zod";
 import { auth } from "./auth";
+import { readJsonBody as body, boundedRequest } from "./request-body";
+import { withUploadCapacity } from "./upload-capacity";
 import { db, transaction } from "./db";
 import { env } from "./env";
 import { trustedGatewayRequest } from "./netlify-gateway";
-import { putObject, getObject, deleteObject, storageReady, signedUpload, objectMetadata } from "./storage";
+import {
+  putObject,
+  getObject,
+  deleteObject,
+  storageReady,
+  signedUpload,
+  objectMetadata,
+} from "./storage";
 import { inspectFile } from "./files";
 import { isolatedRequest } from "./renderer";
 import { enqueue, reserveQuota } from "./queue";
@@ -36,24 +45,7 @@ async function owned(
   if (!result.rowCount) throw new AppError("NOT_FOUND", 404);
   return result.rows[0];
 }
-async function body(req: Request) {
-  const maximum=2*1024*1024;
-  const length = Number(req.headers.get("content-length") ?? 0);
-  if (length > maximum) throw new AppError("FILE_SIZE", 413);
-  const reader=req.body?.getReader();
-  if(!reader)throw new AppError("FILE_INVALID",422);
-  const chunks:Uint8Array[]=[];let total=0;
-  try{
-    while(true){
-      const {done,value}=await reader.read();if(done)break;
-      total+=value.byteLength;
-      if(total>maximum){await reader.cancel();throw new AppError("FILE_SIZE",413);}
-      chunks.push(value);
-    }
-  }finally{reader.releaseLock();}
-  const text=Buffer.concat(chunks).toString("utf8");
-  return JSON.parse(text);
-}
+
 function json(data: unknown, status = 200) {
   return Response.json(data, {
     status,
@@ -162,7 +154,7 @@ export async function handle(req: Request, path: string[]) {
       }
       return json({ status: "ok" });
     }
-    req=trustedGatewayRequest(req);
+    req = trustedGatewayRequest(req);
     const session = await auth().api.getSession({ headers: req.headers });
     if (!session || !session.user.emailVerified)
       throw new AppError("UNAUTHORIZED", 401);
@@ -183,9 +175,14 @@ export async function handle(req: Request, path: string[]) {
     }
     const limit = Math.min(
       100,
-      Math.max(1, Number(url.searchParams.get("limit")) || 30),
+      Math.max(1, Math.floor(Number(url.searchParams.get("limit"))) || 30),
     );
-    const offset = Math.max(0, Number(url.searchParams.get("offset")) || 0);
+    const offset = z.coerce
+      .number()
+      .int()
+      .min(0)
+      .max(1000000)
+      .parse(url.searchParams.get("offset") ?? "0");
     if (resource === "account" && method === "DELETE") {
       await transaction(async (c) => {
         await c.query(
@@ -352,12 +349,23 @@ export async function handle(req: Request, path: string[]) {
             )
           ).rows[0],
           name: session.user.name,
-          teachingSubject: (await db().query('SELECT "teachingSubject" FROM "user" WHERE id=$1', [owner])).rows[0]?.teachingSubject ?? "",
+          teachingSubject:
+            (
+              await db().query(
+                'SELECT "teachingSubject" FROM "user" WHERE id=$1',
+                [owner],
+              )
+            ).rows[0]?.teachingSubject ?? "",
           email: session.user.email,
-          stats: (await db().query(`SELECT
+          stats: (
+            await db().query(
+              `SELECT
             (SELECT count(*)::int FROM plans WHERE owner_id=$1 AND deleted_at IS NULL) AS "planCount",
             (SELECT count(*)::int FROM plans WHERE owner_id=$1 AND deleted_at IS NULL AND status='review') AS "reviewCount",
-            (SELECT count(*)::int FROM exports e JOIN generations g ON g.id=e.generation_id WHERE e.owner_id=$1 AND e.deleted_at IS NULL AND g.deleted_at IS NULL AND e.status='succeeded') AS "documentCount"`,[owner])).rows[0],
+            (SELECT count(*)::int FROM exports e JOIN generations g ON g.id=e.generation_id WHERE e.owner_id=$1 AND e.deleted_at IS NULL AND g.deleted_at IS NULL AND e.status='succeeded') AS "documentCount"`,
+              [owner],
+            )
+          ).rows[0],
           limits: { daily: env().DAILY_AI_LIMIT },
           capabilities: {
             directUploads: env().DIRECT_UPLOADS === "true",
@@ -369,7 +377,7 @@ export async function handle(req: Request, path: string[]) {
       if (method === "PATCH") {
         const b = z
           .object({
-            name: z.string().min(1).max(100),
+            name: z.string().trim().min(1).max(100),
             teachingSubject: z.string().max(120).optional(),
             school: z.string().max(200),
             locale: z.enum(["kk", "ru"]),
@@ -391,101 +399,171 @@ export async function handle(req: Request, path: string[]) {
       }
     }
     if (resource === "uploads" && id === "init" && method === "POST") {
-      const b = z.object({ name: z.string().min(1).max(200), bytes: z.number().int().positive().max(env().MAX_UPLOAD_MB * 1024 * 1024) }).parse(await body(req));
+      const b = z
+        .object({
+          name: z.string().min(1).max(200),
+          bytes: z
+            .number()
+            .int()
+            .positive()
+            .max(env().MAX_UPLOAD_MB * 1024 * 1024),
+        })
+        .parse(await body(req));
       const extension = b.name.split(".").pop()?.toLowerCase();
-      const mimes: Record<string,string> = { pdf: "application/pdf", docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", xls: "application/vnd.ms-excel", xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" };
+      const mimes: Record<string, string> = {
+        pdf: "application/pdf",
+        docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        xls: "application/vnd.ms-excel",
+        xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      };
       if (!extension || !mimes[extension]) throw new AppError("FILE_TYPE", 415);
-      const uploadId = randomUUID(), key = `quarantine/${owner}/${uploadId}.${extension}`;
+      const uploadId = randomUUID(),
+        key = `quarantine/${owner}/${uploadId}.${extension}`;
       await transaction(async (c) => {
-        await c.query("SELECT pg_advisory_xact_lock(hashtext($1))", [owner + ":storage"]);
-        const alive = await c.query('SELECT 1 FROM "user" u LEFT JOIN profiles p ON p.owner_id=u.id WHERE u.id=$1 AND p.deleted_at IS NULL FOR UPDATE OF u', [owner]);
-        if (!alive.rowCount) throw new AppError("UNAUTHORIZED",401);
-        const usage = (await c.query("SELECT COALESCE(sum(bytes),0)::bigint AS bytes,count(*)::int AS count FROM uploads WHERE owner_id=$1 AND deleted_at IS NULL",[owner])).rows[0];
-        if (Number(usage.bytes)+b.bytes>500*1024*1024 || usage.count>=100) throw new AppError("LIMIT",429);
-        await c.query("INSERT INTO uploads(id,owner_id,object_key,original_name,mime,bytes,checksum,scan_status,status) VALUES($1,$2,$3,$4,$5,$6,'','pending','pending')", [uploadId,owner,key,b.name,mimes[extension],b.bytes]);
+        await c.query("SELECT pg_advisory_xact_lock(hashtext($1))", [
+          owner + ":storage",
+        ]);
+        const alive = await c.query(
+          'SELECT 1 FROM "user" u LEFT JOIN profiles p ON p.owner_id=u.id WHERE u.id=$1 AND p.deleted_at IS NULL FOR UPDATE OF u',
+          [owner],
+        );
+        if (!alive.rowCount) throw new AppError("UNAUTHORIZED", 401);
+        const usage = (
+          await c.query(
+            "SELECT COALESCE(sum(bytes),0)::bigint AS bytes,count(*)::int AS count FROM uploads WHERE owner_id=$1 AND deleted_at IS NULL",
+            [owner],
+          )
+        ).rows[0];
+        if (
+          Number(usage.bytes) + b.bytes > 500 * 1024 * 1024 ||
+          usage.count >= 100
+        )
+          throw new AppError("LIMIT", 429);
+        await c.query(
+          "INSERT INTO uploads(id,owner_id,object_key,original_name,mime,bytes,checksum,scan_status,status) VALUES($1,$2,$3,$4,$5,$6,'','pending','pending')",
+          [uploadId, owner, key, b.name, mimes[extension], b.bytes],
+        );
       });
       try {
-        return json({ id: uploadId, url: await signedUpload(key,b.bytes,mimes[extension]), contentType: mimes[extension], expiresIn:300 },201);
+        return json(
+          {
+            id: uploadId,
+            url: await signedUpload(key, b.bytes, mimes[extension]),
+            contentType: mimes[extension],
+            expiresIn: 300,
+          },
+          201,
+        );
       } catch (error) {
-        await db().query("DELETE FROM uploads WHERE id=$1 AND status='pending'",[uploadId]);
+        await db().query(
+          "DELETE FROM uploads WHERE id=$1 AND status='pending'",
+          [uploadId],
+        );
         throw error;
       }
     }
-    if (resource === "uploads" && id && action === "complete" && method === "POST") {
-      const file = await owned("uploads",id,owner);
-      if (file.status === "complete") return json({id});
-      if (file.status !== "pending" || Date.now()-new Date(file.created_at).getTime()>15*60*1000) throw new AppError("CONFLICT",409);
+    if (
+      resource === "uploads" &&
+      id &&
+      action === "complete" &&
+      method === "POST"
+    ) {
+      const file = await owned("uploads", id, owner);
+      if (file.status === "complete") return json({ id });
+      if (
+        file.status !== "pending" ||
+        Date.now() - new Date(file.created_at).getTime() > 15 * 60 * 1000
+      )
+        throw new AppError("CONFLICT", 409);
       const meta = await objectMetadata(file.object_key);
-      if (meta.ContentLength !== Number(file.bytes) || meta.ContentType !== file.mime) throw new AppError("FILE_INVALID",422);
-      const result = await db().query("UPDATE uploads SET status='complete' WHERE id=$1 AND owner_id=$2 AND status='pending' AND deleted_at IS NULL RETURNING id",[id,owner]);
-      if (!result.rowCount) throw new AppError("CONFLICT",409);
-      return json({id});
+      if (
+        meta.ContentLength !== Number(file.bytes) ||
+        meta.ContentType !== file.mime
+      )
+        throw new AppError("FILE_INVALID", 422);
+      const result = await db().query(
+        "UPDATE uploads SET status='complete' WHERE id=$1 AND owner_id=$2 AND status='pending' AND deleted_at IS NULL RETURNING id",
+        [id, owner],
+      );
+      if (!result.rowCount) throw new AppError("CONFLICT", 409);
+      return json({ id });
     }
     if (resource === "uploads" && method === "POST" && !id) {
-      if (env().DIRECT_UPLOADS === "true") throw new AppError("FILE_INVALID",400);
-      const form = await req.formData();
-      const file = form.get("file");
-      if (!(file instanceof File)) throw new AppError("FILE_INVALID", 400);
-      if (!file.size || file.size > env().MAX_UPLOAD_MB * 1024 * 1024)
-        throw new AppError("FILE_SIZE", 413);
-      const usage = await db().query(
-        "SELECT COALESCE(sum(bytes),0)::bigint AS bytes,count(*)::int AS count FROM uploads WHERE owner_id=$1 AND deleted_at IS NULL",
-        [owner],
-      );
-      if (
-        Number(usage.rows[0].bytes) + file.size > 500 * 1024 * 1024 ||
-        usage.rows[0].count >= 100
-      )
-        throw new AppError("LIMIT", 429);
-      const bytes = Buffer.from(await file.arrayBuffer());
-      const type = await inspectFile(bytes, file.name);
-      const uploadId = randomUUID();
-      const key = `${owner}/uploads/${uploadId}.${type.ext}`;
-      await putObject(key, bytes, type.mime);
-      try {
-        await transaction(async (c) => {
-          await c.query("SELECT pg_advisory_xact_lock(hashtext($1))", [
-            owner + ":storage",
-          ]);
-          const current = await c.query(
-            "SELECT COALESCE(sum(bytes),0)::bigint AS bytes,count(*)::int AS count FROM uploads WHERE owner_id=$1 AND deleted_at IS NULL",
-            [owner],
-          );
-          if (
-            Number(current.rows[0].bytes) + file.size > 500 * 1024 * 1024 ||
-            current.rows[0].count >= 100
-          )
-            throw new AppError("LIMIT", 429);
-          const alive = await c.query(
-            'SELECT 1 FROM "user" u LEFT JOIN profiles p ON p.owner_id=u.id WHERE u.id=$1 AND p.deleted_at IS NULL FOR UPDATE OF u',
-            [owner],
-          );
-          if (!alive.rowCount) throw new AppError("UNAUTHORIZED", 401);
-          await c.query(
-            "INSERT INTO uploads(id,owner_id,object_key,original_name,mime,bytes,checksum,scan_status) VALUES($1,$2,$3,$4,$5,$6,$7,$8)",
-            [
-              uploadId,
-              owner,
-              key,
-              file.name.slice(0, 200),
-              type.mime,
-              bytes.length,
-              createHash("sha256").update(bytes).digest("hex"),
-              env().SCAN_REQUIRED === "true"
-                ? "clean"
-                : "unscanned-development",
-            ],
-          );
-        });
-      } catch (e) {
-        await deleteObject(key);
-        throw e;
-      }
-      return json({ id: uploadId, name: file.name }, 201);
+      if (env().DIRECT_UPLOADS === "true")
+        throw new AppError("FILE_INVALID", 400);
+      return await withUploadCapacity(async () => {
+        const bounded = await boundedRequest(
+          req,
+          (env().MAX_UPLOAD_MB + 1) * 1024 * 1024,
+        );
+        const form = await bounded.formData();
+        const file = form.get("file");
+        if (!(file instanceof File)) throw new AppError("FILE_INVALID", 400);
+        if (!file.size || file.size > env().MAX_UPLOAD_MB * 1024 * 1024)
+          throw new AppError("FILE_SIZE", 413);
+        const usage = await db().query(
+          "SELECT COALESCE(sum(bytes),0)::bigint AS bytes,count(*)::int AS count FROM uploads WHERE owner_id=$1 AND deleted_at IS NULL",
+          [owner],
+        );
+        if (
+          Number(usage.rows[0].bytes) + file.size > 500 * 1024 * 1024 ||
+          usage.rows[0].count >= 100
+        )
+          throw new AppError("LIMIT", 429);
+        const bytes = Buffer.from(await file.arrayBuffer());
+        const type = await inspectFile(bytes, file.name);
+        const uploadId = randomUUID();
+        const key = `${owner}/uploads/${uploadId}.${type.ext}`;
+        await putObject(key, bytes, type.mime);
+        try {
+          await transaction(async (c) => {
+            await c.query("SELECT pg_advisory_xact_lock(hashtext($1))", [
+              owner + ":storage",
+            ]);
+            const current = await c.query(
+              "SELECT COALESCE(sum(bytes),0)::bigint AS bytes,count(*)::int AS count FROM uploads WHERE owner_id=$1 AND deleted_at IS NULL",
+              [owner],
+            );
+            if (
+              Number(current.rows[0].bytes) + file.size > 500 * 1024 * 1024 ||
+              current.rows[0].count >= 100
+            )
+              throw new AppError("LIMIT", 429);
+            const alive = await c.query(
+              'SELECT 1 FROM "user" u LEFT JOIN profiles p ON p.owner_id=u.id WHERE u.id=$1 AND p.deleted_at IS NULL FOR UPDATE OF u',
+              [owner],
+            );
+            if (!alive.rowCount) throw new AppError("UNAUTHORIZED", 401);
+            await c.query(
+              "INSERT INTO uploads(id,owner_id,object_key,original_name,mime,bytes,checksum,scan_status) VALUES($1,$2,$3,$4,$5,$6,$7,$8)",
+              [
+                uploadId,
+                owner,
+                key,
+                file.name.slice(0, 200),
+                type.mime,
+                bytes.length,
+                createHash("sha256").update(bytes).digest("hex"),
+                env().SCAN_REQUIRED === "true"
+                  ? "clean"
+                  : "unscanned-development",
+              ],
+            );
+          });
+        } catch (e) {
+          await deleteObject(key);
+          throw e;
+        }
+        return json({ id: uploadId, name: file.name }, 201);
+      });
     }
     if (resource === "uploads" && id && method === "GET") {
       const f = await owned("uploads", id, owner);
-      if (!["clean", "unscanned-development"].includes(f.scan_status) || f.status !== "complete") throw new AppError("CONFLICT",409);
+      if (
+        !["clean", "unscanned-development"].includes(f.scan_status) ||
+        f.status !== "complete"
+      )
+        throw new AppError("CONFLICT", 409);
       const bytes = await getObject(f.object_key);
       return new Response(new Uint8Array(bytes), {
         headers: {
@@ -504,7 +582,8 @@ export async function handle(req: Request, path: string[]) {
         })
         .parse(await body(req));
       const f = await owned("uploads", b.uploadId, owner);
-      if (f.status !== "complete" || f.scan_status === "rejected") throw new AppError("CONFLICT",409);
+      if (f.status !== "complete" || f.scan_status === "rejected")
+        throw new AppError("CONFLICT", 409);
       const result = await transaction(async (c) => {
         await c.query("SELECT pg_advisory_xact_lock(hashtext($1))", [
           b.uploadId,
@@ -545,14 +624,20 @@ export async function handle(req: Request, path: string[]) {
         (
           await db().query(
             "SELECT id,title,grade,school_year,locale,status,revision,created_at FROM plans WHERE owner_id=$1 AND deleted_at IS NULL AND title ILIKE $2 ORDER BY created_at DESC LIMIT $3 OFFSET $4",
-            [owner, `%${url.searchParams.get("q") ?? ""}%`, limit, offset],
+            [
+              owner,
+              `%${(url.searchParams.get("q") ?? "").slice(0, 200)}%`,
+              limit,
+              offset,
+            ],
           )
         ).rows,
       );
     if (resource === "ktp" && id && action === "preview" && method === "GET") {
       const plan = await owned("plans", id, owner);
       const file = await owned("uploads", plan.file_id, owner);
-      if (!["clean","unscanned-development"].includes(file.scan_status)) throw new AppError("CONFLICT",409);
+      if (!["clean", "unscanned-development"].includes(file.scan_status))
+        throw new AppError("CONFLICT", 409);
       if (file.mime !== "application/pdf") throw new AppError("FILE_TYPE", 415);
       const page = z.coerce
         .number()
@@ -671,9 +756,23 @@ export async function handle(req: Request, path: string[]) {
           );
           const row = cancelled.rows[0];
           if (row?.status === "cancelled") {
-            await c.query("UPDATE usage_ledger SET state='released' WHERE job_id=$1 AND state='reserved'", [id]);
-            const table = row.kind === "import" ? "plans" : row.kind === "generate" ? "generations" : row.kind === "export" ? "exports" : null;
-            if (table) await c.query(`UPDATE ${table} SET status='cancelled' WHERE id=$1 AND owner_id=$2 AND deleted_at IS NULL`, [row.resource_id, owner]);
+            await c.query(
+              "UPDATE usage_ledger SET state='released' WHERE job_id=$1 AND state='reserved'",
+              [id],
+            );
+            const table =
+              row.kind === "import"
+                ? "plans"
+                : row.kind === "generate"
+                  ? "generations"
+                  : row.kind === "export"
+                    ? "exports"
+                    : null;
+            if (table)
+              await c.query(
+                `UPDATE ${table} SET status='cancelled' WHERE id=$1 AND owner_id=$2 AND deleted_at IS NULL`,
+                [row.resource_id, owner],
+              );
           }
         });
         return json({ cancelRequested: true });
@@ -733,7 +832,13 @@ export async function handle(req: Request, path: string[]) {
             ? row.objectiveCodes
             : ["manual"],
           grade: plan.grade,
-          subject: (await c.query('SELECT "teachingSubject" FROM "user" WHERE id=$1', [owner])).rows[0]?.teachingSubject || "general",
+          subject:
+            (
+              await c.query(
+                'SELECT "teachingSubject" FROM "user" WHERE id=$1',
+                [owner],
+              )
+            ).rows[0]?.teachingSubject || "general",
           locale: b.locale,
           count: b.count,
           minutes: b.minutes,
@@ -903,7 +1008,11 @@ export async function handle(req: Request, path: string[]) {
         .parse(await body(req));
       const g = await currentGeneration(b.generationId, owner, b.revision);
       if (!g.document) throw new AppError("NOT_FOUND", 404);
-      if (b.teacherReviewed && validateDocument(g.document,g.source_snapshot).issues.length) throw new AppError("REVIEW_REQUIRED",422);
+      if (
+        b.teacherReviewed &&
+        validateDocument(g.document, g.source_snapshot).issues.length
+      )
+        throw new AppError("REVIEW_REQUIRED", 422);
       const key = uid.parse(req.headers.get("idempotency-key"));
       const result = await transaction(async (c) => {
         await c.query("SELECT pg_advisory_xact_lock(hashtext($1))", [
@@ -937,7 +1046,16 @@ export async function handle(req: Request, path: string[]) {
         if (!locked.rowCount) throw new AppError("NOT_FOUND", 404);
         await c.query(
           "INSERT INTO exports(id,owner_id,generation_id,generation_version_id,format,audience,styles,teacher_reviewed) VALUES($1,$2,$3,$4,$5,$6,$7,$8)",
-          [eid, owner, g.id, g.versionId, b.format, b.audience, b.styles,b.teacherReviewed],
+          [
+            eid,
+            owner,
+            g.id,
+            g.versionId,
+            b.format,
+            b.audience,
+            b.styles,
+            b.teacherReviewed,
+          ],
         );
         return {
           id: eid,
@@ -969,7 +1087,7 @@ export async function handle(req: Request, path: string[]) {
       });
     }
     if (["history", "library"].includes(resource) && method === "GET") {
-      const q = `%${(url.searchParams.get("q") ?? "").slice(0,200)}%`;
+      const q = `%${(url.searchParams.get("q") ?? "").slice(0, 200)}%`;
       return json(
         resource === "history"
           ? (

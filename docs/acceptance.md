@@ -1,6 +1,14 @@
 # Приёмка ZiyatAI
 
-## Обновление 16 октября: исправления по обратной связи
+## Утренняя переработка 16 октября
+
+Интерфейс перестроен на лесные/бумажные тона и локальный Onest. Общая валидация форм заменяет браузерные всплывающие сообщения; выбор файла, пароль, подтверждения, фильтры КТП, интерактивный образец, отмена передачи и отзыв других сессий доступны в новом кабинете. Формы выделены в отдельные модули. Lite сохраняет ES5 и системный шрифт. [Решения по архитектуре](adr/003_interface_and_demo.md).
+
+Новый ключ OpenAI проверен и подключён к локальным web/worker. [Живой сценарий](reports/live-workflow.json) включает математический план, три уровня, замену одного задания с сохранением остальных и DOCX/PDF. [Три дополнительные проверки](reports/live-subjects.json): математика RU, биология KK, математика KK+RU. Схема ограничивает число заданий и привязывает ответ к snapshot; валидатор проверяет время отдельно по уровню. Полный корпус 36 примеров и педагогическая экспертиза не заявляются пройденными.
+
+Новые границы безопасности: случайный CSP nonce для каждого HTML ответа, отсутствие script unsafe-inline/eval в production, фактические лимиты streamed JSON/auth/multipart, два буферизуемых multipart на web процесс, регистронезависимая проверка XML и ограничение HTTP тела renderer. [Отрицательные HTTP проверки renderer](reports/renderer-boundary.json) прошли. Внешняя почта, публичный HTTPS адрес и production эксплуатация остаются незавершёнными.
+
+## Предыдущий прогон 16 октября до утренней переработки
 
 Переработан интерфейс: белый/светло-серый фон, Inter с казахскими буквами, без синего/фиолетового и градиентов; убран «Шолу/Обзор». Боковая панель сворачивается, помощь/Lite/профиль перенесены вправо вверх. Добавлены юридические страницы; реквизиты оператора и условия production ещё требуют заполнения.
 
@@ -12,11 +20,11 @@
 
 Дополнительно прошли 8 WebKit сценариев, включая регистрацию с кодом и сенсорные phone/tablet, и повтор настоящего Firefox ESR 115 win32. Сводный [отчёт этой переработки](reports/revision-2026-10-16.json) связывает проверки с application commit и image IDs. WebKit на Windows — не физический iPhone/iPad; текущий Windows с Firefox 115 — не физическая Windows 7.
 
-Ниже сохранены исходные критерии и границы приёмки. Полный production Definition of Done по-прежнему не достигнут: публичного URL, внешней почты, live AI и педагогической экспертизы нет.
+Ниже сохранены исходные критерии и границы приёмки. Полный production Definition of Done по-прежнему не достигнут: публичного URL, внешней почты и педагогической экспертизы нет.
 
 Обновлено 15 октября 2026 года, Asia/Qyzylorda. Доступный сайт: http://localhost:3000, облегчённый интерфейс: http://localhost:3000/lite/. Окружение — локальный Windows компьютер с Linux Docker контейнерами. Публичный staging/production URL отсутствует. Точный передаваемый commit — `git rev-parse HEAD`.
 
-Работают локально регистрация и подтверждение email в Mailpit, password reset, приватный импорт PDF/DOCX/XLS/XLSX и OCR сканов, исправление/подтверждение КТП, редактор synthetic заданий, версии, DOCX/PDF и student export, библиотека, сохранение после logout/login, запрет чужого доступа и удаление. Настоящий OpenAI backend реализован, но живой вызов не выполнен. Это частично проверенная реализация.
+Работают локально регистрация и подтверждение email в Mailpit, password reset, приватный импорт PDF/DOCX/XLS/XLSX и OCR сканов, исправление/подтверждение КТП, редактор заданий, версии, DOCX/PDF и student export, библиотека, сохранение после logout/login, запрет чужого доступа и удаление. Настоящий OpenAI проверен на ограниченных синтетических сценариях. Это частично проверенная реализация.
 
 ## Критерии
 
@@ -25,9 +33,9 @@
 | AC01 | Проверено локально; внешняя зависимость | Better Auth registration, verification и reset через Mailpit. Нужны HTTPS и реальная внешняя SMTP delivery. |
 | AC02 | Проверено локально на synthetic corpus | Все 4 формата, скан и mixed PDF через отдельный renderer. Нужны разрешённые реальные файлы и расширенная OCR оценка. |
 | AC03 | Проверено локально | Исправление, confirm, optimistic conflict, SQL DATE и persistence. Источник содержит fragment/page/sheet + исходный download; для PDF реализован приватный просмотр оригинальной страницы, для DOCX/Excel — исходный фрагмент таблицы. |
-| AC04 | Реализовано, заблокировано внешней зависимостью | Responses SDK/strict schema и kk/ru/kk+ru. Live OpenAI и eval не выполнены. |
+| AC04 | Проверено локально с живым OpenAI | Responses/strict schema и kk/ru/kk+ru на ограниченных synthetic примерах; полный corpus и педагогическая оценка ещё нужны. |
 | AC05 | Частично проверено локально | Rubric/points/references/duplicates/перевод чисел/простая арифметика; always needs_review. Семантическая и языковая педагогическая экспертиза не проведена. |
-| AC06 | Редактор/версии проверены локально | Редактирование/restore/stale validation; регенерация одного задания реализована, live roundtrip заблокирован. |
+| AC06 | Редактор/версии проверены локально | Редактирование/restore/stale validation; живая замена одного задания сохраняет соседние задания, IDs и уровень. |
 | AC07 | Проверено локально | OOXML, TNR 14, PDF, казахские символы, page break, student answers absent. Все 4 страницы representative export визуально просмотрены. Production fonts/exports ещё не проверены. |
 | AC08 | Проверено локально | Library/history, repeat download, logout/login, two-user 404 ACL. Поиск выполняется сервером по всей коллекции; UI показывает страницы по 20 записей. Источники КТП показываются по 25 строк, Lite — по 10. |
 | AC09 | Частично проверено локально | Lease recovery/idempotency/cancellation/quota и mock provider errors. Fault injection реального OpenAI и renderer outage на production не выполнены. |
@@ -35,9 +43,9 @@
 | AC11 | Локальный запуск; внешняя зависимость | Web, DB, S3, worker, renderer, antivirus, Mailpit. Local restore подтверждён. Public deploy/monitoring/backup schedule отсутствуют. |
 | AC12 | Проверено локально и на GitHub | Lockfile, 7 migrations, README, synthetic seed, Docker builds и CI. [GitHub Actions для 51bcea3](https://github.com/paifln/ziyatai/actions/runs/38781454807): test и integration — success. Исправлено глобальное правило lib/, которое скрывало серверные исходники от первого коммита; добавлена защита check:source и сборка из Git-архива. |
 
-Definition of Done из задания **не достигнута**: production URL и реальная AI генерация отсутствуют. Не следует выдавать local или mock результаты за production proof.
+Definition of Done из задания **не достигнута**: production URL и внешняя почта отсутствуют; педагогическая экспертиза не проведена. Не следует выдавать local или mock результаты за production proof.
 
-## Результаты проверок
+## Архив результатов до утренней переработки
 
 - TypeScript, ESLint и production Docker build проходят. Unit/provider/browser-contract/gateway tests: 52 passed, 9 файлов.
 - Parser pytest: 27 passed. [Цифровой отчёт](reports/parser.json): DOCX 15/15 строк и 75/75 полей; XLSX 12/12 и 60/60; XLS 6/6 и 30/30; PDF 6/6 и 30/30. Только synthetic samples, нормализация NFKC/whitespace.

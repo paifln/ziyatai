@@ -47,6 +47,7 @@ export function syntheticDemo(locale: "kk" | "ru") {
     goals,
     objectiveCodes: ["manual"],
     grade: 7,
+    subject: "informatics",
     locale,
     count: 3,
     minutes: 30,

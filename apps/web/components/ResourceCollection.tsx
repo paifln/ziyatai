@@ -1,4 +1,5 @@
 "use client";
+import { useConfirm } from "./ui/ConfirmProvider";
 import { useState, useEffect } from "react";
 import {
   Download,
@@ -39,6 +40,7 @@ export default function ResourceCollection({
   onCreate: () => void;
   refresh: () => Promise<void>;
 }) {
+  const confirm = useConfirm();
   const [query, setQuery] = useState("");
   const [search, setSearch] = useState("");
   const [offset, setOffset] = useState(0);
@@ -85,7 +87,7 @@ export default function ResourceCollection({
   );
   useResume(reload);
   async function remove(item: Material) {
-    if (!window.confirm(t.deleteConfirm)) return;
+    if (!(await confirm(t.deleteConfirm, { destructive: true }))) return;
     setRemoving(item.id);
     try {
       await api(
@@ -209,7 +211,14 @@ export default function ResourceCollection({
                       {item.format?.toUpperCase()} ·{" "}
                       {item.audience === "student" ? t.student : t.full} ·{" "}
                       {t.versions} {item.revision}
-                      {" · "}{item.teacher_reviewed ? (locale === "ru" ? "Проверено учителем" : "Мұғалім тексерді") : (locale === "ru" ? "Черновик" : "Жоба")}
+                      {" · "}
+                      {item.teacher_reviewed
+                        ? locale === "ru"
+                          ? "Проверено учителем"
+                          : "Мұғалім тексерді"
+                        : locale === "ru"
+                          ? "Черновик"
+                          : "Жоба"}
                     </small>
                   </div>
                 )}

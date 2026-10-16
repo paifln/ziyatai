@@ -21,7 +21,7 @@ function secureOrigin(value, name) {
 export function createNetlifyRouting(api, upload) {
   const apiOrigin = secureOrigin(api, "ZIYATAI_API_ORIGIN");
   const uploadOrigin = secureOrigin(upload, "UPLOAD_ORIGIN");
-  const csp = `default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' ${uploadOrigin}; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'`;
+  const csp = `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' ${uploadOrigin}; font-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'`;
   return {
     apiRedirect: {
       from: "/api/*",
@@ -31,7 +31,7 @@ export function createNetlifyRouting(api, upload) {
       signed: "NETLIFY_PROXY_SECRET",
     },
     redirects: `/lite /lite/index.html 200\n/lite/ /lite/index.html 200\n/help /help/index.html 200\n/help/ /help/index.html 200\n`,
-    headers: `/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: same-origin\n  X-Frame-Options: DENY\n  Permissions-Policy: camera=(), microphone=(), geolocation=()\n  Content-Security-Policy: ${csp}\n/lite/*\n  Cache-Control: public, max-age=0, must-revalidate\n`,
+    headers: `/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: same-origin\n  X-Frame-Options: DENY\n  Cross-Origin-Resource-Policy: same-origin\n  Cross-Origin-Opener-Policy: same-origin\n  Permissions-Policy: camera=(), microphone=(), geolocation=()\n  Content-Security-Policy: ${csp}\n/lite/*\n  Cache-Control: public, max-age=0, must-revalidate\n`,
   };
 }
 

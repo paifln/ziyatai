@@ -1,0 +1,67 @@
+{
+  "date": "2026-10-16T04:29:57.358Z",
+  "model": "gpt-5.4-mini",
+  "liveProvider": true,
+  "source": "Three synthetic subject scenarios; no owner workbook or personal data sent",
+  "publicDeployment": false,
+  "pedagogicalExpertReview": "not performed; teacher review still required",
+  "cases": [
+    {
+      "key": "math-ru",
+      "subject": "mathematics",
+      "grade": 6,
+      "locale": "ru",
+      "result": "passed",
+      "tasks": 3,
+      "levelCounts": {
+        "easy": 1,
+        "medium": 1,
+        "advanced": 1
+      },
+      "usage": {
+        "input_tokens": 1247,
+        "output_tokens": 878
+      },
+      "durationMs": 6315,
+      "documentSha256": "24edd001141c64f6c7466d5b55077cb2ccfca995b4aa01702380e744bbce19b3"
+    },
+    {
+      "key": "biology-kk",
+      "subject": "biology",
+      "grade": 7,
+      "locale": "kk",
+      "result": "passed",
+      "tasks": 3,
+      "levelCounts": {
+        "easy": 1,
+        "medium": 1,
+        "advanced": 1
+      },
+      "usage": {
+        "input_tokens": 1253,
+        "output_tokens": 1408
+      },
+      "durationMs": 8440,
+      "documentSha256": "03e03226f874cf0f681e3c8eb78299bf70c5c4a5f9e254ce4657336d1c2e4254"
+    },
+    {
+      "key": "math-bilingual",
+      "subject": "mathematics",
+      "grade": 5,
+      "locale": "kk+ru",
+      "result": "passed",
+      "tasks": 3,
+      "levelCounts": {
+        "easy": 1,
+        "medium": 1,
+        "advanced": 1
+      },
+      "usage": {
+        "input_tokens": 1256,
+        "output_tokens": 2403
+      },
+      "durationMs": 13250,
+      "documentSha256": "8e6f2dc435283958b7555f08d182a59efe646cac6061a4fa8a71e78fb303c087"
+    }
+  ]
+}

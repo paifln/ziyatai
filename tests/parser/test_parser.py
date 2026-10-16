@@ -69,3 +69,12 @@ def test_dtd_rejected_before_xml_parser_even_with_wide_encoding(tmp_path,encodin
  path=tmp_path/'xxe.docx'
  with zipfile.ZipFile(path,'w') as z:z.writestr('word/document.xml',('<!DOCTYPE document [<!ENTITY x SYSTEM "file:///etc/passwd">]><document>&x;</document>').encode(encoding))
  with pytest.raises(ValueError,match='FILE_INVALID'):parser.inspect(path)
+
+@pytest.mark.parametrize('suffix',['XML','RELS','Xml','Rels'])
+def test_mixed_case_xml_parts_cannot_bypass_external_relationship_checks(tmp_path,suffix):
+ import zipfile
+ path=tmp_path/'external.docx'
+ with zipfile.ZipFile(path,'w') as z:
+  z.writestr('word/document.xml','<document/>')
+  z.writestr('word/extra.'+suffix,'<Relationships><Relationship TargetMode="External" Target="https://example.invalid/"/></Relationships>')
+ with pytest.raises(ValueError,match='FILE_INVALID'):parser.inspect(path)
