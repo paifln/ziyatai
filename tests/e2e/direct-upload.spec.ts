@@ -1,6 +1,81 @@
 import { test, expect } from "@playwright/test";
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { verifiedUser, headers, jobDone } from "./helpers";
+
+test("active PDF content is rejected through multipart and stays quarantined after a signed upload", async ({
+  request,
+}) => {
+  await verifiedUser(request);
+  const bytes = await readFile("tests/fixtures/active-content.pdf");
+  const multipart = await request.post("/api/uploads", {
+    headers,
+    multipart: {
+      file: {
+        name: "active-content.pdf",
+        mimeType: "application/pdf",
+        buffer: bytes,
+      },
+    },
+  });
+  expect(multipart.status(), await multipart.text()).toBe(422);
+  expect((await multipart.json()).code).toBe("FILE_INVALID");
+  const initialized = await request.post("/api/uploads/init", {
+    headers,
+    data: { name: "active-content.pdf", bytes: bytes.length },
+  });
+  expect(initialized.status(), await initialized.text()).toBe(201);
+  const upload = await initialized.json();
+  expect(
+    (
+      await request.put(upload.url, {
+        headers: { "Content-Type": upload.contentType },
+        data: bytes,
+      })
+    ).ok(),
+  ).toBe(true);
+  expect(
+    (
+      await request.post(`/api/uploads/${upload.id}/complete`, {
+        headers,
+        data: {},
+      })
+    ).ok(),
+  ).toBe(true);
+  const imported = await request.post("/api/ktp/imports", {
+    headers,
+    data: { uploadId: upload.id, locale: "ru" },
+  });
+  expect(imported.status(), await imported.text()).toBe(202);
+  const jobId = (await imported.json()).jobId;
+  let job: any;
+  await expect
+    .poll(
+      async () => {
+        job = await (await request.get(`/api/jobs/${jobId}`)).json();
+        return job.status;
+      },
+      { timeout: 30000 },
+    )
+    .toBe("failed");
+  expect(job.error.code).toBe("FILE_INVALID");
+  expect((await request.get(`/api/uploads/${upload.id}`)).status()).toBe(409);
+  await writeFile(
+    "docs/reports/passive-pdf.json",
+    JSON.stringify(
+      {
+        checkedAt: new Date().toISOString(),
+        source:
+          "synthetic PDF with inert void(0) JavaScript name entry; no script was executed",
+        multipartRejected: true,
+        signedUploadRejectedBeforePublishing: true,
+        downloadDenied: true,
+        environment: "local compiled application and isolated renderer",
+      },
+      null,
+      2,
+    ) + "\n",
+  );
+});
 
 test("signed uploads bind size and owner, quarantine untrusted bytes and publish a separate scanned object", async ({
   request,
