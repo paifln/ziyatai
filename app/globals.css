@@ -235,8 +235,9 @@ input[type="checkbox"] {
   line-height: 1.4;
   text-align: center;
   text-decoration: none;
+  /* Theme colours change together; interpolating only the background briefly
+     makes the new text colour unreadable during a light/dark switch. */
   transition:
-    background 0.15s,
     border-color 0.15s,
     transform 0.15s;
 }
@@ -953,9 +954,7 @@ input[type="checkbox"] {
   border: 1px dashed #9fac95;
   background: #fbfcf7;
   border-radius: 12px;
-  transition:
-    background 0.18s,
-    border-color 0.18s;
+  transition: border-color 0.18s;
 }
 .dropzone.dragging {
   background: #e8f1df;
