@@ -119,7 +119,7 @@ export default function GenerationEditor({
   usePolling(
     async () => {
       try {
-        await refreshExports(true);
+        await refreshExports();
       } catch (e) {
         onError((e as Error).message);
       }
@@ -912,7 +912,7 @@ export default function GenerationEditor({
                 t={t}
                 locale={locale}
                 refresh={async () => {
-                  await refreshExports();
+                  await refreshExports(true);
                   await refresh();
                 }}
               />

@@ -3,6 +3,69 @@ import AxeBuilder from "@axe-core/playwright";
 import { randomUUID } from "node:crypto";
 import { headers, verifiedUser, jobDone } from "./helpers";
 
+test("export progress resumes polling after a cancelled job is retried (controlled job responses)", async ({
+  page,
+  request,
+}) => {
+  await verifiedUser(request);
+  const demo = await (
+    await request.post("/api/demo", { headers, data: { locale: "ru" } })
+  ).json();
+  const approved = await request.post(`/api/generations/${demo.id}/approve`, {
+    headers,
+    data: { revision: 1, teacherReviewed: true },
+  });
+  expect(approved.ok()).toBe(true);
+  const exportId = randomUUID(),
+    jobId = randomUUID();
+  let status = "queued",
+    reads = 0;
+  await page.route("**/api/exports", (route) =>
+    route.fulfill({ status: 202, json: { id: exportId, jobId } }),
+  );
+  await page.route(`**/api/jobs/${jobId}`, (route) => {
+    reads++;
+    return route.fulfill({
+      json: {
+        id: jobId,
+        kind: "export",
+        status,
+        stage: status === "succeeded" ? "done" : status,
+        attempt: 1,
+        cancelRequested: status === "cancelled",
+        result: status === "succeeded" ? { exportId } : null,
+      },
+    });
+  });
+  await page.route(`**/api/jobs/${jobId}/cancel`, (route) => {
+    status = "cancelled";
+    return route.fulfill({ json: { cancelRequested: true } });
+  });
+  await page.route(`**/api/jobs/${jobId}/retry`, (route) => {
+    status = "queued";
+    return route.fulfill({ status: 202, json: { jobId } });
+  });
+  await page.context().addCookies((await request.storageState()).cookies);
+  await page.goto(`/?generation=${demo.id}`);
+  await page.getByRole("button", { name: "РУС", exact: true }).click();
+  await page.getByRole("button", { name: "DOCX", exact: true }).click();
+  const progress = page.locator(".export-progress");
+  await progress.getByRole("button", { name: "Отменить", exact: true }).click();
+  await expect(progress.getByText("Отменено", { exact: true })).toBeVisible();
+  const readsBeforeRetry = reads;
+  await progress
+    .getByRole("button", { name: "Повторить", exact: true })
+    .click();
+  await expect.poll(() => reads).toBeGreaterThan(readsBeforeRetry);
+  status = "succeeded";
+  const download = progress.getByRole("link", { name: "Скачать", exact: true });
+  await expect(download).toBeVisible();
+  await expect(download).toHaveAttribute(
+    "href",
+    `/api/exports/${exportId}/download`,
+  );
+});
+
 test("guest introduction and both themes stay accessible on phones, tablets and desktops", async ({
   page,
   request,
