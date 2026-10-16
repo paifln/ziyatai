@@ -1,7 +1,7 @@
 {
   "localDate": "2026-10-16",
-  "applicationSourceCommit": "6dee156",
-  "fileSha256": "94ffef90430d0e1fd5609a7bed1487afab89a5bac6f6d167b31ed3d6d4b43b86",
+  "applicationSourceCommit": "1db586acc60a36f5f83565b1039e985633db17e0",
+  "fileSha256": "5eda109e67aa0e9f9fada3d4c9bc25c35fc3bfa7a3f9dcd47a07454b6c1077c0",
   "fileBytes": 238080,
   "sourceFileCommitted": false,
   "backendImportAndClassSelectionE2ePassed": true,
@@ -26,5 +26,9 @@
   "limitations": [
     "Eight source assessment rows have no learning goals and remain for manual review",
     "Missing dates and goals were not invented"
-  ]
+  ],
+  "previousReportFileSha256": "94ffef90430d0e1fd5609a7bed1487afab89a5bac6f6d167b31ed3d6d4b43b86",
+  "verifiedAt": "2026-10-16T05:40:50.327708+00:00",
+  "currentFileVerifiedThroughHttpAndUI": true,
+  "testSourceCommit": "6ab16b72c5c0303be3d68aae25723d9d88235ce6"
 }

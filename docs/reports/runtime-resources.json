@@ -1,0 +1,49 @@
+{
+  "checkedAt": "2026-10-16T05:39:16.210Z",
+  "scope": "One local Docker sample after browser/import/export checks; not peak memory, capacity or production sizing",
+  "services": [
+    {
+      "service": "ziyatai-runtime-web-1",
+      "cpu": "0.00%",
+      "memory": "105MiB / 1GiB",
+      "pids": "11"
+    },
+    {
+      "service": "ziyatai-runtime-worker-1",
+      "cpu": "0.12%",
+      "memory": "68.22MiB / 1GiB",
+      "pids": "11"
+    },
+    {
+      "service": "ziyatai-tools-renderer-1",
+      "cpu": "0.01%",
+      "memory": "76.53MiB / 1GiB",
+      "pids": "11"
+    },
+    {
+      "service": "ziyatai-tools-antivirus-1",
+      "cpu": "0.01%",
+      "memory": "1003MiB / 2GiB",
+      "pids": "5"
+    },
+    {
+      "service": "ziyatai-local-postgres-1",
+      "cpu": "3.46%",
+      "memory": "82.01MiB / 7.43GiB",
+      "pids": "10"
+    },
+    {
+      "service": "ziyatai-local-storage-1",
+      "cpu": "0.01%",
+      "memory": "28.76MiB / 7.43GiB",
+      "pids": "21"
+    },
+    {
+      "service": "ziyatai-local-mail-1",
+      "cpu": "0.00%",
+      "memory": "35.64MiB / 7.43GiB",
+      "pids": "15"
+    }
+  ],
+  "conclusion": "Antivirus alone exceeds the 0.5GB service memory limit of Railway Free; this complete unchanged stack is not claimed to fit that free tier."
+}

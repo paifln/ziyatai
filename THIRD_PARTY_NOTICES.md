@@ -18,6 +18,7 @@ Production npm dependency versions are locked in `package-lock.json`. `npm run l
 | Caddy, gosu and Go modules | Apache/BSD/MIT and individual module notices; generated THIRD-PARTY-NOTICES retained in custom proxy/PostgreSQL images |
 | Garage | AGPL, used only as the local S3 service; production uses separately provisioned S3 |
 | Windows fonts | Not distributed in repository or images; deployment operator supplies a legally licensed font directory |
+| Onest interface font | SIL Open Font License 1.1; local WOFF2 and full notice in [public/fonts](public/fonts/README.md) |
 
 PyMuPDF was removed from runtime, fixtures and QA scripts on 15 October 2026. PDF reading/rendering now uses PDFium and pdfplumber. [PDFium binding licenses](https://github.com/pypdfium2-team/pypdfium2), [LibreOffice licensing](https://www.libreoffice.org/about-us/licenses/).
 

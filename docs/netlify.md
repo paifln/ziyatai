@@ -1,10 +1,10 @@
 # Netlify для ZiyatAI
 
-Выбор на 15 октября 2026 года: **Netlify для интерфейса, отдельный контейнерный сервер для API и фоновой обработки**. Публичный deploy ещё не выполнен. Конфигурация подготовлена; аккаунт, DNS и production-провайдеры не подключены.
+Выбор повторно проверен 16 октября 2026 года: **Netlify для интерфейса, отдельный контейнерный сервер для API и фоновой обработки**. Публичный deploy ещё не выполнен. Конфигурация подготовлена; аккаунт, DNS и production-провайдеры не подключены.
 
 `npm run build:netlify` проверен из отдельного Git-архива с чистым npm install и только двумя несекретными HTTPS origins. Это подтверждает сборку без credentials БД/S3/SMTP/AI, но не интеграцию с реальным Netlify аккаунтом и backend.
 
-[Полная offline упаковка](reports/netlify-build.json) через Netlify CLI 27.12.1 и OpenNext adapter 5.16.2 также завершилась `Netlify Build Complete`, включая подписанный proxy plugin и function bundle. Использованы синтетические origins/ключ подписи, публикации не было. Linux упаковка проверяется отдельным шагом GitHub Actions; локальный отчёт не является проверкой TLS/DNS или Windows 7.
+[Полная offline упаковка на Linux](reports/netlify-build.json) через Netlify CLI 27.12.1 и OpenNext adapter 5.16.2 проходит в GitHub Actions, включая подписанный proxy plugin и function/edge bundles. Используются синтетические origins/ключ подписи, публикации нет. Утренний локальный Windows-прогон с Next proxy прошёл компиляцию, но завершился ошибкой путей адаптера при edge упаковке (`webpack-runtime.js`); этот результат не объявляется успешным deploy. Для Netlify используйте сборку из GitHub/Linux. Настоящие TLS/DNS/ingress ещё требуют staging проверки.
 
 ## Почему Netlify
 
@@ -50,6 +50,8 @@ UPLOAD_ORIGIN=https://s3.ваш-провайдер
 Дополнительно задайте `NETLIFY_PROXY_SECRET` в scope **Runtime** (или All, если тариф не разделяет scopes). Значение совпадает с backend, но никогда не подставляется в frontend или routing files. Не переносите сюда AUTH_SECRET/DB/S3/SMTP/OpenAI credentials.
 
 Подготовка сборки отклоняет пустые origins, HTTP, credentials, path/query/hash. Она генерирует статические `_redirects` и `_headers` без секретов. API rule добавляет локальный `infra/netlify-proxy` build plugin через `netlifyConfig`: `/api/*` → backend, force=true, signed=`NETLIFY_PROXY_SECRET`. Сама подпись создаётся Netlify в Runtime, а в конфигурацию попадает только имя переменной. [Signed proxy](https://docs.netlify.com/manage/routing/redirects/rewrites-proxies/#signed-proxy-redirects), [Build plugin API](https://docs.netlify.com/extend/develop-and-share/develop-build-plugins/).
+
+Статический `_headers` защищает Lite и assets. Для динамического HTML nonce и CSP возвращает Next proxy; один nonce не сохраняется в общей HTML сборке. По [правилам Netlify](https://docs.netlify.com/manage/routing/headers/) статические header rules не применяются к SSR/functions/proxy ответам. На настоящем staging проверьте случайность nonce, наличие его на Next scripts и Cache-Control private/no-store; offline packaging не доказывает поведение CDN.
 
 Backend проверяет HS256, issuer, срок, Netlify site ID и production context. Только после этого он доверяет `x-nf-client-connection-ip` для лимита входа; произвольный клиентский IP заголовок заменяется. Неподписанные запросы к auth/business API отвергаются. Это предотвращает общий лимит всех учителей на IP одного proxy узла. Health остаётся доступен мониторингу. [Локальная HTTP проверка](reports/netlify-gateway.json) использует синтетические подписи; реальные Netlify headers ещё нужно проверить на staging.
 

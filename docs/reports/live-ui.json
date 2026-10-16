@@ -1,0 +1,12 @@
+{
+  "checkedAt": "2026-10-16T04:56:52.386Z",
+  "source": "synthetic private plan; real browser form and live OpenAI worker",
+  "subject": "mathematics",
+  "taskCount": 3,
+  "minutesPerLevel": 15,
+  "model": "gpt-5.4-mini",
+  "durationMs": 10312,
+  "uiSubmitted": true,
+  "realWorkerCompleted": true,
+  "pedagogicalExpertReview": "not performed"
+}

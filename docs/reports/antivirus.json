@@ -2,5 +2,8 @@
   "engine": "ClamAV 1.4.6",
   "cleanDocxAccepted": true,
   "standardEicarTestRejected": true,
-  "scope": "local TCP INSTREAM adapter; harmless standard test signature"
+  "scope": "local TCP INSTREAM adapter; harmless standard test signature",
+  "checkedAt": "2026-10-16T04:58:25.335Z",
+  "scannerUnavailableRejected": true,
+  "outageScope": "Local adapter connected to a deliberately closed ephemeral TCP port; running antivirus service was not stopped"
 }

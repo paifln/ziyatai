@@ -1,0 +1,114 @@
+{
+  "checkedAt": "2026-10-16T05:40:50.327708+00:00",
+  "applicationRuntimeSourceCommit": "1db586acc60a36f5f83565b1039e985633db17e0",
+  "configurationAndTestSourceCommit": "6ab16b72c5c0303be3d68aae25723d9d88235ce6",
+  "environment": "Local Windows host, compiled Linux Docker services; no public deployment",
+  "images": {
+    "web": "sha256:2c7b17dff05a72890bb8210cbef9a14f6d1071d2d99ebe73d449e2d4acf8fbdc",
+    "worker": "sha256:63e3516f25f4f71aa53520aa30f8504dc129f3334db019dfed24dcf547463f13",
+    "renderer": "sha256:fc1aeece104dc1dd69f4b259db53bdeeeb901dc66e0707febfbbf59d763848ec",
+    "postgres": "sha256:b39ade90fa059d268f50fc0e1c1520daa2aa960610428e338d9497d5a237a7c9"
+  },
+  "localChecks": {
+    "unit": 64,
+    "parser": 38,
+    "chromium": 30,
+    "webkit": 14,
+    "actualFirefox": "115.40.0 win32 on current Windows",
+    "chromiumCases": [
+      "tests\\e2e\\design.spec.ts:42:1 › password reset links work while already signed in in both interfaces",
+      "tests\\e2e\\design.spec.ts:131:1 › large plans and assignment tables keep a bounded DOM and preserve edits across pages",
+      "tests\\e2e\\design.spec.ts:317:1 › older-browser user agents reach Lite before depending on React",
+      "tests\\e2e\\design.spec.ts:334:1 › idle workspace does not poll business APIs and auth responses forbid shared caching",
+      "tests\\e2e\\design.spec.ts:357:1 › both sign-in experiences are accessible and fit phones, tablets and desktops",
+      "tests\\e2e\\design.spec.ts:383:1 › workspace stays readable on small screens and protects unsaved edits",
+      "tests\\e2e\\design.spec.ts:484:1 › lite imports, confirms, paginates and exports without loading React",
+      "tests\\e2e\\direct-upload.spec.ts:5:1 › active PDF content is rejected through multipart and stays quarantined after a signed upload",
+      "tests\\e2e\\direct-upload.spec.ts:80:1 › signed uploads bind size and owner, quarantine untrusted bytes and publish a separate scanned object",
+      "tests\\e2e\\direct-upload.spec.ts:170:1 › a fake document uploaded through a valid signature never becomes downloadable",
+      "tests\\e2e\\full-flow.spec.ts:5:1 › all formats, review, versions, exports, private ACL and persistence",
+      "tests\\e2e\\full-flow.spec.ts:201:1 › password reset uses delivered email and invalidates the old password",
+      "tests\\e2e\\revision.spec.ts:7:1 › registration verifies a one-time email code and stores the selected subject",
+      "tests\\e2e\\revision.spec.ts:94:1 › owner supplied workbook retains every sheet and can be separated by class",
+      "tests\\e2e\\revision.spec.ts:158:1 › upload can be cancelled during a stalled transfer",
+      "tests\\e2e\\security.spec.ts:7:1 › chunked JSON is bounded and teacher review cannot bypass invalid scoring",
+      "tests\\e2e\\security.spec.ts:69:1 › negative uploads, idempotent exports, cancellation and deletion revoke access",
+      "tests\\e2e\\security.spec.ts:130:1 › scanned and mixed PDFs preserve page provenance and flag OCR",
+      "tests\\e2e\\ui.spec.ts:38:5 › desktop › teacher UI imports a file, confirms rows, edits a task and downloads an export",
+      "tests\\e2e\\ui.spec.ts:38:5 › phone › teacher UI imports a file, confirms rows, edits a task and downloads an export",
+      "tests\\e2e\\ui.spec.ts:38:5 › tablet › teacher UI imports a file, confirms rows, edits a task and downloads an export",
+      "tests\\e2e\\usability.spec.ts:6:1 › generation controls remain labelled with topic search and submit the selected lesson parameters",
+      "tests\\e2e\\usability.spec.ts:102:1 › forms explain missing values without browser validation popups and can reveal passwords",
+      "tests\\e2e\\usability.spec.ts:164:1 › the lesson sample is keyboard accessible and language changes preserve the form",
+      "tests\\e2e\\usability.spec.ts:190:1 › file picker validates immediately, supports replacement and removal, and fits small screens",
+      "tests\\e2e\\usability.spec.ts:247:1 › plan filters have an empty result state and deletion requires the custom dialog",
+      "tests\\e2e\\usability.spec.ts:295:1 › auth rejects excessive bodies before authentication and publishes isolation headers",
+      "tests\\e2e\\usability.spec.ts:312:1 › each page receives a fresh CSP nonce and an untrusted inline script cannot run",
+      "tests\\e2e\\usability.spec.ts:368:1 › Lite uses custom field errors, a working password reveal and persistent legal links",
+      "tests\\e2e\\usability.spec.ts:389:1 › profile preserves unsaved changes and can revoke other devices without signing out this one"
+    ],
+    "typecheck": "passed",
+    "eslint": "passed",
+    "npmAudit": "0 vulnerabilities",
+    "secretScan": "passed"
+  },
+  "liveAI": {
+    "model": "gpt-5.4-mini",
+    "preparedCorpus": 36,
+    "extraAgeCases": 2,
+    "automaticChecksPassed": 38,
+    "complete": true,
+    "estimatedUsd": 0.619606,
+    "realBrowserSubmit": true,
+    "regenerationAndExports": true,
+    "teacherExpertReview": "not performed"
+  },
+  "databaseUpgrade": {
+    "allPublicTablesVerified": 19,
+    "oldVolumePreserved": true,
+    "unicodeSearchVerified": true,
+    "beforeHighCritical": 87,
+    "afterHighCritical": 0
+  },
+  "security": {
+    "runningAppImagesMatchScans": true,
+    "highCriticalFindingsInSixScannedImages": 0,
+    "rendererMediumFindings": 50,
+    "independentPentest": "not performed"
+  },
+  "ci": {
+    "sourceCommit": "6ab16b72c5c0303be3d68aae25723d9d88235ce6",
+    "runUrl": "https://github.com/paifln/ziyatai/actions/runs/38855707263",
+    "status": "completed",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "name": "integration",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "test",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "urls": {
+    "app": "http://localhost:3000",
+    "lite": "http://localhost:3000/lite/",
+    "localMailbox": "http://localhost:8025"
+  },
+  "remaining": [
+    "Public HTTPS hosting and real ingress validation",
+    "External email provider and delivered verification/reset messages",
+    "Operator identity, privacy terms and deployment-region review",
+    "Teacher pedagogical review; physical school PCs and iOS devices"
+  ],
+  "limitations": [
+    "AI checks are structural; they do not establish full factual, curricular or pedagogical correctness",
+    "Performance is a laboratory slowdown simulation, not a physical Windows 7 test",
+    "Local Mailpit is not external delivery",
+    "Known renderer MEDIUM advisories remain documented; a clean scan is not a security guarantee"
+  ]
+}

@@ -2,11 +2,15 @@
 
 ## Утренняя переработка 16 октября
 
+Полный итоговый прогон: **64 unit, 38 parser, 30 Chromium E2E, 14 WebKit E2E** и настоящий Firefox ESR 115. После логического переноса БД все **30 Chromium сценариев повторно прошли**; существующая сессия и её планы сохранились. [Утренний отчёт](reports/morning-2026-10-16.json) фиксирует исходники, image IDs и CI. Физические Windows 7/iPhone/iPad не проверялись.
+
 Интерфейс перестроен на лесные/бумажные тона и локальный Onest. Общая валидация форм заменяет браузерные всплывающие сообщения; выбор файла, пароль, подтверждения, фильтры КТП, интерактивный образец, отмена передачи и отзыв других сессий доступны в новом кабинете. Формы выделены в отдельные модули. Lite сохраняет ES5 и системный шрифт. [Решения по архитектуре](adr/003_interface_and_demo.md).
 
-Новый ключ OpenAI проверен и подключён к локальным web/worker. [Живой сценарий](reports/live-workflow.json) включает математический план, три уровня, замену одного задания с сохранением остальных и DOCX/PDF. [Три дополнительные проверки](reports/live-subjects.json): математика RU, биология KK, математика KK+RU. Схема ограничивает число заданий и привязывает ответ к snapshot; валидатор проверяет время отдельно по уровню. Полный корпус 36 примеров и педагогическая экспертиза не заявляются пройденными.
+Новый ключ OpenAI проверен и подключён к локальным web/worker. [Живой сценарий](reports/live-workflow.json) включает математический план, три уровня, замену одного задания с сохранением остальных и DOCX/PDF; [настоящая кнопка создания](reports/live-ui.json) также проверена в браузере. [Три предметные проверки](reports/live-subjects.json): математика RU, биология KK, математика KK+RU. [Оценка модели](reports/live-evaluation.json): 36 подготовленных synthetic сценариев информатики для 5–10 классов и два дополнительных примера для 1 и 11 классов — **38/38 прошли автоматические структурные проверки**. Это не педагогическая экспертиза. Схема ограничивает число заданий и привязывает ответ к snapshot; валидатор проверяет время отдельно по уровню.
 
 Новые границы безопасности: случайный CSP nonce для каждого HTML ответа, отсутствие script unsafe-inline/eval в production, фактические лимиты streamed JSON/auth/multipart, два буферизуемых multipart на web процесс, регистронезависимая проверка XML и ограничение HTTP тела renderer. [Отрицательные HTTP проверки renderer](reports/renderer-boundary.json) прошли. Внешняя почта, публичный HTTPS адрес и production эксплуатация остаются незавершёнными.
+
+[Активные PDF](reports/passive-pdf.json) отклоняются через multipart и подписанную S3 загрузку; непроверенный объект не публикуется. [Перенос PostgreSQL](reports/postgres-upgrade.json) выполнен логически в новый том: хеши всех 19 публичных таблиц и kk/ru ILIKE совпали, старый том и dump сохранены. Сопоставление запущенных образов со сканами — в [container-security](reports/container-security.json). У renderer остаются [50 MEDIUM замечаний зависимостей](reports/renderer-advisories.json), они не скрыты исключениями.
 
 ## Предыдущий прогон 16 октября до утренней переработки
 
@@ -33,7 +37,7 @@
 | AC01 | Проверено локально; внешняя зависимость | Better Auth registration, verification и reset через Mailpit. Нужны HTTPS и реальная внешняя SMTP delivery. |
 | AC02 | Проверено локально на synthetic corpus | Все 4 формата, скан и mixed PDF через отдельный renderer. Нужны разрешённые реальные файлы и расширенная OCR оценка. |
 | AC03 | Проверено локально | Исправление, confirm, optimistic conflict, SQL DATE и persistence. Источник содержит fragment/page/sheet + исходный download; для PDF реализован приватный просмотр оригинальной страницы, для DOCX/Excel — исходный фрагмент таблицы. |
-| AC04 | Проверено локально с живым OpenAI | Responses/strict schema и kk/ru/kk+ru на ограниченных synthetic примерах; полный corpus и педагогическая оценка ещё нужны. |
+| AC04 | Проверено локально с живым OpenAI | Responses/strict schema и kk/ru/kk+ru: 36 подготовленных synthetic примеров и 2 возрастных дополнения прошли автоматические проверки. Дополнительно проверены другие предметы; педагогическая оценка ещё нужна. |
 | AC05 | Частично проверено локально | Rubric/points/references/duplicates/перевод чисел/простая арифметика; always needs_review. Семантическая и языковая педагогическая экспертиза не проведена. |
 | AC06 | Редактор/версии проверены локально | Редактирование/restore/stale validation; живая замена одного задания сохраняет соседние задания, IDs и уровень. |
 | AC07 | Проверено локально | OOXML, TNR 14, PDF, казахские символы, page break, student answers absent. Все 4 страницы representative export визуально просмотрены. Production fonts/exports ещё не проверены. |
@@ -41,7 +45,7 @@
 | AC09 | Частично проверено локально | Lease recovery/idempotency/cancellation/quota и mock provider errors. Fault injection реального OpenAI и renderer outage на production не выполнены. |
 | AC10 | Проверено локально, production проверка нужна | Signature/ZIP/XML checks, ClamAV, ACL/Origin, deletion/cleanup, secret scan, npm audit. Independent pentest и production bucket policy не проверены. |
 | AC11 | Локальный запуск; внешняя зависимость | Web, DB, S3, worker, renderer, antivirus, Mailpit. Local restore подтверждён. Public deploy/monitoring/backup schedule отсутствуют. |
-| AC12 | Проверено локально и на GitHub | Lockfile, 7 migrations, README, synthetic seed, Docker builds и CI. [GitHub Actions для 51bcea3](https://github.com/paifln/ziyatai/actions/runs/38781454807): test и integration — success. Исправлено глобальное правило lib/, которое скрывало серверные исходники от первого коммита; добавлена защита check:source и сборка из Git-архива. |
+| AC12 | Проверено локально и на GitHub | Lockfile, 8 migrations, README, synthetic seed, Docker builds из Git-архива, check:source и CI. Точные commits, run URL и результаты двух jobs — в [утреннем отчёте](reports/morning-2026-10-16.json). |
 
 Definition of Done из задания **не достигнута**: production URL и внешняя почта отсутствуют; педагогическая экспертиза не проведена. Не следует выдавать local или mock результаты за production proof.
 

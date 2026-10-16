@@ -1,0 +1,669 @@
+{
+  "checkedAt": "2026-10-16T05:23:55.967Z",
+  "model": "gpt-5.4-mini",
+  "promptVersion": "subjects-ktp-tasks-1.1",
+  "applicationSourceCommit": "1db586acc60a36f5f83565b1039e985633db17e0",
+  "source": "36 prepared synthetic informatics cases (grades 5–10) and 2 extra synthetic age/subject cases; no owner workbook or personal data",
+  "preparedCorpus": 36,
+  "extraCases": 2,
+  "planned": 38,
+  "attempted": 38,
+  "passed": 38,
+  "failed": 0,
+  "complete": true,
+  "stopReason": "completed",
+  "estimatedUsd": 0.619606,
+  "budgetUsd": 1,
+  "costScope": "Conservative estimate at standard uncached $0.75 input/$4.50 output per million tokens; unknown usage reserves $0.25 per case. Not a provider invoice; excludes taxes. No tools used.",
+  "pricingSource": "https://developers.openai.com/api/docs/models/gpt-5.4-mini",
+  "durationMs": 508562,
+  "pedagogicalExpertReview": "not performed; automated structural checks do not establish factual or teaching correctness",
+  "results": [
+    {
+      "id": "0a050495-8e78-4585-8dce-d4d86495ee6f",
+      "key": "primary-grade-1",
+      "grade": 1,
+      "subject": "mathematics",
+      "locale": "kk",
+      "countPerLevel": 1,
+      "status": "needs_review",
+      "tasks": 3,
+      "model": "gpt-5.4-mini",
+      "usage": {
+        "input_tokens": 1276,
+        "output_tokens": 930
+      },
+      "durationMs": 7214,
+      "sha256": "4c955655a1c7f4a3ba17c557a18c27ac77323fee3baeaafdf2578ff8378eb918"
+    },
+    {
+      "id": "f4a6e782-b2d2-4499-a43c-d27f3c7cd4bf",
+      "key": "humanities-grade-11",
+      "grade": 11,
+      "subject": "history-kazakhstan",
+      "locale": "ru",
+      "countPerLevel": 1,
+      "status": "needs_review",
+      "tasks": 3,
+      "model": "gpt-5.4-mini",
+      "usage": {
+        "input_tokens": 1290,
+        "output_tokens": 1790
+      },
+      "durationMs": 10717,
+      "sha256": "704e126bcec79c83c4e53efebdea98f95fc682f7da5557ba6b8270d558252683"
+    },
+    {
+      "id": "a400a2a3-3f73-474b-8bd9-2a308ee379de",
+      "key": null,
+      "grade": 5,
+      "subject": "informatics",
+      "locale": "kk",
+      "countPerLevel": 1,
+      "status": "needs_review",
+      "tasks": 3,
+      "model": "gpt-5.4-mini",
+      "usage": {
+        "input_tokens": 1263,
+        "output_tokens": 1014
+      },
+      "durationMs": 6512,
+      "sha256": "d57b5241505f3c1db6045549992c7feae2316842c24929f38f6c8b6c2805a6f1"
+    },
+    {
+      "id": "aea7204c-e42f-4eab-aa7f-dffaa627170b",
+      "key": null,
+      "grade": 5,
+      "subject": "informatics",
+      "locale": "kk",
+      "countPerLevel": 3,
+      "status": "needs_review",
+      "tasks": 9,
+      "model": "gpt-5.4-mini",
+      "usage": {
+        "input_tokens": 1248,
+        "output_tokens": 2489
+      },
+      "durationMs": 14442,
+      "sha256": "6680ff41faa158045c8ab0c50818d608bbe460f29d4f355d2ff2a65920737872"
+    },
+    {
+      "id": "8a90fb20-1fed-4ed3-aadd-cf8b7bd7156a",
+      "key": null,
+      "grade": 5,
+      "subject": "informatics",
+      "locale": "ru",
+      "countPerLevel": 1,
+      "status": "needs_review",
+      "tasks": 3,
+      "model": "gpt-5.4-mini",
+      "usage": {
+        "input_tokens": 1258,
+        "output_tokens": 1082
+      },
+      "durationMs": 6967,
+      "sha256": "b38831f69724d8e9b08dbe3ebfc5cbe871ab7ea621723de8f2185bd308757508"
+    },
+    {
+      "id": "7616f67d-bd1d-48f1-bb4f-80d08ffc1513",
+      "key": null,
+      "grade": 5,
+      "subject": "informatics",
+      "locale": "ru",
+      "countPerLevel": 3,
+      "status": "needs_review",
+      "tasks": 9,
+      "model": "gpt-5.4-mini",
+      "usage": {
+        "input_tokens": 1261,
+        "output_tokens": 2250
+      },
+      "durationMs": 12956,
+      "sha256": "9f7883aeaceec7a0ee20c2bb6b78555611995a0e351be7c1bb21e69cf3d45541"
+    },
+    {
+      "id": "390cb61f-c55e-4c16-9655-92ddbfc3e588",
+      "key": null,
+      "grade": 5,
+      "subject": "informatics",
+      "locale": "kk+ru",
+      "countPerLevel": 1,
+      "status": "needs_review",
+      "tasks": 3,
+      "model": "gpt-5.4-mini",
+      "usage": {
+        "input_tokens": 2539,
+        "output_tokens": 4065
+      },
+      "durationMs": 18656,
+      "sha256": "f2cda235f106f54593f0a4045912dacdf829bd8b6fc6cd23c6a9bfa1fb9746fc"
+    },
+    {
+      "id": "e784f322-f120-41a8-919c-72b7a94967ec",
+      "key": null,
+      "grade": 5,
+      "subject": "informatics",
+      "locale": "kk+ru",
+      "countPerLevel": 3,
+      "status": "needs_review",
+      "tasks": 9,
+      "model": "gpt-5.4-mini",
+      "usage": {
+        "input_tokens": 1260,
+        "output_tokens": 5567
+      },
+      "durationMs": 21653,
+      "sha256": "db7898249684867e96955400a6ff3f2ad6eb8c99078bcfede44af8dd8a1d34aa"
+    },
+    {
+      "id": "4347dcf6-52e6-4cd6-88ed-ff2c5d3529d5",
+      "key": null,
+      "grade": 6,
+      "subject": "informatics",
+      "locale": "kk",
+      "countPerLevel": 1,
+      "status": "needs_review",
+      "tasks": 3,
+      "model": "gpt-5.4-mini",
+      "usage": {
+        "input_tokens": 1257,
+        "output_tokens": 1400
+      },
+      "durationMs": 6389,
+      "sha256": "37171b070865a51d50ea2ec4a9d8843d13f5e2fe0043849aa8152c0c486ce999"
+    },
+    {
+      "id": "1afd5994-5ba3-4dd0-8b28-fcdc69a2e0b5",
+      "key": null,
+      "grade": 6,
+      "subject": "informatics",
+      "locale": "kk",
+      "countPerLevel": 3,
+      "status": "needs_review",
+      "tasks": 9,
+      "model": "gpt-5.4-mini",
+      "usage": {
+        "input_tokens": 1254,
+        "output_tokens": 3926
+      },
+      "durationMs": 15130,
+      "sha256": "f5411862c33bb7a6026a26334b10fa18e3df2d486c283f8cfeaeacf1e90444e7"
+    },
+    {
+      "id": "b8d3714e-99f8-4ef0-a53b-b2ab66f7a6d0",
+      "key": null,
+      "grade": 6,
+      "subject": "informatics",
+      "locale": "ru",
+      "countPerLevel": 1,
+      "status": "needs_review",
+      "tasks": 3,
+      "model": "gpt-5.4-mini",
+      "usage": {
+        "input_tokens": 1253,
+        "output_tokens": 1137
+      },
+      "durationMs": 4756,
+      "sha256": "3907189bbfc210e287b2b56a552a0554fe7a653a4fc3b16f6d8c1cbdf0f13b2a"
+    },
+    {
+      "id": "24b17697-bd8c-4dda-a5ad-99f5871d0743",
+      "key": null,
+      "grade": 6,
+      "subject": "informatics",
+      "locale": "ru",
+      "countPerLevel": 3,
+      "status": "needs_review",
+      "tasks": 9,
+      "model": "gpt-5.4-mini",
+      "usage": {
+        "input_tokens": 1238,
+        "output_tokens": 3119
+      },
+      "durationMs": 12655,
+      "sha256": "58e0af9b203fc114edf38b5e8682f1adf812f578f4446445349cc020b7f78800"
+    },
+    {
+      "id": "0a4ef8f4-d084-4304-89d5-5ae15945c92d",
+      "key": null,
+      "grade": 6,
+      "subject": "informatics",
+      "locale": "kk+ru",
+      "countPerLevel": 1,
+      "status": "needs_review",
+      "tasks": 3,
+      "model": "gpt-5.4-mini",
+      "usage": {
+        "input_tokens": 1257,
+        "output_tokens": 2378
+      },
+      "durationMs": 10753,
+      "sha256": "dbe997a9365d35820e8c0c8aab65f2594988a8150c8d93242b692e72d0b5f555"
+    },
+    {
+      "id": "128b42f5-0511-4bd1-91b2-232ecb1ae045",
+      "key": null,
+      "grade": 6,
+      "subject": "informatics",
+      "locale": "kk+ru",
+      "countPerLevel": 3,
+      "status": "needs_review",
+      "tasks": 9,
+      "model": "gpt-5.4-mini",
+      "usage": {
+        "input_tokens": 2527,
+        "output_tokens": 12719
+      },
+      "durationMs": 45827,
+      "sha256": "509b663f27fa7343a65a0b0b132b0ed7a01759333ee528ed4a64cc337f230931"
+    },
+    {
+      "id": "451cf5fd-87c8-49b9-8d33-56f9ef316fee",
+      "key": null,
+      "grade": 7,
+      "subject": "informatics",
+      "locale": "kk",
+      "countPerLevel": 1,
+      "status": "needs_review",
+      "tasks": 3,
+      "model": "gpt-5.4-mini",
+      "usage": {
+        "input_tokens": 1245,
+        "output_tokens": 1362
+      },
+      "durationMs": 5950,
+      "sha256": "230ace311143c8cead720c0fffd274f9b4e9ab8cd7081e72fb872a5474db1dd0"
+    },
+    {
+      "id": "491fd074-80cb-408a-8714-1984ba46668d",
+      "key": null,
+      "grade": 7,
+      "subject": "informatics",
+      "locale": "kk",
+      "countPerLevel": 3,
+      "status": "needs_review",
+      "tasks": 9,
+      "model": "gpt-5.4-mini",
+      "usage": {
+        "input_tokens": 1233,
+        "output_tokens": 3412
+      },
+      "durationMs": 12127,
+      "sha256": "81c7c74b8de0aaeced5becf2ebfd46b9c30b371a376ab4a1407b66d95a8c1954"
+    },
+    {
+      "id": "2414c0c1-8a20-4f41-8ac3-542339204753",
+      "key": null,
+      "grade": 7,
+      "subject": "informatics",
+      "locale": "ru",
+      "countPerLevel": 1,
+      "status": "needs_review",
+      "tasks": 3,
+      "model": "gpt-5.4-mini",
+      "usage": {
+        "input_tokens": 1245,
+        "output_tokens": 1136
+      },
+      "durationMs": 4921,
+      "sha256": "e5c12f29dfd6ffdd991401a3f071758dc14560e1ea631e436e42c313c70af4f3"
+    },
+    {
+      "id": "20a95bf7-1b10-46f3-9c64-fd7a919f0850",
+      "key": null,
+      "grade": 7,
+      "subject": "informatics",
+      "locale": "ru",
+      "countPerLevel": 3,
+      "status": "needs_review",
+      "tasks": 9,
+      "model": "gpt-5.4-mini",
+      "usage": {
+        "input_tokens": 1251,
+        "output_tokens": 3143
+      },
+      "durationMs": 10888,
+      "sha256": "0599bfc2757d05065f65e2d2f0cdd02f4cd744d7b7fea4c8e311e22dbd4c7728"
+    },
+    {
+      "id": "883f6ab1-5be3-4111-b073-7537e623f9dd",
+      "key": null,
+      "grade": 7,
+      "subject": "informatics",
+      "locale": "kk+ru",
+      "countPerLevel": 1,
+      "status": "needs_review",
+      "tasks": 3,
+      "model": "gpt-5.4-mini",
+      "usage": {
+        "input_tokens": 1248,
+        "output_tokens": 3872
+      },
+      "durationMs": 13463,
+      "sha256": "410da2a9270857046ebfa21f8b82511f1083bcb66dcd9d6f44d910bd3fe24101"
+    },
+    {
+      "id": "7e40d5f7-1895-4351-812f-95a9033b8a22",
+      "key": null,
+      "grade": 7,
+      "subject": "informatics",
+      "locale": "kk+ru",
+      "countPerLevel": 3,
+      "status": "needs_review",
+      "tasks": 9,
+      "model": "gpt-5.4-mini",
+      "usage": {
+        "input_tokens": 1257,
+        "output_tokens": 8696
+      },
+      "durationMs": 32931,
+      "sha256": "11722bf3f7cf6bc289f49054ebab50ceb918416b38d6c4596f86fea496c8a772"
+    },
+    {
+      "id": "dd145db2-29b2-4696-98f7-bed086682a1d",
+      "key": null,
+      "grade": 8,
+      "subject": "informatics",
+      "locale": "kk",
+      "countPerLevel": 1,
+      "status": "needs_review",
+      "tasks": 3,
+      "model": "gpt-5.4-mini",
+      "usage": {
+        "input_tokens": 1249,
+        "output_tokens": 1487
+      },
+      "durationMs": 5818,
+      "sha256": "8f85060efa16bdac9bc3135c8db348d285e1037017991b5ed9b9ed487a2c288b"
+    },
+    {
+      "id": "35a663fb-2acd-4eea-8b80-95dcdb70402e",
+      "key": null,
+      "grade": 8,
+      "subject": "informatics",
+      "locale": "kk",
+      "countPerLevel": 3,
+      "status": "needs_review",
+      "tasks": 9,
+      "model": "gpt-5.4-mini",
+      "usage": {
+        "input_tokens": 1252,
+        "output_tokens": 3652
+      },
+      "durationMs": 12581,
+      "sha256": "2fe99763fda747ff2cc3f847e23891ce8b1941149ca1b4a00784f6a523968e43"
+    },
+    {
+      "id": "9ea8b705-0d50-49f2-8035-9b11a768946a",
+      "key": null,
+      "grade": 8,
+      "subject": "informatics",
+      "locale": "ru",
+      "countPerLevel": 1,
+      "status": "needs_review",
+      "tasks": 3,
+      "model": "gpt-5.4-mini",
+      "usage": {
+        "input_tokens": 1253,
+        "output_tokens": 1117
+      },
+      "durationMs": 4622,
+      "sha256": "21c228f3b53c7a8b0e907c88f57803309be1796effe2cbba53ccdcb64454e791"
+    },
+    {
+      "id": "a3c557f6-2b72-44eb-a7d0-3bde6bec4ca7",
+      "key": null,
+      "grade": 8,
+      "subject": "informatics",
+      "locale": "ru",
+      "countPerLevel": 3,
+      "status": "needs_review",
+      "tasks": 9,
+      "model": "gpt-5.4-mini",
+      "usage": {
+        "input_tokens": 1259,
+        "output_tokens": 2829
+      },
+      "durationMs": 9733,
+      "sha256": "a0e8f78c595b6093723c38ad139170e3b394275642cb44c52a7e21ff1071c6e3"
+    },
+    {
+      "id": "4d8587aa-466a-4f4a-a16c-e7812986269b",
+      "key": null,
+      "grade": 8,
+      "subject": "informatics",
+      "locale": "kk+ru",
+      "countPerLevel": 1,
+      "status": "needs_review",
+      "tasks": 3,
+      "model": "gpt-5.4-mini",
+      "usage": {
+        "input_tokens": 2535,
+        "output_tokens": 6199
+      },
+      "durationMs": 21350,
+      "sha256": "b8f31ea7faf07c215ec013504c58165292164c5211362c6fd28f0780907e0421"
+    },
+    {
+      "id": "c6c0f315-f3d7-4d50-81b1-559d92248313",
+      "key": null,
+      "grade": 8,
+      "subject": "informatics",
+      "locale": "kk+ru",
+      "countPerLevel": 3,
+      "status": "needs_review",
+      "tasks": 9,
+      "model": "gpt-5.4-mini",
+      "usage": {
+        "input_tokens": 1264,
+        "output_tokens": 6924
+      },
+      "durationMs": 23293,
+      "sha256": "c84ccdee276a5524833abdb9281b70410c4046c8fac60c74443fa14ab19daece"
+    },
+    {
+      "id": "0c4eba16-7001-4f97-912a-cf09fd65e3f1",
+      "key": null,
+      "grade": 9,
+      "subject": "informatics",
+      "locale": "kk",
+      "countPerLevel": 1,
+      "status": "needs_review",
+      "tasks": 3,
+      "model": "gpt-5.4-mini",
+      "usage": {
+        "input_tokens": 1251,
+        "output_tokens": 1789
+      },
+      "durationMs": 7453,
+      "sha256": "36b0cbb88d0c533d103d450477a65fe13e98641d4c57e2c32713f87ca2e52e75"
+    },
+    {
+      "id": "67f181d6-a35a-4089-8fdf-33f473f6bc47",
+      "key": null,
+      "grade": 9,
+      "subject": "informatics",
+      "locale": "kk",
+      "countPerLevel": 3,
+      "status": "needs_review",
+      "tasks": 9,
+      "model": "gpt-5.4-mini",
+      "usage": {
+        "input_tokens": 1248,
+        "output_tokens": 3862
+      },
+      "durationMs": 13200,
+      "sha256": "3550810fe1ccdd4e0f2b3db9c815dbedf5ef9dc1ba0e205df26210c7c086b4d7"
+    },
+    {
+      "id": "d6fb1c68-e368-4b8f-98df-a51da7bebfb3",
+      "key": null,
+      "grade": 9,
+      "subject": "informatics",
+      "locale": "ru",
+      "countPerLevel": 1,
+      "status": "needs_review",
+      "tasks": 3,
+      "model": "gpt-5.4-mini",
+      "usage": {
+        "input_tokens": 1246,
+        "output_tokens": 1528
+      },
+      "durationMs": 6457,
+      "sha256": "a35f9b5dda760104ebae455f328e2a5d95bca4b4f4b4ec99bde5a87f2fa3d420"
+    },
+    {
+      "id": "89746bf3-13a6-43d5-bf02-0927a055eceb",
+      "key": null,
+      "grade": 9,
+      "subject": "informatics",
+      "locale": "ru",
+      "countPerLevel": 3,
+      "status": "needs_review",
+      "tasks": 9,
+      "model": "gpt-5.4-mini",
+      "usage": {
+        "input_tokens": 1243,
+        "output_tokens": 3895
+      },
+      "durationMs": 14188,
+      "sha256": "315ef4c3ad6eb2b1bb315ee7ec7c329b6b4a0d8782452ee0df6742838e3997c6"
+    },
+    {
+      "id": "7bcdcea2-7dad-40c1-8e96-60cc6ad03f76",
+      "key": null,
+      "grade": 9,
+      "subject": "informatics",
+      "locale": "kk+ru",
+      "countPerLevel": 1,
+      "status": "needs_review",
+      "tasks": 3,
+      "model": "gpt-5.4-mini",
+      "usage": {
+        "input_tokens": 1257,
+        "output_tokens": 2963
+      },
+      "durationMs": 11251,
+      "sha256": "9b7b8434fb09bea9d3d2bebd662c72db8f94939754aad26983894de70df9b44a"
+    },
+    {
+      "id": "049674df-f357-40c2-9936-7fb528ab9f7f",
+      "key": null,
+      "grade": 9,
+      "subject": "informatics",
+      "locale": "kk+ru",
+      "countPerLevel": 3,
+      "status": "needs_review",
+      "tasks": 9,
+      "model": "gpt-5.4-mini",
+      "usage": {
+        "input_tokens": 1248,
+        "output_tokens": 6654
+      },
+      "durationMs": 21142,
+      "sha256": "ac9f7702457e402739ae4ec3c91cf956b3176c73d9dda744e4ed0e5e5868dc62"
+    },
+    {
+      "id": "660b981d-41c7-4ebd-b6df-6a28c40c3f64",
+      "key": null,
+      "grade": 10,
+      "subject": "informatics",
+      "locale": "kk",
+      "countPerLevel": 1,
+      "status": "needs_review",
+      "tasks": 3,
+      "model": "gpt-5.4-mini",
+      "usage": {
+        "input_tokens": 1259,
+        "output_tokens": 1330
+      },
+      "durationMs": 5780,
+      "sha256": "1bb702a7aebf3bd23f84c8daa2d7e27306ca900cf163cc4eb9b0abc494b46359"
+    },
+    {
+      "id": "a34724d9-cbb6-4e88-971d-8ccdf99c22d5",
+      "key": null,
+      "grade": 10,
+      "subject": "informatics",
+      "locale": "kk",
+      "countPerLevel": 3,
+      "status": "needs_review",
+      "tasks": 9,
+      "model": "gpt-5.4-mini",
+      "usage": {
+        "input_tokens": 1256,
+        "output_tokens": 3725
+      },
+      "durationMs": 15276,
+      "sha256": "863f56461b9b5da9c6a1a178638bad274825323544ac34a023c50092c9deea3b"
+    },
+    {
+      "id": "8ae77934-9830-4038-aaac-2b58b85b6e86",
+      "key": null,
+      "grade": 10,
+      "subject": "informatics",
+      "locale": "ru",
+      "countPerLevel": 1,
+      "status": "needs_review",
+      "tasks": 3,
+      "model": "gpt-5.4-mini",
+      "usage": {
+        "input_tokens": 1246,
+        "output_tokens": 1517
+      },
+      "durationMs": 6502,
+      "sha256": "5afab94e8eaf0d6ddd8827b4881c8084fe20176b396c19a5c9dd262392dca7ba"
+    },
+    {
+      "id": "6e9cfa99-6a26-4c2a-ac69-4bc36948f180",
+      "key": null,
+      "grade": 10,
+      "subject": "informatics",
+      "locale": "ru",
+      "countPerLevel": 3,
+      "status": "needs_review",
+      "tasks": 9,
+      "model": "gpt-5.4-mini",
+      "usage": {
+        "input_tokens": 1252,
+        "output_tokens": 4262
+      },
+      "durationMs": 18046,
+      "sha256": "ee3e53e1b03c24189cec2fbdabf7c4997b74858cf74b3c6ca734afcaacad65be"
+    },
+    {
+      "id": "0db69794-d8c8-4b92-b7e2-56c6229f9c25",
+      "key": null,
+      "grade": 10,
+      "subject": "informatics",
+      "locale": "kk+ru",
+      "countPerLevel": 1,
+      "status": "needs_review",
+      "tasks": 3,
+      "model": "gpt-5.4-mini",
+      "usage": {
+        "input_tokens": 1265,
+        "output_tokens": 2845
+      },
+      "durationMs": 10520,
+      "sha256": "af0922ba4418d5958227eccb352c132d5b4a04474849254c4d1e22725351345f"
+    },
+    {
+      "id": "480dca98-3667-42ea-bdd6-d9c1f0183ba6",
+      "key": null,
+      "grade": 10,
+      "subject": "informatics",
+      "locale": "kk+ru",
+      "countPerLevel": 3,
+      "status": "needs_review",
+      "tasks": 9,
+      "model": "gpt-5.4-mini",
+      "usage": {
+        "input_tokens": 1256,
+        "output_tokens": 7042
+      },
+      "durationMs": 26405,
+      "sha256": "cdaae1c95d963aac5d3cd5cbfc5594abc82d8f88fc8f168a5f01938871346ac6"
+    }
+  ]
+}

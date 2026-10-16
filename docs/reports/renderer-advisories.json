@@ -1,9 +1,9 @@
 {
-  "date": "2026-10-15",
+  "date": "2026-10-16",
   "scanner": "Trivy 0.76.0",
-  "image": "ziyatai-renderer:release",
-  "digest": "sha256:08dad417eaf33878ec8a42ed80ab20ccbfc80833a7702c301373960215f5257c",
-  "scannedAt": "2026-10-15T19:31:13.084500331Z",
+  "image": "ziyatai-renderer:final-1db586a",
+  "digest": "sha256:fc1aeece104dc1dd69f4b259db53bdeeeb901dc66e0707febfbbf59d763848ec",
+  "scannedAt": "2026-10-16T05:06:38.70646061Z",
   "filter": "MEDIUM,HIGH,CRITICAL; includes unfixed; no exclusions",
   "counts": {
     "MEDIUM": 50
@@ -470,19 +470,12 @@
       "Title": "zlib versions 1.3.1.2 through 1.3.2 contain a heap buffer overflow vul ..."
     }
   ],
-  "upstreamPatchedVersionListedInTwoAdvisories": "5.5.4",
-  "upstreamTag5_5_4Available": false,
-  "tagCheck": "Official git ls-remote returned no refs/tags/5.5.4; latest listed stable tag was 5.5.3. Do not treat an advisory version field as a published release.",
+  "upstreamReview": {
+    "asOf": "2026-10-15",
+    "upstreamPatchedVersionListedInTwoAdvisories": "5.5.4",
+    "upstreamTag5_5_4Available": false,
+    "tagCheck": "Official git ls-remote returned no refs/tags/5.5.4; latest listed stable tag was 5.5.3. Do not treat an advisory version field as a published release."
+  },
   "tesseractVersion": "tesseract 5.3.4",
-  "modelFiles": [
-    {
-      "name": "kaz.traineddata",
-      "sha256": "fcc01eed3815a42b9c6321c4c9d3606f39b166cbf95ade98b7d8d12063eae53d"
-    },
-    {
-      "name": "rus.traineddata",
-      "sha256": "e16e5e036cce1d9ec2b00063cf8b54472625b9e14d893a169e2b0dedeb4df225"
-    }
-  ],
   "localRendererReadonlyRootfs": true
 }

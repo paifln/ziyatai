@@ -1,22 +1,30 @@
 {
-  "date": "2026-10-15",
+  "date": "2026-10-16T05:40:50.327708+00:00",
   "cli": "27.12.1",
   "build": "37.4.1",
   "adapter": "5.16.2",
   "next": "16.4.0",
   "offline": true,
-  "signedPluginLoaded": true,
   "buildComplete": true,
+  "sourceCommit": "6ab16b72c5c0303be3d68aae25723d9d88235ce6",
+  "platform": "GitHub Ubuntu Linux clean checkout",
+  "signedPluginLoaded": true,
   "privateServiceCredentialsPresent": false,
-  "proxySecretAbsentFromBundles": true,
   "publicDeploy": false,
-  "scope": "Local Windows offline CLI and full function packaging from a fresh Git archive and npm ci, with synthetic public origins; no Netlify site or backend connection was deployed",
-  "sourceCommit": "51bcea35cac9875cc1388d61ea5fa5133e533a3b",
   "linuxCi": {
-    "sourceCommit": "13062e734c897c643ebbfacc9c16cc252689385c",
-    "runUrl": "https://github.com/paifln/ziyatai/actions/runs/38794775633",
+    "runUrl": "https://github.com/paifln/ziyatai/actions/runs/38855707263",
     "job": "test",
-    "result": "success",
-    "scope": "Linux clean checkout, npm build and offline Netlify adapter packaging; no public deployment"
+    "result": "success"
+  },
+  "windowsLocal": {
+    "sourceCommit": "9c9e0494080ad12ae80de554aad1ac859026d84c",
+    "nextCompilationPassed": true,
+    "packagingResult": "failed",
+    "reason": "Adapter CJS path resolution could not load webpack-runtime.js while bundling the Node middleware edge handler",
+    "knownSecretScan": {
+      "generatedFilesChecked": 2493,
+      "knownSecretValuesFound": 0,
+      "scope": "Generated function and edge source files before the failed final edge package; not a deployed site"
+    }
   }
 }
