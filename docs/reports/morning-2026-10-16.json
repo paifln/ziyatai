@@ -110,5 +110,17 @@
     "Performance is a laboratory slowdown simulation, not a physical Windows 7 test",
     "Local Mailpit is not external delivery",
     "Known renderer MEDIUM advisories remain documented; a clean scan is not a security guarantee"
-  ]
+  ],
+  "finalVerificationAt": "2026-10-16T05:48:33.047657+00:00",
+  "localStability": {
+    "durationMs": 761275,
+    "samples": 26,
+    "requests": 78,
+    "failures": 0,
+    "uniqueHtmlNonces": 26
+  },
+  "publicRoutes": {
+    "checks": 7,
+    "serverSecretValuesExposed": false
+  }
 }
