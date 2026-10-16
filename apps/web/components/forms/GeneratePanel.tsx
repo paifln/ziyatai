@@ -129,8 +129,8 @@ export function GeneratePanel({
                   ))}
                 </select>
               </label>
-              <label className="mt-20">
-                {t.chooseTopic}
+              <div className="mt-20 field-group">
+                <label htmlFor="generation-topic">{t.chooseTopic}</label>
                 {plan?.rows?.length > 20 && (
                   <input
                     type="search"
@@ -147,6 +147,7 @@ export function GeneratePanel({
                   />
                 )}
                 <select
+                  id="generation-topic"
                   disabled={planLoading || busy}
                   value={rowId}
                   onChange={(e) => setRowId(e.target.value)}
@@ -166,7 +167,7 @@ export function GeneratePanel({
                       </option>
                     ))}
                 </select>
-              </label>
+              </div>
               {planLoading && (
                 <div className="notice" role="status">
                   <span className="spinner" /> {t.loading}
@@ -206,8 +207,8 @@ export function GeneratePanel({
                     ))}
                   </select>
                 </label>
-                <label>
-                  {t.count}
+                <div className="field-group">
+                  <label htmlFor="generation-count">{t.count}</label>
                   <span className="number-stepper">
                     <button
                       type="button"
@@ -220,6 +221,7 @@ export function GeneratePanel({
                       <Minus size={16} />
                     </button>
                     <input
+                      id="generation-count"
                       type="number"
                       min={1}
                       max={5}
@@ -240,7 +242,7 @@ export function GeneratePanel({
                       <Plus size={16} />
                     </button>
                   </span>
-                </label>
+                </div>
                 <label>
                   {t.minutes}
                   <input
@@ -324,7 +326,14 @@ export function GeneratePanel({
                 <span className={`level-dot dot-${i}`} />
                 <strong>{displayLevel(level, locale)}</strong>
                 <small>
-                  {count} {locale === "ru" ? "задания" : "тапсырма"}
+                  {count}{" "}
+                  {locale === "ru"
+                    ? count === 1
+                      ? "задание"
+                      : count < 5
+                        ? "задания"
+                        : "заданий"
+                    : "тапсырма"}
                 </small>
               </div>
             ))}

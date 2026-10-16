@@ -1,6 +1,103 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { randomUUID } from "node:crypto";
 import { verifiedUser, headers } from "./helpers";
+
+test("generation controls remain labelled with topic search and submit the selected lesson parameters", async ({
+  page,
+  request,
+}) => {
+  await verifiedUser(request);
+  const demo = await (
+    await request.post("/api/demo", { headers, data: { locale: "ru" } })
+  ).json();
+  const plan = await (await request.get(`/api/ktp/${demo.planId}`)).json();
+  const rows = Array.from({ length: 21 }, (_, index) => ({
+    ...plan.rows[0],
+    id: randomUUID(),
+    sourceOrder: index + 1,
+    topic: `Тема ${index + 1}`,
+  }));
+  const confirmed = await request.post(`/api/ktp/${plan.id}/confirm`, {
+    headers,
+    data: { revision: plan.revision, rows, grade: 7, schoolYear: "2026–2027" },
+  });
+  expect(confirmed.ok(), await confirmed.text()).toBe(true);
+  await page.context().addCookies((await request.storageState()).cookies);
+  await page.route("**/api/profile", async (route) => {
+    const response = await route.fetch();
+    const profile = await response.json();
+    await route.fulfill({
+      response,
+      json: { ...profile, capabilities: { ...profile.capabilities, ai: true } },
+    });
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "РУС", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Создать задания", exact: true })
+    .click();
+  await expect(page.getByLabel("Выберите тему", { exact: true })).toBeEnabled();
+  await page.getByLabel("Найти тему в плане", { exact: true }).fill("Тема 21");
+  await page
+    .getByLabel("Выберите тему", { exact: true })
+    .selectOption(rows[20].id);
+  await page.getByLabel("Заданий на каждом уровне", { exact: true }).fill("1");
+  await page
+    .getByRole("button", { name: "Больше заданий", exact: true })
+    .click();
+  await expect(
+    page.getByLabel("Заданий на каждом уровне", { exact: true }),
+  ).toHaveValue("2");
+  await page.getByRole("button", { name: "15 мин", exact: true }).click();
+  await page.locator(".generation-layout select").nth(2).selectOption("ru");
+  let submitted: Record<string, unknown> | undefined;
+  await page.route("**/api/generations", async (route) => {
+    submitted = route.request().postDataJSON();
+    await route.fulfill({
+      status: 503,
+      contentType: "application/json",
+      body: JSON.stringify({
+        code: "AI_UNAVAILABLE",
+        message: "Synthetic provider unavailable",
+      }),
+    });
+  });
+  await page
+    .locator(".generation-layout")
+    .getByRole("button", { name: "Создать задания", exact: true })
+    .click();
+  await expect
+    .poll(() => submitted)
+    .toMatchObject({
+      planId: plan.id,
+      rowId: rows[20].id,
+      count: 2,
+      minutes: 15,
+      locale: "ru",
+    });
+  await expect(
+    page
+      .locator(".generation-layout")
+      .getByRole("button", { name: "Создать задания", exact: true }),
+  ).toBeEnabled();
+  // This is a UI contract check: the intercepted request never reaches OpenAI.
+  for (const width of [360, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    expect(
+      (
+        await new AxeBuilder({ page })
+          .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+          .analyze()
+      ).violations,
+    ).toEqual([]);
+  }
+});
 
 test("forms explain missing values without browser validation popups and can reveal passwords", async ({
   page,
