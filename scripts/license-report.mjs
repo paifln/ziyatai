@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { readFile, readdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 if (!process.env.npm_execpath) throw new Error("Run npm run licenses:generate");
 const paths = execFileSync(
@@ -34,6 +34,10 @@ for (const path of paths) {
 entries.sort((a, b) => a.name.localeCompare(b.name));
 const heading =
   "ZiyatAI — third-party production dependency notices\nGenerated from the installed dependency tree. Project source licensing is determined by its owner.\nNode, Python, operating-system and font notices remain in their respective distributions.\n";
+await Promise.all([
+  mkdir("public", { recursive: true }),
+  mkdir("docs/reports", { recursive: true }),
+]);
 await writeFile(
   "public/licenses.txt",
   heading +
