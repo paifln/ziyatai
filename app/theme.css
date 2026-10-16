@@ -147,6 +147,10 @@ html:root[data-theme="dark"] .sample-answer {
   background: var(--green-soft);
   color: var(--ink);
 }
+html:root[data-theme="dark"] .toast {
+  background: #beddba;
+  color: #132a1c;
+}
 html:root[data-theme="dark"] .nav-link.active {
   background: #35583d;
   color: #e5f4d8;

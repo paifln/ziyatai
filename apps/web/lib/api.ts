@@ -740,6 +740,7 @@ export async function handle(req: Request, path: string[]) {
           status: job.status,
           stage: job.stage,
           attempt: job.attempt,
+          cancelRequested: job.cancel_requested,
           error: job.error_code
             ? {
                 code: job.error_code,
@@ -783,7 +784,7 @@ export async function handle(req: Request, path: string[]) {
       return json(
         (
           await db().query(
-            "SELECT id,kind,status,stage,error_code,resource_id,created_at FROM jobs WHERE owner_id=$1 ORDER BY created_at DESC LIMIT $2 OFFSET $3",
+            "SELECT id,kind,status,stage,error_code,cancel_requested,resource_id,created_at FROM jobs WHERE owner_id=$1 ORDER BY created_at DESC LIMIT $2 OFFSET $3",
             [owner, limit, offset],
           )
         ).rows,

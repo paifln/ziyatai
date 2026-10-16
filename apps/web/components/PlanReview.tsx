@@ -182,7 +182,15 @@ export default function PlanReview({
             <p>{t.importing}</p>
           </div>
         </div>
-        <Jobs t={t} jobs={related} refresh={refresh} />
+        <Jobs
+          t={t}
+          locale={locale}
+          jobs={related}
+          refresh={async () => {
+            await load();
+            await refresh();
+          }}
+        />
         <button
           className="button secondary mt-20"
           onClick={async () => {

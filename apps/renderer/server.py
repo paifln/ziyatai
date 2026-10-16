@@ -1,5 +1,5 @@
 """Private, serial execution boundary: no DB, S3 or OpenAI credentials."""
-import os,sys,json,tempfile,subprocess,hmac,signal,io,socket
+import os,sys,json,tempfile,subprocess,hmac,signal,io,socket,time
 from pathlib import Path
 from http.server import HTTPServer,BaseHTTPRequestHandler
 sys.path.insert(0,'/scripts')
@@ -23,6 +23,7 @@ class Handler(BaseHTTPRequestHandler):
   ext=self.headers.get('X-Format','');font=self.headers.get('X-Font','Times New Roman')
   if ext not in ('pdf','docx','xls','xlsx') or font not in ('Times New Roman','Arial','Calibri'):self.send_response(415);self.end_headers();return
   try:
+   started=time.monotonic();phase='inspect'
    self.connection.settimeout(15)
    signal.alarm(240)
    with tempfile.TemporaryDirectory(prefix='ziyatai-sandbox-') as tmp:
@@ -30,23 +31,28 @@ class Handler(BaseHTTPRequestHandler):
     if len(body)!=size:raise ValueError('FILE_INVALID')
     path=Path(tmp)/('source.'+ext);path.write_bytes(body);inspect(path)
     if self.path=='/inspect':payload=b'{"valid":true}';mime='application/json'
-    elif self.path=='/parse':payload=json.dumps(extract(path,self.headers.get('X-Include-Hidden')=='true'),ensure_ascii=False).encode();mime='application/json'
+    elif self.path=='/parse':
+     phase='parse';payload=json.dumps(extract(path,self.headers.get('X-Include-Hidden')=='true'),ensure_ascii=False).encode();mime='application/json'
     elif self.path=='/preview' and ext=='pdf':
      from pdf_adapter import preview_page
      page_number=int(self.headers.get('X-Page','1'))
      with preview_page(path,page_number-1) as image:
       buffer=io.BytesIO();image.save(buffer,format='PNG');payload=buffer.getvalue();mime='image/png'
     elif self.path=='/render' and ext=='docx':
-     match=subprocess.check_output(['fc-match','-f','%{family}',font],timeout=10).decode()
+     phase='font_match'
+     match=subprocess.check_output(['fc-match','-f','%{family}',font],timeout=30).decode()
      if font not in match:raise ValueError('FONT_UNAVAILABLE')
+     phase='convert'
      subprocess.run(['libreoffice','-env:UserInstallation=file://'+tmp+'/lo-profile','--headless','--convert-to','pdf','--outdir',tmp,str(path)],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=100,env={'PATH':os.environ.get('PATH',''),'HOME':tmp,'LANG':'C.UTF-8'})
      payload=(Path(tmp)/'source.pdf').read_bytes();mime='application/pdf'
+     phase='pdf_validation'
      import pdfplumber
      with pdfplumber.open(io.BytesIO(payload)) as document:
       if not len(document.pages) or not any((page.extract_text() or '').strip() for page in document.pages):raise ValueError('RENDER_UNAVAILABLE')
     else:self.send_response(404);self.end_headers();return
    self.send_response(200);self.send_header('Content-Type',mime);self.send_header('Content-Length',str(len(payload)));self.end_headers();self.wfile.write(payload)
   except Exception as e:
+   print(json.dumps({'operation':self.path[1:],'phase':phase,'outcome':'failed','errorType':type(e).__name__,'durationMs':round((time.monotonic()-started)*1000)}),file=sys.stderr,flush=True)
    safe=str(e) if str(e) in ('FILE_INVALID','FILE_SIZE','OCR_UNAVAILABLE','FONT_UNAVAILABLE') else 'RENDER_UNAVAILABLE' if self.path=='/render' else 'FILE_INVALID'
    payload=json.dumps({'code':safe}).encode();self.send_response(413 if safe=='FILE_SIZE' else 422);self.send_header('Content-Type','application/json');self.end_headers();self.wfile.write(payload)
   finally:signal.alarm(0)

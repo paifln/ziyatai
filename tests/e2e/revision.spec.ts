@@ -26,7 +26,7 @@ test("registration verifies a one-time email code and stores the selected subjec
       .toBe(expected);
   }
   const email = `otp-${randomBytes(6).toString("hex")}@example.test`;
-  await page.goto("/");
+  await page.goto("/login");
   await page.getByRole("button", { name: "РУС", exact: true }).click();
   await page
     .getByRole("button", { name: "Создать аккаунт", exact: true })

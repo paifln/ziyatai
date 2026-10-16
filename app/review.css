@@ -166,6 +166,31 @@
   font-size: 11px;
   color: var(--muted);
 }
+.export-progress {
+  margin-top: 20px;
+}
+.export-progress .job-card {
+  padding: 14px;
+  flex-wrap: wrap;
+  background: var(--bg);
+}
+.export-progress .job-body {
+  min-width: 120px;
+}
+.export-download {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+.export-download a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+}
 html:root[data-theme="dark"] .review-level {
   background: #2c402c;
   color: #c1dcb2;

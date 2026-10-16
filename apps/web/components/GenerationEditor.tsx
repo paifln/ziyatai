@@ -105,15 +105,21 @@ export default function GenerationEditor({
     void load();
   }, [load]);
   usePolling(load, ["queued", "running"].includes(generation?.status));
+  async function refreshExports(all = false) {
+    const next = await Promise.all(
+      exportJobs.map(async (job) =>
+        all || ["queued", "running"].includes(job.status)
+          ? { ...job, ...(await api(`jobs/${job.id}`)) }
+          : job,
+      ),
+    );
+    const byId = new Map(next.map((job) => [job.id, job]));
+    setExportJobs((current) => current.map((job) => byId.get(job.id) ?? job));
+  }
   usePolling(
     async () => {
       try {
-        const next = await Promise.all(
-          exportJobs.map((j) =>
-            ["queued", "running"].includes(j.status) ? api(`jobs/${j.id}`) : j,
-          ),
-        );
-        setExportJobs(next);
+        await refreshExports(true);
       } catch (e) {
         onError((e as Error).message);
       }
@@ -178,11 +184,12 @@ export default function GenerationEditor({
         teacherReviewed: !!generation.reviewed_at && !dirty,
       };
       const result = await api("exports", "POST", data, requestKey(data));
-      setExportJobs([
-        ...exportJobs.filter((job) => job.id !== result.jobId),
+      setExportJobs((current) => [
+        ...current.filter((job) => job.id !== result.jobId),
         {
           id: result.jobId,
           status: "queued",
+          kind: "export",
           stage: "queued",
           result: { exportId: result.id },
           format,
@@ -255,6 +262,7 @@ export default function GenerationEditor({
           </div>
         </div>
         <Jobs
+          locale={locale}
           jobs={jobs.filter((j) => j.resource_id === id)}
           t={t}
           refresh={refresh}
@@ -361,6 +369,7 @@ export default function GenerationEditor({
       )}
       {regenerationJob && (
         <Jobs
+          locale={locale}
           t={t}
           jobs={jobs.filter((job) => job.id === regenerationJob)}
           refresh={refresh}
@@ -897,25 +906,31 @@ export default function GenerationEditor({
                 </button>
               </div>
             </details>
-            {exportJobs.map((job) => (
-              <div key={job.id} className="notice" role="status">
-                {["queued", "running"].includes(job.status) ? (
-                  <>
-                    <span className="spinner" /> {t.exporting}
-                  </>
-                ) : job.status === "succeeded" ? (
-                  <a
-                    className="text-button"
-                    href={`/api/exports/${job.result.exportId}/download`}
-                  >
-                    {t.download}
-                    <Download size={14} />
-                  </a>
-                ) : (
-                  <span>{job.error?.message ?? t.failed}</span>
-                )}
-              </div>
-            ))}
+            <div className="export-progress" aria-live="polite">
+              <Jobs
+                jobs={exportJobs}
+                t={t}
+                locale={locale}
+                refresh={async () => {
+                  await refreshExports();
+                  await refresh();
+                }}
+              />
+              {exportJobs
+                .filter((job) => job.status === "succeeded")
+                .map((job) => (
+                  <div key={job.id} className="export-download">
+                    <span>{job.format?.toUpperCase()}</span>
+                    <a
+                      className="text-button"
+                      href={`/api/exports/${job.result.exportId}/download`}
+                    >
+                      {t.download}
+                      <Download size={14} />
+                    </a>
+                  </div>
+                ))}
+            </div>
           </section>
           <section className="card">
             <h2>{t.review}</h2>

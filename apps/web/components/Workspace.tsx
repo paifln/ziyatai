@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useEffect, useCallback, useRef } from "react";
 import dynamic from "next/dynamic";
 import {
@@ -488,6 +488,7 @@ function WorkspaceContent({
               {view === "plans" && (
                 <>
                   <Jobs
+                    locale={locale}
                     jobs={jobs.filter(
                       (j) =>
                         j.kind === "import" &&
