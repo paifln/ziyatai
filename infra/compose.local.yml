@@ -36,6 +36,7 @@ services:
       MP_DATABASE: /data/mailpit.db
 volumes:
   postgres:
+    name: ${POSTGRES_VOLUME_NAME:-ziyatai-local_postgres}
   garage-meta:
   garage-data:
   mail:

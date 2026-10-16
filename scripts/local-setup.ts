@@ -9,6 +9,8 @@ try {
   const password = secret();
   const text = `DATABASE_URL=postgresql://ziyatai:${password}@127.0.0.1:55432/ziyatai
 POSTGRES_PASSWORD=${password}
+POSTGRES_IMAGE=ziyatai-postgres:local
+POSTGRES_VOLUME_NAME=ziyatai-local_postgres
 AUTH_SECRET=${secret()}
 APP_URL=http://localhost:3000
 STORAGE_ENDPOINT=http://127.0.0.1:53900

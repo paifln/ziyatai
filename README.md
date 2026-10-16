@@ -22,6 +22,7 @@ Windows шрифты используются только локально с �
 npm ci
 python -m pip install -r apps/worker/requirements.lock.txt -r tests/requirements.txt
 npm run local:setup
+docker build -f infra/Dockerfile.postgres -t ziyatai-postgres:local .
 npm run infra:up
 npx tsx scripts/enable-local-renderer.ts
 npx tsx scripts/prepare-local-containers.ts
