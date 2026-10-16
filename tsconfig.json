@@ -17,6 +17,7 @@
     "paths": { "@/*": ["./*"] }
   },
   "include": [
+    ".railway/**/*.ts",
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",

@@ -10,3 +10,7 @@ playwright-report
 __pycache__
 tests/fixtures
 dist
+docs
+.github
+README.md
+AGENTS.md

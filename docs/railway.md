@@ -4,6 +4,16 @@
 
 Это инструкция к подготовленному коду. Реальный Railway project, Netlify site, SMTP и staging ещё нужно подключить и проверить на доменах. Пароли и ключи в чат или Git не отправлять.
 
+## Конфигурация проекта в коде
+
+[`.railway/railway.ts`](../.railway/railway.ts) описывает пять служб и три постоянных тома, общий secret references, роли сборки, API migration/healthcheck и отключение сна worker. SDK закреплён как dev dependency и не добавляется в клиентский JavaScript. `npm run check:railway` **без сети** проверяет локальное описание и ссылки между службами, отсутствие literal credentials и совпадение ClamAV image с Compose; выводит имена требуемых Shared Variables, без их значений. Это не облачный plan и не выполненный deploy.
+
+Используется новый Railway IaC. Старые `railway.json`/`railway.toml` не добавляются: для новых служб Config as Code больше не подключается. [Актуальный workflow Railway](https://docs.railway.com/infrastructure-as-code). Нужен CLI **5.42.1 или новее**. После создания/подключения аккаунта выполните `railway login`, `railway link`, настройте Shared Variables через интерфейс хостинга и просмотрите `railway config plan`. Только проверенный план применяйте через `railway config apply`; расходы, volumes, регион и удаления должны быть понятны до применения. Здесь эти команды с облаком не выполнялись.
+
+`POSTGRES_PASSWORD` задайте отдельным случайным **hex** значением от 32 байт: в DATABASE_URL используется reference без URI-экранирования. API/worker получают URL из postgres, имя антивируса и renderer — из private networking references. Настоящие секреты не записывайте в IaC; `config pull --include-variables` не используйте для файла, который попадёт в Git. Не переименовывайте volumes после появления данных без отдельного плана переноса. Начальные размеры томов — 1 GiB БД, 1 GiB сигнатуры, 512 MiB лицензированные шрифты; рост и backup нужно настроить до нагрузки.
+
+При первом развёртывании дождитесь PostgreSQL и антивируса, загрузите лицензированные шрифты; если API pre-deploy ещё не дождался новой БД, повторите API deploy после её готовности. Он сам применит миграции. Затем проверьте readiness и worker. Генерацию публичного HTTPS domain включите **только для API**, после чего задайте этот origin в Netlify. Остальные службы оставьте приватными. Внешние S3/SMTP и Netlify не создаются этим файлом. Ручная таблица ниже описывает те же настройки и остаётся запасным способом подключения.
+
 ## Сервисы Railway
 
 Создайте один project и одно environment. Для сервисов из GitHub используйте корень репозитория, а не `apps/web`. В Settings → Build задайте Dockerfile Path. Публичный HTTPS domain нужен только API. Для renderer, ClamAV и PostgreSQL не включайте public domain/TCP proxy.

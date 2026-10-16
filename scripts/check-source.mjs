@@ -12,6 +12,7 @@ const ignored = execFileSync(
     "migrations",
     "infra",
     "scripts",
+    ".railway",
     "tests",
     "public",
   ],
