@@ -67,6 +67,17 @@ Compose read-only/tmpfs/network ограничения автоматическ�
 
 ## Стоимость и приёмка
 
+Перед деплоем выполните `npm run check:deploy -- --profile=backend` в окружении с переменными API/worker, а `npm run check:deploy -- --profile=frontend` — отдельно с переменными Netlify. Команда работает **без сети**, не отправляет письма/AI-запросы, ничего не меняет и не печатает значения переменных. Код выхода `1` означает ошибки настройки, `0` — только успешную статическую проверку; пункты `MANUAL` остаются обязательными. `--json` даёт безопасный машиночитаемый отчёт.
+
+Для локальной проверки файлов настроек храните их только в игнорируемой `.local/`, отдельно для каждого окружения:
+
+```powershell
+npx tsx --env-file=.local/railway-production.env scripts/deploy-check.ts --profile=backend
+npx tsx --env-file=.local/netlify-production.env scripts/deploy-check.ts --profile=frontend
+```
+
+Файлы не создаются командой и не должны попадать в Git/архив. Передавайте переменные из secret manager; не вставляйте ключи в строку команды. Для Netlify не копируйте backend env целиком. Проверка отдельно ловит серверные ключи на frontend и несовпадение `UPLOAD_ORIGIN` с origin, который реально выбирает S3 signer для path-style/virtual-hosted bucket. Секреты, site ID и origins между двумя хостингами всё равно нужно сопоставить при staging-приёмке.
+
 Netlify Free подходит для старта в рамках текущих квот. Railway Free/Trial — ограниченный ресурсный режим; Hobby имеет минимум $5/месяц с включёнными $5 usage. Непрерывная работа нескольких служб может стоить больше. До запуска задайте budget alerts/usage limits, измерьте память антивируса, БД и renderer. OpenAI, SMTP и storage учитываются отдельно. [Railway pricing](https://docs.railway.com/pricing/plans), [Netlify pricing](https://www.netlify.com/pricing/).
 
 На настоящих доменах пройдите регистрацию с реальным письмом и reset; загрузите каждый поддерживаемый формат через CORS; проверьте quarantine/scan, удаление, принадлежность данных двум учителям, реальные задания, запрет PDF до одобрения, сброс одобрения после правки, DOCX/PDF после одобрения и восстановление backup. Отдельно проверьте signed proxy headers/IP, обновление антивируса и выбранные владельцем условия размещения данных. Только после этого публичный запуск можно считать проверенным.

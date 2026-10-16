@@ -14,6 +14,7 @@
     "migrate": "tsx --env-file=.env.local scripts/migrate.ts",
     "typecheck": "next typegen && tsc --noEmit",
     "check:source": "node scripts/check-source.mjs",
+    "check:deploy": "tsx scripts/deploy-check.ts",
     "lint": "eslint .",
     "test": "vitest run",
     "test:parser": "python -m pytest tests/parser -q",
