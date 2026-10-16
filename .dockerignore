@@ -8,6 +8,12 @@ next-env.d.ts
 test-results
 playwright-report
 __pycache__
+**/__pycache__
+**/*.pyc
+.pytest_cache
+coverage
+*.tsbuildinfo
+*.log
 tests/fixtures
 dist
 docs
