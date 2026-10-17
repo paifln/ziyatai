@@ -1,5 +1,6 @@
 "use client";
 import { useUnsavedChanges } from "../lib/use-unsaved-changes";
+import { useDraftState } from "../lib/use-draft-state";
 import { useConfirm } from "./ui/ConfirmProvider";
 import { useEffect, useState, useCallback, useRef } from "react";
 import {
@@ -60,35 +61,55 @@ export default function PlanReview({
     [query, setQuery] = useState(""),
     [quarter, setQuarter] = useState(""),
     [sort, setSort] = useState("original"),
-    [dirty, setDirty] = useState(false),
     [showWarnings, setShowWarnings] = useState(false);
   const [previewPage, setPreviewPage] = useState(0);
+  const { dirty, setDirty, guard } = useDraftState();
+  const readController = useRef<AbortController | null>(null);
   const [previewFailed, setPreviewFailed] = useState(false);
   const [page, setPage] = useState(0);
   const [sheet, setSheet] = useState("");
   const [classFilter, setClassFilter] = useState("");
   const loadedPlan = useRef("");
   const [datesBeforeSkip, setDatesBeforeSkip] = useState<KtpRow[] | null>(null);
-  const load = useCallback(async () => {
-    try {
-      const p = await api(`ktp/${id}`);
-      setPlan(p);
-      setRows(p.rows ?? []);
-      setGrade(p.grade);
-      if (loadedPlan.current !== id) {
-        setClassFilter(p.grade ? String(p.grade) : "");
-        setSheet("");
-        loadedPlan.current = id;
+  const load = useCallback(
+    async (savedDraft = false) => {
+      readController.current?.abort();
+      const controller = new AbortController();
+      readController.current = controller;
+      const checkpoint = guard.checkpoint();
+      try {
+        const p = await api(
+          `ktp/${id}`,
+          "GET",
+          undefined,
+          undefined,
+          controller.signal,
+        );
+        if (
+          controller.signal.aborted ||
+          !guard.canReplace(checkpoint, savedDraft)
+        )
+          return;
+        setPlan(p);
+        setRows(p.rows ?? []);
+        setGrade(p.grade);
+        if (loadedPlan.current !== id) {
+          setClassFilter(p.grade ? String(p.grade) : "");
+          setSheet("");
+          loadedPlan.current = id;
+        }
+        setYear(p.school_year ?? "");
+        setDatesBeforeSkip(null);
+        setDirty(false);
+      } catch (e) {
+        if (!controller.signal.aborted) onError((e as Error).message);
       }
-      setYear(p.school_year ?? "");
-      setDatesBeforeSkip(null);
-      setDirty(false);
-    } catch (e) {
-      onError((e as Error).message);
-    }
-  }, [id, onError]);
+    },
+    [id, onError, guard, setDirty],
+  );
   useEffect(() => {
     void load();
+    return () => readController.current?.abort();
   }, [load]);
   usePolling(load, plan?.status === "extracting");
   useUnsavedChanges(dirty, onDirtyChange);
@@ -186,7 +207,7 @@ export default function PlanReview({
         confirm ? "POST" : "PATCH",
         { revision: plan.revision, rows, grade, schoolYear: year },
       );
-      await load();
+      await load(true);
       onSaved();
     } catch (e) {
       onError((e as Error).message);

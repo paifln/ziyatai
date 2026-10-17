@@ -67,7 +67,7 @@ jobs:
           echo $! > /tmp/ziyatai-web.pid
       - run: npx playwright install --with-deps chromium
       # The full PDF/TNR suite needs licensed fonts and runs on the local/staging host.
-      - run: npx playwright test tests/e2e/design.spec.ts tests/e2e/direct-upload.spec.ts tests/e2e/ui.spec.ts tests/e2e/security.spec.ts tests/e2e/revision.spec.ts tests/e2e/usability.spec.ts tests/e2e/release-review.spec.ts tests/e2e/themes.spec.ts tests/e2e/approval-state.spec.ts tests/e2e/print-and-assessment.spec.ts tests/e2e/class-filter.spec.ts tests/e2e/plan-navigation.spec.ts
+      - run: npx playwright test tests/e2e/design.spec.ts tests/e2e/direct-upload.spec.ts tests/e2e/ui.spec.ts tests/e2e/security.spec.ts tests/e2e/revision.spec.ts tests/e2e/usability.spec.ts tests/e2e/release-review.spec.ts tests/e2e/themes.spec.ts tests/e2e/approval-state.spec.ts tests/e2e/print-and-assessment.spec.ts tests/e2e/class-filter.spec.ts tests/e2e/plan-navigation.spec.ts tests/e2e/draft-recovery.spec.ts
       - name: Check registration with no SMTP or verification requirement
         run: |
           kill "$(cat /tmp/ziyatai-web.pid)"

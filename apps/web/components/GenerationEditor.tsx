@@ -1,5 +1,7 @@
 ﻿"use client";
 import { useUnsavedChanges } from "../lib/use-unsaved-changes";
+import { useDraftState } from "../lib/use-draft-state";
+import { useConfirm } from "./ui/ConfirmProvider";
 import { useCallback, useEffect, useState, useRef } from "react";
 import {
   Check,
@@ -61,17 +63,19 @@ export default function GenerationEditor({
   onSaved: () => void;
   refresh: () => Promise<void>;
 }) {
+  const confirm = useConfirm();
   const [generation, setGeneration] = useState<any>(),
     [document, setDocument] = useState<GenerationDocument>(),
     [versions, setVersions] = useState<any[]>([]),
     [busy, setBusy] = useState(false),
-    [dirty, setDirty] = useState(false),
     [mode, setMode] = useState<"review" | "edit" | "print">("review"),
     [audience, setAudience] = useState<"full" | "student">("full"),
     [styles, setStyles] = useState(Styles.parse(profileStyles)),
     [exportJobs, setExportJobs] = useState<any[]>([]),
     [report, setReport] = useState<any>();
   const [regenerationJob, setRegenerationJob] = useState("");
+  const { dirty, setDirty, guard } = useDraftState();
+  const readController = useRef<AbortController | null>(null);
   const [activeTask, setActiveTask] = useState("");
   const [teacherReviewed, setTeacherReviewed] = useState(false);
   useEffect(() => {
@@ -87,22 +91,48 @@ export default function GenerationEditor({
       requestKeys.current.set(signature, crypto.randomUUID());
     return requestKeys.current.get(signature)!;
   }
-  const load = useCallback(async () => {
-    try {
-      const g = await api(`generations/${id}`);
-      setGeneration(g);
-      if (g.document) {
-        setDocument(g.document);
-        setReport(g.validation);
-        setVersions(await api(`generations/${id}/versions`));
+  const load = useCallback(
+    async (savedDraft = false) => {
+      readController.current?.abort();
+      const controller = new AbortController();
+      readController.current = controller;
+      const checkpoint = guard.checkpoint();
+      try {
+        const g = await api(
+          `generations/${id}`,
+          "GET",
+          undefined,
+          undefined,
+          controller.signal,
+        );
+        if (
+          controller.signal.aborted ||
+          !guard.canReplace(checkpoint, savedDraft)
+        )
+          return;
+        setGeneration(g);
+        setDirty(false);
+        if (g.document) {
+          setDocument(g.document);
+          setReport(g.validation);
+          const history = await api(
+            `generations/${id}/versions`,
+            "GET",
+            undefined,
+            undefined,
+            controller.signal,
+          );
+          if (!controller.signal.aborted) setVersions(history);
+        }
+      } catch (e) {
+        if (!controller.signal.aborted) onError((e as Error).message);
       }
-      setDirty(false);
-    } catch (e) {
-      onError((e as Error).message);
-    }
-  }, [id, onError]);
+    },
+    [id, onError, guard, setDirty],
+  );
   useEffect(() => {
     void load();
+    return () => readController.current?.abort();
   }, [load]);
   usePolling(load, ["queued", "running"].includes(generation?.status));
   async function refreshExports(all = false) {
@@ -162,7 +192,7 @@ export default function GenerationEditor({
         revision: generation.revision,
         document,
       });
-      await load();
+      await load(true);
       onSaved();
     } catch (e) {
       onError((e as Error).message);
@@ -243,6 +273,41 @@ export default function GenerationEditor({
         ?.querySelector<HTMLTextAreaElement>("textarea")
         ?.focus(),
     );
+  }
+  async function restoreVersion(revision: number) {
+    if (busy) return;
+    if (
+      dirty &&
+      !(await confirm(
+        locale === "ru"
+          ? "Заменить несохранённые правки выбранной версией? Текущие правки будут потеряны."
+          : "Сақталмаған өзгерістерді таңдалған нұсқамен ауыстыру керек пе? Қазіргі өзгерістер жоғалады.",
+      ))
+    )
+      return;
+    readController.current?.abort();
+    const controller = new AbortController();
+    readController.current = controller;
+    const checkpoint = guard.checkpoint();
+    setBusy(true);
+    try {
+      const old = await api(
+        `generations/${id}?revision=${revision}`,
+        "GET",
+        undefined,
+        undefined,
+        controller.signal,
+      );
+      if (controller.signal.aborted || !guard.canReplace(checkpoint, true))
+        return;
+      setDocument(old.document);
+      setDirty(true);
+      setReport({ ...old.validation, stale: true });
+    } catch (error) {
+      if (!controller.signal.aborted) onError((error as Error).message);
+    } finally {
+      if (!controller.signal.aborted) setBusy(false);
+    }
   }
   if (!generation)
     return (
@@ -1050,18 +1115,7 @@ export default function GenerationEditor({
                 <button
                   className="text-button"
                   disabled={v.revision === generation.revision || busy}
-                  onClick={async () => {
-                    try {
-                      const old = await api(
-                        `generations/${id}?revision=${v.revision}`,
-                      );
-                      setDocument(old.document);
-                      setDirty(true);
-                      setReport({ ...old.validation, stale: true });
-                    } catch (e) {
-                      onError((e as Error).message);
-                    }
-                  }}
+                  onClick={() => void restoreVersion(v.revision)}
                 >
                   {t.restore}
                 </button>
