@@ -11,6 +11,18 @@
     "productionAcceptancePassed": false
   },
   "checks": {
+    "githubCi": {
+      "commit": "75dc4094384e3c53b3798b27229f6825e6d3b235",
+      "url": "https://github.com/paifln/ziyatai/actions/runs/39009241136",
+      "sourceJob": "success",
+      "integrationJob": "success",
+      "chromiumPassed": 37,
+      "privateWorkbookScenariosSkipped": 2,
+      "noSmtpRegistrationScenariosPassed": 2,
+      "netlifyOfflinePackaging": "success",
+      "npmAuditVulnerabilities": 0,
+      "privateWorkbookCoverage": "The two owner workbook scenarios passed locally; the private source file is not uploaded to GitHub."
+    },
     "unit": 85,
     "parser": 40,
     "chromiumClassImportAndSecurity": 8,
