@@ -20,4 +20,6 @@ export {
   route as POST,
   route as PATCH,
   route as DELETE,
+  route as PUT,
+  route as OPTIONS,
 };

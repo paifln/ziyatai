@@ -1,0 +1,35 @@
+{
+  "date": "2026-10-17",
+  "scope": "Exact business API path/method admission before authentication queries or resource dispatch",
+  "before": "The regression issued DELETE to a synthetic KTP's preview subresource; the old runtime removed the material and its following canonical GET returned 404",
+  "implementation": {
+    "catalog": "One exact route/method catalog, literal-route precedence and no prefix matching",
+    "rejection": "Unknown or extended path returns 404; unsupported method returns 405 with path-specific Allow including OPTIONS",
+    "options": "Explicit Next.js OPTIONS and PUT exports prevent framework-wide generated method metadata from bypassing the business contract; OPTIONS returns an empty 204 response",
+    "access": "OPTIONS describes a route pattern only, without looking up a private resource. Known data operations retain authentication, ownership, CSRF, request bounds, read/write budgets and teacher-review checks",
+    "gateway": "Netlify signature validation still precedes business-route admission; health/auth remain separate"
+  },
+  "verification": {
+    "unitTests": 119,
+    "integrationCases": 26,
+    "contract": "Original malformed deletion now returns 405 and leaves the exact saved KTP unchanged; unsupported account/profile/task/collection/job/draft operations reject before mutation",
+    "state": "Saved plan, approved generation and profile unchanged after the invalid-method/path matrix",
+    "normalBehavior": "Canonical editing and deletion, owner/CSRF rejection, password/session rotation, bounded chunked JSON, uploads, exports, quarantine, read-budget recovery and source checks passed",
+    "optionalOtp": "One real-Mailpit registration case passed with verification temporarily enabled",
+    "noSmtp": "Both main and Lite registration cases passed with verification disabled and SMTP absent; normal local runtime restored afterward",
+    "build": "Production Docker web build, lint, typecheck, source visibility, diff checks and recognizable-secret scan passed"
+  },
+  "ciChange": {
+    "primary": "Ordinary business scenarios use the owner's selected mail-free signup mode; only the explicit OTP test is excluded from this phase",
+    "dedicatedOtp": "Restart the same built web with verification enabled and require that OTP scenario to pass",
+    "noSmtp": "Then restart with verification disabled and SMTP absent for dedicated no-mail signup tests",
+    "reason": "Installed auth code limits OTP verification to three requests per minute per IP/path. Requiring OTP for every fixture unnecessarily throttles the whole suite",
+    "limitsUnchanged": true,
+    "performanceClaim": "No numerical CI duration reduction is claimed before a complete remote run"
+  },
+  "remaining": [
+    "The complete latest GitHub CI and real Netlify/Railway ingress behavior are separate gates",
+    "This exact dispatcher boundary is not a global ingress or memory limit",
+    "Large resource handlers still need gradual separation into typed services without weakening these invariants"
+  ]
+}

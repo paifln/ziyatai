@@ -40,6 +40,7 @@ import { objectDownload } from "./object-download";
 import { readiness } from "./readiness";
 import { trustedScan } from "./scan-policy";
 import { sourceStatus, startSourceCheck } from "./source-checks";
+import { assertApiRoute, ApiMethodError } from "./api-routes";
 const uid = z.string().uuid();
 async function owned(
   table: "plans" | "generations" | "exports" | "uploads" | "jobs",
@@ -163,6 +164,15 @@ export async function handle(req: Request, path: string[]) {
       return json({ status: "ok" });
     }
     req = trustedGatewayRequest(req);
+    const allowed = assertApiRoute(path, method);
+    if (method === "OPTIONS")
+      return new Response(null, {
+        status: 204,
+        headers: {
+          Allow: [...allowed, "OPTIONS"].join(", "),
+          "Cache-Control": "no-store",
+        },
+      });
     if (resource === "public-config" && path.length === 1 && method === "GET") {
       const e = env();
       return json({
@@ -1307,6 +1317,8 @@ export async function handle(req: Request, path: string[]) {
     );
     if (error instanceof ReadBudgetError)
       response.headers.set("Retry-After", String(error.retryAfter));
+    if (error instanceof ApiMethodError)
+      response.headers.set("Allow", error.allow);
     return response;
   }
 }

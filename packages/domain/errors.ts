@@ -8,6 +8,7 @@ export class AppError extends Error {
   }
 }
 export const messages: Record<string, string> = {
+  METHOD_NOT_ALLOWED: "Этот способ запроса не поддерживается.",
   READ_LIMIT:
     "Слишком частые запросы к материалам. Подождите немного и повторите. Правки в открытом редакторе остаются на месте.",
   DRAFT_SIZE:
@@ -47,6 +48,7 @@ export const messages: Record<string, string> = {
   CSRF: "Обновите страницу и повторите действие.",
 };
 export const kazakhMessages: Record<string, string> = {
+  METHOD_NOT_ALLOWED: "Бұл сұрау тәсіліне қолдау жоқ.",
   READ_LIMIT:
     "Материалдарға сұраулар тым жиі жіберілді. Сәл күтіп, қайталаңыз. Ашық редактордағы өзгерістер сақталады.",
   DRAFT_SIZE:
