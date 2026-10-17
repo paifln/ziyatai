@@ -17,7 +17,7 @@ import {
   CalendarOff,
   Undo2,
 } from "lucide-react";
-import { api } from "../lib/client";
+import { useAccountApi } from "../lib/account-client";
 import type { Texts, UiLocale } from "../lib/i18n";
 import type { KtpRow } from "../../../packages/contracts";
 import { Jobs } from "./Jobs";
@@ -57,6 +57,7 @@ export default function PlanReview({
   refresh: () => Promise<void>;
   onBack: () => void;
 }) {
+  const api = useAccountApi();
   const confirm = useConfirm();
   const [plan, setPlan] = useState<any>(),
     [rows, setRows] = useState<KtpRow[]>([]),
@@ -108,7 +109,7 @@ export default function PlanReview({
         },
       };
     },
-    [id],
+    [api, id],
   );
   const load = useCallback(
     async (savedDraft = false) => {
@@ -153,7 +154,7 @@ export default function PlanReview({
         }
       }
     },
-    [id, onError, guard, setDirty],
+    [guard, api, id, setDirty, onError],
   );
   useEffect(() => {
     void load();

@@ -43,6 +43,7 @@ import { sourceStatus, startSourceCheck } from "./source-checks";
 import { assertApiRoute, ApiMethodError } from "./api-routes";
 import { isEditablePlanStatus } from "../../../packages/domain/plan-status";
 import { planCollection } from "./plan-collection";
+import { assertAccountIntent } from "./account-intent";
 const uid = z.string().uuid();
 async function owned(
   table: "plans" | "generations" | "exports" | "uploads" | "jobs",
@@ -206,6 +207,7 @@ export async function handle(req: Request, path: string[]) {
     )
       throw new AppError("UNAUTHORIZED", 401);
     const owner = session.user.id;
+    assertAccountIntent(req.headers, owner);
     const p = await db().query(
       "SELECT deleted_at FROM profiles WHERE owner_id=$1",
       [owner],

@@ -10,7 +10,7 @@ import {
   Plus,
   RefreshCw,
 } from "lucide-react";
-import { api } from "../lib/client";
+import { useAccountApi } from "../lib/account-client";
 import { usePolling, useResume } from "../lib/use-polling";
 import type { Texts, UiLocale } from "../lib/i18n";
 
@@ -41,6 +41,7 @@ export default function ResourceCollection({
   onCreate: () => void;
   refresh: () => Promise<void>;
 }) {
+  const api = useAccountApi();
   const confirm = useConfirm();
   const [query, setQuery] = useState("");
   const [search, setSearch] = useState("");
@@ -83,7 +84,7 @@ export default function ResourceCollection({
     return () => {
       controller.abort();
     };
-  }, [kind, search, offset, revision]);
+  }, [kind, search, offset, revision, api]);
   const reload = async () => {
     setRevision((v) => v + 1);
   };

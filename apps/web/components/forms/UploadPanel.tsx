@@ -8,7 +8,7 @@ import {
   ShieldCheck,
   FolderOpen,
 } from "lucide-react";
-import { api, uploadFile } from "../../lib/client";
+import { useAccountClient } from "../../lib/account-client";
 import type { Texts, UiLocale } from "../../lib/i18n";
 import { uploadSelectionError } from "../../../../packages/domain/uploads";
 import { Form } from "../ui/Form";
@@ -29,6 +29,7 @@ export function UploadPanel({
   onError: (e: string) => void;
   onCancel: () => void;
 }) {
+  const { api, uploadFile } = useAccountClient();
   const [file, setFile] = useState<File>();
   const [sourceLocale, setSourceLocale] = useState(locale);
   const [hidden, setHidden] = useState(false);

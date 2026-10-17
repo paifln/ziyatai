@@ -18,7 +18,8 @@ import {
   Feather,
   ChevronDown,
 } from "lucide-react";
-import { api, authClient } from "../lib/client";
+import { authClient } from "../lib/client";
+import { AccountClientProvider, useAccountApi } from "../lib/account-client";
 import { dictionary, type UiLocale } from "../lib/i18n";
 import AuthPanel from "./AuthPanel";
 import Landing from "./Landing";
@@ -59,14 +60,20 @@ export default function Workspace({
 }) {
   const sessionState = authClient.useSession();
   return (
-    <ConfirmProvider key={sessionState.data?.user.id ?? "guest"}>
-      <WorkspaceContent
-        sessionState={sessionState}
-        authMode={authMode}
-        initialGuest={initialGuest}
-        initialLocale={initialLocale}
-      />
-    </ConfirmProvider>
+    <AccountClientProvider
+      key={sessionState.data?.user.id ?? "guest"}
+      owner={sessionState.data?.user.id}
+      onSessionChanged={sessionState.refetch}
+    >
+      <ConfirmProvider>
+        <WorkspaceContent
+          sessionState={sessionState}
+          authMode={authMode}
+          initialGuest={initialGuest}
+          initialLocale={initialLocale}
+        />
+      </ConfirmProvider>
+    </AccountClientProvider>
   );
 }
 function WorkspaceContent({
@@ -80,6 +87,7 @@ function WorkspaceContent({
   initialGuest?: boolean;
   initialLocale?: UiLocale;
 }) {
+  const api = useAccountApi();
   const confirm = useConfirm();
   const [locale, setLocaleState] = useState<UiLocale>(initialLocale ?? "kk");
   const t = dictionary[locale];
@@ -198,7 +206,7 @@ function WorkspaceContent({
         refreshAbort.current = undefined;
       }
     }
-  }, [sessionUserId, passwordReset]);
+  }, [sessionUserId, passwordReset, api]);
   useEffect(() => {
     void refresh();
   }, [refresh]);

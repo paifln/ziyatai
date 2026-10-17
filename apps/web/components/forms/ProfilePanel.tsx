@@ -1,7 +1,8 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { Check } from "lucide-react";
-import { api, authClient } from "../../lib/client";
+import { authClient } from "../../lib/client";
+import { useAccountApi } from "../../lib/account-client";
 import type { Texts, UiLocale } from "../../lib/i18n";
 import { subjects } from "../../../../packages/domain/subjects";
 import { Form } from "../ui/Form";
@@ -25,6 +26,7 @@ export function ProfilePanel({
   setLocale: (l: UiLocale) => void;
   onDirtyChange: (dirty: boolean) => void;
 }) {
+  const api = useAccountApi();
   const confirm = useConfirm();
   const active = useRef(true);
   useEffect(() => {

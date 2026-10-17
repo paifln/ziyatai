@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Download, ShieldCheck } from "lucide-react";
-import { api } from "../lib/client";
+import { useAccountApi } from "../lib/account-client";
 import { usePolling } from "../lib/use-polling";
 import type { UiLocale } from "../lib/i18n";
 import { messages, kazakhMessages } from "../../../packages/domain/errors";
@@ -27,6 +27,7 @@ export function SourceAccess({
   locale: UiLocale;
   onAvailability: (available: boolean) => void;
 }) {
+  const api = useAccountApi();
   const [state, setState] = useState<Status>();
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -56,7 +57,7 @@ export function SourceAccess({
     } catch (e) {
       if (!next.signal.aborted) setError((e as Error).message);
     }
-  }, [planId, onAvailability]);
+  }, [api, planId, onAvailability]);
   useEffect(() => {
     void load();
     return () => controller.current?.abort();

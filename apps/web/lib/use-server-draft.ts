@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api } from "./client";
+import { useAccountApi } from "./account-client";
 import { draftsEqual } from "../../../packages/domain/merge-drafts";
 import type {
   DraftKind,
@@ -28,6 +28,7 @@ export function useServerDraft<T>({
   dirty: boolean;
   enabled?: boolean;
 }) {
+  const api = useAccountApi();
   const [stage, setStage] = useState<Stage>("idle"),
     [error, setError] = useState("");
   const [candidates, setCandidates] = useState<DraftSummary[]>([]),
@@ -68,7 +69,7 @@ export function useServerDraft<T>({
       if (!controller.signal.aborted && mounted.current)
         setListError((e as Error).message);
     }
-  }, [kind, resourceId]);
+  }, [api, kind, resourceId]);
   const ready = revision !== undefined;
   useEffect(() => {
     mounted.current = true;
@@ -88,7 +89,7 @@ export function useServerDraft<T>({
         ...(expectedSequence === undefined ? {} : { expectedSequence }),
       });
     },
-    [kind, resourceId],
+    [api, kind, resourceId],
   );
   const clear = useCallback(async () => {
     const previous = owned.current,
@@ -173,7 +174,7 @@ export function useServerDraft<T>({
     } finally {
       if (owned.current === slot) writing.current = false;
     }
-  }, [kind, resourceId]);
+  }, [api, kind, resourceId]);
 
   useEffect(() => {
     if (!ready) return;
@@ -217,7 +218,7 @@ export function useServerDraft<T>({
       recovered.current = result;
       return result;
     },
-    [kind, resourceId],
+    [api, kind, resourceId],
   );
   const remove = useCallback(
     async (row: DraftSummary) => {

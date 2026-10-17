@@ -11,7 +11,7 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 import type { Texts, UiLocale } from "../../lib/i18n";
-import { api } from "../../lib/client";
+import { useAccountApi } from "../../lib/account-client";
 import type {
   PlanCollectionPage,
   PlanSummary,
@@ -39,6 +39,7 @@ export function PlanCollection({
   onDemo?: () => void;
   busy: boolean;
 }) {
+  const api = useAccountApi();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("all");
   const [grade, setGrade] = useState("");
@@ -132,7 +133,7 @@ export function PlanCollection({
       },
       new URLSearchParams(requestKey).get("q") ? 250 : 0,
     );
-  }, [requestKey, revision, retry]);
+  }, [requestKey, revision, retry, api]);
   const ru = locale === "ru";
   const isReview = (p: PlanSummary) => p.status === "review";
   const otherStatuses = planStatuses.filter(

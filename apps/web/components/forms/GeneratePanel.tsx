@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { Sparkles, Minus, Plus, Clock3 } from "lucide-react";
-import { api } from "../../lib/client";
+import { useAccountApi } from "../../lib/account-client";
 import type { Texts, UiLocale } from "../../lib/i18n";
 import { displayLevel } from "../../../../packages/domain/validation";
 import { ConfirmedPlanPicker } from "./ConfirmedPlanPicker";
@@ -26,6 +26,7 @@ export function GeneratePanel({
   onDone: (id: string) => void;
   onReview: (id: string) => void;
 }) {
+  const api = useAccountApi();
   const [planId, setPlanId] = useState(selected || ""),
     [plan, setPlan] = useState<any>(),
     [rowId, setRowId] = useState(""),
@@ -66,7 +67,7 @@ export function GeneratePanel({
         });
     } else setPlanLoading(false);
     return () => controller.abort();
-  }, [planId, onError]);
+  }, [planId, onError, api]);
   const row = plan?.rows?.find((r: any) => r.id === rowId);
   const requestKeys = useRef(new Map<string, string>());
   async function submit(e: React.FormEvent) {

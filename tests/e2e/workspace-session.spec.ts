@@ -79,6 +79,98 @@ async function notifySession(page: Page, status = 200) {
   return response;
 }
 
+for (const action of ["profile save", "account deletion"] as const) {
+  test(`an old ${action} is rejected while the new session lookup is still pending`, async ({
+    page,
+    request,
+    playwright,
+  }) => {
+    const pool = new Pool({
+      connectionString: parseEnv(await readFile(".env.local", "utf8"))
+        .DATABASE_URL,
+    });
+    const second = await playwright.request.newContext({
+      baseURL: "http://localhost:3000",
+    });
+    let release!: () => void;
+    let started!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const intercepted = new Promise<void>((resolve) => {
+      started = resolve;
+    });
+    let lookup: ReturnType<typeof notifySession> | undefined;
+    try {
+      const first = await actor(request, pool, "one");
+      const next = await actor(second, pool, "two");
+      await enter(page, request);
+      await profile(page);
+      if (action === "profile save")
+        await page
+          .getByLabel("Школа (необязательно)", { exact: true })
+          .fill("Old teacher intent must not enter next profile");
+      await page.route("**/api/auth/get-session*", async (route) => {
+        started();
+        await gate;
+        await route.continue();
+      });
+      await page.context().clearCookies();
+      await page.context().addCookies((await second.storageState()).cookies);
+      lookup = notifySession(page);
+      await intercepted;
+      await expect(page.getByLabel("Email", { exact: true })).toHaveValue(
+        first.email,
+      );
+      const result = page.waitForResponse(
+        (r) =>
+          new URL(r.url()).pathname ===
+            (action === "profile save" ? "/api/profile" : "/api/account") &&
+          r.request().method() ===
+            (action === "profile save" ? "PATCH" : "DELETE"),
+      );
+      if (action === "profile save") {
+        await page
+          .getByRole("button", { name: "Сохранить", exact: true })
+          .click();
+      } else {
+        await page.getByText("Удаление аккаунта", { exact: true }).click();
+        await page
+          .getByRole("button", { name: "Удалить", exact: true })
+          .click();
+        await page
+          .getByRole("dialog")
+          .getByRole("button", { name: "Удалить", exact: true })
+          .click();
+      }
+      const response = await result;
+      expect(response.status()).toBe(409);
+      expect((await response.json()).code).toBe("SESSION_CHANGED");
+      expect((await (await second.get("/api/profile")).json()).school).toBe(
+        "Private two school",
+      );
+      expect((await (await request.get("/api/profile")).json()).school).toBe(
+        "Private one school",
+      );
+      release();
+      await lookup;
+      await expect(page.locator(".resource-row")).toContainText(
+        "Private two plan",
+      );
+      await profile(page);
+      await expect(page.getByLabel("Email", { exact: true })).toHaveValue(
+        next.email,
+      );
+    } finally {
+      release();
+      await lookup?.catch(() => undefined);
+      await page.unrouteAll({ behavior: "wait" });
+      await second.dispose();
+      await pool.end();
+    }
+  });
+}
+
 test("the active teacher can still save settings and finish confirmed account deletion", async ({
   page,
   request,

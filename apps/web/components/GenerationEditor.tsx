@@ -16,7 +16,7 @@ import {
   Edit3,
   ClipboardCheck,
 } from "lucide-react";
-import { api } from "../lib/client";
+import { useAccountApi } from "../lib/account-client";
 import type { Texts, UiLocale } from "../lib/i18n";
 import {
   Styles,
@@ -66,6 +66,7 @@ export default function GenerationEditor({
   onSaved: () => void;
   refresh: () => Promise<void>;
 }) {
+  const api = useAccountApi();
   const confirm = useConfirm();
   const [generation, setGeneration] = useState<any>(),
     [document, setDocument] = useState<GenerationDocument>(),
@@ -118,7 +119,7 @@ export default function GenerationEditor({
         draft: g.document,
       };
     },
-    [id, locale],
+    [api, id, locale],
   );
   useEffect(() => {
     setTeacherReviewed(false);
@@ -175,7 +176,7 @@ export default function GenerationEditor({
         }
       }
     },
-    [id, onError, guard, setDirty],
+    [guard, api, id, setDirty, onError],
   );
   useEffect(() => {
     void load();

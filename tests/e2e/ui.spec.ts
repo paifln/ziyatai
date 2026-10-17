@@ -1,5 +1,6 @@
 ﻿import { test, expect, devices, type Page } from "@playwright/test";
 import { verifiedUser } from "./helpers";
+import { accountIntentHeader } from "../../packages/contracts/account-intent";
 async function navigate(page: Page, label: string, touch: boolean) {
   if (
     (page.viewportSize()?.width ?? 1280) < 1024 &&
@@ -40,6 +41,22 @@ for (const screen of ["desktop", "phone", "tablet"] as const) {
       request,
     }) => {
       await verifiedUser(request);
+      const owner = (await (await request.get("/api/auth/get-session")).json())
+        .user.id;
+      const unscopedRequests: string[] = [];
+      page.on("request", (sent) => {
+        const url = new URL(sent.url());
+        if (
+          url.origin === "http://localhost:3000" &&
+          url.pathname.startsWith("/api/") &&
+          !["/api/auth/", "/api/public-config", "/api/health"].some((path) =>
+            url.pathname.startsWith(path),
+          ) &&
+          ["fetch", "xhr"].includes(sent.resourceType()) &&
+          sent.headers()[accountIntentHeader.toLowerCase()] !== owner
+        )
+          unscopedRequests.push(`${sent.method()} ${url.pathname}`);
+      });
       await page.context().addCookies((await request.storageState()).cookies);
       await page.route("**/api/profile", async (route) => {
         const response = await route.fetch();
@@ -162,6 +179,7 @@ for (const screen of ["desktop", "phone", "tablet"] as const) {
         ),
       ).toBe(true);
       await page.unrouteAll({ behavior: "wait" });
+      expect(unscopedRequests).toEqual([]);
     });
   });
 }

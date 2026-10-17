@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { Check, AlertTriangle, ChevronRight } from "lucide-react";
-import { api } from "../lib/client";
+import { useAccountApi } from "../lib/account-client";
 import type { Texts, UiLocale } from "../lib/i18n";
 import { kazakhMessages, messages } from "../../../packages/domain/errors";
 export function Jobs({
@@ -17,6 +17,7 @@ export function Jobs({
   refresh: () => Promise<void>;
   locale?: UiLocale;
 }) {
+  const api = useAccountApi();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [mutating, setMutating] = useState<Record<string, boolean>>({});
   return (

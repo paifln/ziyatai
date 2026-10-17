@@ -6,6 +6,7 @@ import {
 } from "better-auth/client/plugins";
 import { kazakhMessages, messages } from "../../../packages/domain/errors";
 import { fetchWithWakeRetry } from "./wake-retry";
+import { accountIntentHeader } from "../../../packages/contracts/account-intent";
 export const authClient = createAuthClient({
   plugins: [
     emailOTPClient(),
@@ -19,13 +20,14 @@ export async function uploadFile(
   direct: boolean,
   onProgress?: (percent: number) => void,
   signal?: AbortSignal,
+  request: typeof api = api,
 ) {
   if (!direct) {
     const form = new FormData();
     form.append("file", file);
-    return api("uploads", "POST", form, undefined, signal);
+    return request("uploads", "POST", form, undefined, signal);
   }
-  const init = await api(
+  const init = await request(
     "uploads/init",
     "POST",
     { name: file.name, bytes: file.size },
@@ -64,7 +66,7 @@ export async function uploadFile(
     };
     xhr.send(file);
   });
-  return api(`uploads/${init.id}/complete`, "POST", {}, undefined, signal);
+  return request(`uploads/${init.id}/complete`, "POST", {}, undefined, signal);
 }
 export async function api(
   path: string,
@@ -72,21 +74,26 @@ export async function api(
   data?: unknown,
   idempotencyKey?: string,
   signal?: AbortSignal,
+  expectedOwner?: string,
 ) {
   let response: Response;
   const translated =
     document.documentElement.lang === "kk" ? kazakhMessages : messages;
   try {
+    const headers = new Headers(
+      data instanceof FormData
+        ? undefined
+        : {
+            "Content-Type": "application/json",
+            "Idempotency-Key": idempotencyKey ?? crypto.randomUUID(),
+          },
+    );
+    if (expectedOwner !== undefined)
+      headers.set(accountIntentHeader, expectedOwner);
     response = await fetchWithWakeRetry(`/api/${path}`, {
       method,
       signal,
-      headers:
-        data instanceof FormData
-          ? {}
-          : {
-              "Content-Type": "application/json",
-              "Idempotency-Key": idempotencyKey ?? crypto.randomUUID(),
-            },
+      headers,
       body:
         data === undefined
           ? undefined
@@ -136,4 +143,35 @@ export async function api(
       },
     );
   return value;
+}
+
+/** Capture an owner once so delayed callbacks cannot adopt another account. */
+export function createAccountClient(
+  owner?: string,
+  onSessionChanged?: () => void,
+) {
+  const scopedApi = async (
+    path: string,
+    method = "GET",
+    data?: unknown,
+    idempotencyKey?: string,
+    signal?: AbortSignal,
+  ) => {
+    try {
+      return await api(path, method, data, idempotencyKey, signal, owner);
+    } catch (error) {
+      if ((error as { code?: string }).code === "SESSION_CHANGED")
+        onSessionChanged?.();
+      throw error;
+    }
+  };
+  return {
+    api: scopedApi,
+    uploadFile: (
+      file: File,
+      direct: boolean,
+      onProgress?: (percent: number) => void,
+      signal?: AbortSignal,
+    ) => uploadFile(file, direct, onProgress, signal, scopedApi),
+  };
 }

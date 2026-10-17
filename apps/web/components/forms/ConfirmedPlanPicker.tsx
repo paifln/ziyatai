@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { api } from "../../lib/client";
+import { useAccountApi } from "../../lib/account-client";
 import type { Texts, UiLocale } from "../../lib/i18n";
 
 type PlanChoice = { id: string; title: string };
@@ -21,6 +21,7 @@ export function ConfirmedPlanPicker({
   locale: UiLocale;
   t: Texts;
 }) {
+  const api = useAccountApi();
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(0);
   const [choices, setChoices] = useState<PlanChoice[]>([]);
@@ -61,7 +62,7 @@ export function ConfirmedPlanPicker({
       clearTimeout(timer);
       controller.abort();
     };
-  }, [query, page, onError, retry]);
+  }, [query, page, onError, retry, api]);
   useEffect(() => {
     if (!value && choices[0]) onChange(choices[0].id);
   }, [choices, value, onChange]);
