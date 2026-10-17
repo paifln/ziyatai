@@ -11,12 +11,16 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 import type { Texts, UiLocale } from "../../lib/i18n";
+import {
+  planStatuses,
+  type PlanStatusValue,
+} from "../../../../packages/domain/plan-status";
 export interface PlanSummary {
   id: string;
   title: string;
   grade: number | null;
   school_year: string;
-  status: string;
+  status: PlanStatusValue;
   created_at?: string;
 }
 export function PlanCollection({
@@ -43,16 +47,18 @@ export function PlanCollection({
   const [grade, setGrade] = useState("");
   const [sort, setSort] = useState("recent");
   const ru = locale === "ru";
-  const isReview = (p: PlanSummary) =>
-    ["review", "needs_review"].includes(p.status);
+  const isReview = (p: PlanSummary) => p.status === "review";
+  const otherStatuses = planStatuses.filter(
+    (value) =>
+      value !== "confirmed" &&
+      value !== "review" &&
+      plans.some((p) => p.status === value),
+  );
   const visible = useMemo(() => {
     const items = plans.filter(
       (p) =>
         (!grade || String(p.grade) === grade) &&
-        (status === "all" ||
-          (status === "review"
-            ? ["review", "needs_review"].includes(p.status)
-            : p.status === status)) &&
+        (status === "all" || p.status === status) &&
         p.title.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()),
     );
     return sort === "name"
@@ -108,7 +114,28 @@ export function PlanCollection({
               </button>
             ))}
           </div>
-          <div className="toolbar">
+          <div className="toolbar plan-toolbar">
+            {otherStatuses.length > 0 && (
+              <select
+                aria-label={ru ? "Другие статусы КТП" : "КТЖ-ның басқа күйлері"}
+                value={
+                  otherStatuses.includes(status as PlanStatusValue)
+                    ? status
+                    : ""
+                }
+                onChange={(e) => setStatus(e.target.value || "all")}
+              >
+                <option value="">
+                  {ru ? "Другие статусы КТП" : "КТЖ-ның басқа күйлері"}
+                </option>
+                {otherStatuses.map((value) => (
+                  <option key={value} value={value}>
+                    {t[value]} ·{" "}
+                    {plans.filter((p) => p.status === value).length}
+                  </option>
+                ))}
+              </select>
+            )}
             <label className="search-field">
               <span className="sr-only">
                 {ru ? "Найти КТП по названию" : "КТЖ атауы бойынша іздеу"}

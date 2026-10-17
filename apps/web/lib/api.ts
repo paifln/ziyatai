@@ -1,6 +1,6 @@
 import { syntheticDemo } from "../../../packages/domain/demo";
 import { rowGrade } from "../../../packages/domain/grades";
-import { GenerationDoc } from "../../../packages/contracts";
+import { GenerationDoc, PlanStatus } from "../../../packages/contracts";
 import { normalizeDate } from "../../../packages/domain/dates";
 import {
   hasGoalText,
@@ -41,6 +41,7 @@ import { readiness } from "./readiness";
 import { trustedScan } from "./scan-policy";
 import { sourceStatus, startSourceCheck } from "./source-checks";
 import { assertApiRoute, ApiMethodError } from "./api-routes";
+import { isEditablePlanStatus } from "../../../packages/domain/plan-status";
 const uid = z.string().uuid();
 async function owned(
   table: "plans" | "generations" | "exports" | "uploads" | "jobs",
@@ -112,6 +113,8 @@ async function savePlan(
         [id, expected],
       )
     ).rows[0];
+    if (!old || !isEditablePlanStatus(p.rows[0].status))
+      throw new AppError("CONFLICT", 409);
     if (
       confirm &&
       ((!grade && rows.some((r) => !rowGrade(r))) ||
@@ -671,10 +674,9 @@ export async function handle(req: Request, path: string[]) {
       return json(result, 202);
     }
     if (resource === "ktp" && !id && method === "GET") {
-      const status = z
-        .enum(["confirmed", "review", "extracting", "failed"])
-        .optional()
-        .parse(url.searchParams.get("status") ?? undefined);
+      const status = PlanStatus.optional().parse(
+        url.searchParams.get("status") ?? undefined,
+      );
       return json(
         (
           await db().query(

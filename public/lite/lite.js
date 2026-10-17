@@ -1064,6 +1064,7 @@
           ["review", t("review")],
           ["extracting", t("extracting")],
           ["failed", t("failed")],
+          ["cancelled", t("cancelled")],
         ],
         listStatus
       );

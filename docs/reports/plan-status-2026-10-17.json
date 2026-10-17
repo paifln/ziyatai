@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-17",
+  "scope": "KTP status contract, cancelled import filters, unfinished import confirmation guard and mobile collection toolbar",
+  "migration": "013_plan_status.sql",
+  "before": {
+    "cancelled_filter_http": 422,
+    "unfinished_import_confirmation_http": 500
+  },
+  "after": {
+    "cancelled_filter_http": 200,
+    "unfinished_import_confirmation_http": 409,
+    "existing_plan_rows_rewritten": false,
+    "noneditable_plans_with_current_snapshot_audit_count": 0
+  },
+  "verification": {
+    "unit_passed": 119,
+    "related_integration_passed": 14,
+    "final_chromium_ui_passed": 2,
+    "final_webkit_ui_passed": 2,
+    "ui": "Main and Lite; light/dark; 360px; scoped axe and horizontal overflow checks; screenshots inspected",
+    "lease_recovery_scenarios_passed": 17,
+    "restore": {"tables": 21, "migrations": 13, "hashes_match": true},
+    "lint": "passed",
+    "typecheck": "passed",
+    "source_check": "passed"
+  },
+  "limits": [
+    "Remote CI remains in progress at report time; local results do not establish remote success",
+    "No public deployment or paid resources created",
+    "Main collection first-100 limit requires a separate pagination regression and fix",
+    "Browser emulation does not establish physical Windows 7 compatibility"
+  ]
+}

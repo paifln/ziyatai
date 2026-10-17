@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { planStatuses } from "../domain/plan-status";
+export const PlanStatus = z.enum(planStatuses);
 export const Locale = z.enum(["kk", "ru", "kk+ru"]);
 export const Block = z
   .object({
