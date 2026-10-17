@@ -9,6 +9,7 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { env } from "./env";
+import { Readable } from "node:stream";
 let instance: S3Client;
 function storage() {
   const e = env();
@@ -38,6 +39,86 @@ export async function getObject(key: string) {
     new GetObjectCommand({ Bucket: env().STORAGE_BUCKET, Key: key }),
   );
   return Buffer.from(await r.Body!.transformToByteArray());
+}
+/** Public downloads use a byte-bounded bridge, never a whole-object collector.
+ * SDK transforms may wrap the HTTP body; abort the request on early close too.
+ */
+export async function openObject(
+  key: string,
+  options: {
+    signal?: AbortSignal;
+    range?: string;
+    ifMatch?: string;
+    maximumDurationMs?: number;
+    headersTimeoutMs?: number;
+  } = {},
+) {
+  const abort = new AbortController();
+  let source: Readable | undefined;
+  let ended = false;
+  const interrupt = () => {
+    abort.abort();
+    source?.destroy(new Error("File transfer interrupted"));
+  };
+  const duration = setTimeout(
+    interrupt,
+    Math.min(options.maximumDurationMs ?? 900000, 900000),
+  );
+  const headers = setTimeout(
+    interrupt,
+    Math.min(options.headersTimeoutMs ?? 30000, 30000),
+  );
+  duration.unref();
+  headers.unref();
+  const cleanup = () => {
+    clearTimeout(duration);
+    clearTimeout(headers);
+    options.signal?.removeEventListener("abort", interrupt);
+  };
+  options.signal?.addEventListener("abort", interrupt, { once: true });
+  if (options.signal?.aborted) interrupt();
+  try {
+    const result = await storage().send(
+      new GetObjectCommand({
+        Bucket: env().STORAGE_BUCKET,
+        Key: key,
+        Range: options.range,
+        IfMatch: options.ifMatch,
+      }),
+      { abortSignal: abort.signal },
+    );
+    clearTimeout(headers);
+    if (!(result.Body instanceof Readable))
+      throw new Error("Expected a Node object stream");
+    source = result.Body;
+    source.once("end", () => {
+      ended = true;
+      cleanup();
+    });
+    source.once("close", () => {
+      if (!ended) abort.abort();
+      cleanup();
+    });
+    source.once("error", () => {
+      abort.abort();
+      cleanup();
+    });
+    if (abort.signal.aborted) interrupt();
+    const body = Readable.toWeb(source, {
+      strategy: { highWaterMark: 64 * 1024, size: (chunk) => chunk.byteLength },
+    }) as ReadableStream<Uint8Array>;
+    return {
+      body,
+      length: result.ContentLength,
+      range: result.ContentRange,
+      etag: result.ETag,
+      modified: result.LastModified,
+    };
+  } catch (error) {
+    cleanup();
+    source?.destroy();
+    throw error;
+  }
 }
 export async function deleteObject(key: string) {
   await storage().send(
@@ -98,8 +179,9 @@ export async function signedUpload(key: string, bytes: number, type: string) {
     throw new Error("Object storage signer did not bind Content-Length");
   return url;
 }
-export async function objectMetadata(key: string) {
+export async function objectMetadata(key: string, signal?: AbortSignal) {
   return storage().send(
     new HeadObjectCommand({ Bucket: env().STORAGE_BUCKET, Key: key }),
+    { abortSignal: signal },
   );
 }

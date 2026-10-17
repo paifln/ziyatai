@@ -37,6 +37,7 @@ import {
 import { validateDocument } from "../../../packages/domain/validation";
 import { editorDrafts } from "./editor-drafts";
 import { admitRead, ReadBudgetError } from "./read-budgets";
+import { objectDownload } from "./object-download";
 const uid = z.string().uuid();
 async function owned(
   table: "plans" | "generations" | "exports" | "uploads" | "jobs",
@@ -586,20 +587,16 @@ export async function handle(req: Request, path: string[]) {
         return json({ id: uploadId, name: file.name }, 201);
       });
     }
-    if (resource === "uploads" && id && method === "GET") {
+    if (resource === "uploads" && id && ["GET", "HEAD"].includes(method)) {
       const f = await owned("uploads", id, owner);
       if (
         !["clean", "unscanned-development"].includes(f.scan_status) ||
         f.status !== "complete"
       )
         throw new AppError("CONFLICT", 409);
-      const bytes = await getObject(f.object_key);
-      return new Response(new Uint8Array(bytes), {
-        headers: {
-          "Content-Type": f.mime,
-          "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(f.original_name)}`,
-          "Cache-Control": "private, no-store",
-        },
+      return await objectDownload(req, f.object_key, {
+        "Content-Type": f.mime,
+        "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(f.original_name)}`,
       });
     }
     if (resource === "ktp" && id === "imports" && method === "POST") {
@@ -1191,23 +1188,19 @@ export async function handle(req: Request, path: string[]) {
       resource === "exports" &&
       id &&
       action === "download" &&
-      method === "GET"
+      ["GET", "HEAD"].includes(method)
     ) {
       const ex = await owned("exports", id, owner);
       await owned("generations", ex.generation_id, owner);
       if (!ex.teacher_reviewed) throw new AppError("REVIEW_REQUIRED", 422);
       if (ex.status !== "succeeded" || !ex.object_key)
         throw new AppError("CONFLICT", 409);
-      const bytes = await getObject(ex.object_key);
-      return new Response(new Uint8Array(bytes), {
-        headers: {
-          "Content-Type":
-            ex.format === "pdf"
-              ? "application/pdf"
-              : "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-          "Content-Disposition": `attachment; filename="ZiyatAI-${ex.audience}.${ex.format}"`,
-          "Cache-Control": "private, no-store",
-        },
+      return await objectDownload(req, ex.object_key, {
+        "Content-Type":
+          ex.format === "pdf"
+            ? "application/pdf"
+            : "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "Content-Disposition": `attachment; filename="ZiyatAI-${ex.audience}.${ex.format}"`,
       });
     }
     if (["history", "library"].includes(resource) && method === "GET") {

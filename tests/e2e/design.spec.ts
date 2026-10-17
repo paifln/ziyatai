@@ -566,6 +566,13 @@ test("lite imports, confirms, paginates and exports without loading React", asyn
     route.fulfill({ status: 409, json: { code: "CONFLICT" } }),
   );
   await page.getByRole("button", { name: "Сохранить", exact: true }).click();
+  const comparison = page.locator(".draft-conflict");
+  await expect(comparison).toBeVisible();
+  await expect(condition).toBeDisabled();
+  await expect(condition).toHaveValue(draft);
+  await comparison
+    .getByRole("button", { name: "Продолжить редактирование", exact: true })
+    .click();
   await expect(condition).toBeEnabled();
   await expect(condition).toHaveValue(draft);
   await page.unroute("**/api/generations/*/tasks/*");

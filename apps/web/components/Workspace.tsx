@@ -270,7 +270,9 @@ function WorkspaceContent({
     return <AuthPanel t={t} locale={locale} setLocale={setLocale} />;
   if (isPending && !sessionLoaded && initialGuest && !authMode)
     return <Landing locale={locale} setLocale={setLocale} />;
-  if (isPending && !session)
+  // Auth actions refresh the anonymous session too. Keep the mounted form:
+  // replacing it during that refresh loses the email-code step and inputs.
+  if (isPending && !session && !sessionLoaded)
     return (
       <div className="loading-screen">
         <div>

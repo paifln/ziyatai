@@ -5,6 +5,19 @@ async function route(
   req: Request,
   { params }: { params: Promise<{ path: string[] }> },
 ) {
-  return handle(req, (await params).path);
+  const response = await handle(req, (await params).path);
+  return req.method === "HEAD"
+    ? new Response(null, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+      })
+    : response;
 }
-export { route as GET, route as POST, route as PATCH, route as DELETE };
+export {
+  route as GET,
+  route as HEAD,
+  route as POST,
+  route as PATCH,
+  route as DELETE,
+};

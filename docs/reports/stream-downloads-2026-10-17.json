@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-17",
+  "scope": "Private streaming downloads and anonymous-session form preservation",
+  "implementation": {
+    "download": "S3 stream to Web Streams with an explicit 64 KiB byte queue; no whole-file collector in source/export HTTP downloads",
+    "protocol": "GET/HEAD, exact length, validators, single byte ranges, If-Range, 416 and no-store",
+    "limits": "30 second upstream header timeout, 15 minute upstream transfer deadline, cancellation aborts the SDK request",
+    "authorization": "Owner, completion/quarantine and teacher-approval checks precede both metadata and byte responses",
+    "signup": "Keep the existing anonymous auth form mounted during subsequent session refreshes; otherwise signup loses its OTP step",
+    "ci": "Explicit verification-enabled primary integration runtime plus existing no-SMTP runtime; Lite conflict test now resolves the comparison before expecting editable fields"
+  },
+  "evidence": {
+    "unit": "105 passed, including five real-SDK tests against an isolated loopback S3 fixture",
+    "streamFixture": "32 MiB producer does not finish while the consumer is paused; reader cancellation closes the unfinished HTTP response; incoming abort and stalled-body deadline also tested",
+    "chromium": "10 upload/download/release cases, one Lite import/edit/export case, one OTP case, five no-mail/session cases passed",
+    "webkit": "Four cases passed: Lite import/edit/export and all three real-storage download/authorization cases",
+    "otpBeforeFix": "Verification-enabled runtime reproduced return to login instead of code entry; the same real-Mailpit test passed after preserving the mounted form",
+    "build": "Production Docker image built; lint, typecheck, source visibility, formatting and recognizable-secret scan passed",
+    "runtime": "Local runtime restored to email verification disabled after temporary mail-mode tests"
+  },
+  "limitations": [
+    "Upstream buffers and the HTTP stack exist in addition to the explicitly bounded Web Streams queue; this is not a global process-memory cap",
+    "Import and rendering still require size-limited whole-document buffers",
+    "Cloud gateway transfer limits and cancellation require staging verification after hosting is available",
+    "No public deployment, physical Windows 7 test, external email delivery or paid AI call was performed in this batch",
+    "GitHub CI must finish separately; local results do not claim a green remote run"
+  ]
+}
