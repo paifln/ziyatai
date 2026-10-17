@@ -1,5 +1,5 @@
 /* ZiyatAI Lite: no framework, external library, analytics, cache or background polling.
- * ES5 syntax deliberately retained for older school browsers. Private data stays in memory.
+ * ES5 syntax for school browsers. Draft backups use the authenticated server API.
  */
 (function () {
   "use strict";
@@ -30,6 +30,111 @@
     generation = null,
     authMode = "login";
   var classFilter = "";
+  var draftSession = null,
+    draftIdentity = "",
+    activeTask = null,
+    wholeDocumentDirty = false;
+  function draftState(kind) {
+    if (kind === "ktp")
+      return {
+        revision: plan.revision,
+        stamp: editVersion,
+        draft: {
+          rows: plan.rows || [],
+          grade: plan.grade,
+          schoolYear: plan.school_year || "",
+        },
+      };
+    var doc = JSON.parse(JSON.stringify(generation.document));
+    if (activeTask) doc.tasks[activeTask.index] = activeTask.draft;
+    return { revision: generation.revision, stamp: editVersion, draft: doc };
+  }
+  function bindDraft(kind, opened) {
+    var record = kind === "ktp" ? plan : generation;
+    if (!record || (kind === "generation" && !record.document)) return;
+    var identity = kind + ":" + record.id;
+    if (draftIdentity !== identity) {
+      if (draftSession) draftSession.stop();
+      draftIdentity = identity;
+      draftSession = window.ZiyatLiteDrafts({
+        kind: kind,
+        id: record.id,
+        uuid: uuid,
+        request: request,
+        text: text,
+        language: function () {
+          return locale;
+        },
+        get: function () {
+          return draftState(kind);
+        },
+        dirty: function () {
+          return dirty;
+        },
+        canWrite: function () {
+          return !busy;
+        },
+        confirm: confirmAction,
+        lock: function () {
+          busy = true;
+          var release = lockControls();
+          return function () {
+            busy = false;
+            release();
+          };
+        },
+        snapshot: function (value) {
+          return {
+            revision: value.revision,
+            record: value,
+            draft:
+              kind === "ktp"
+                ? {
+                    rows: value.rows || [],
+                    grade: value.grade,
+                    schoolYear: value.school_year || "",
+                  }
+                : value.document,
+          };
+        },
+        apply: function (latest, merged, keepDirty) {
+          activeTask = null;
+          dirty = keepDirty;
+          editVersion++;
+          note("");
+          if (kind === "ktp") {
+            plan = latest.record;
+            plan.rows = merged.rows;
+            plan.grade = merged.grade;
+            plan.school_year = merged.schoolYear;
+            rowPage = 0;
+            classFilter = "";
+            datesBeforeSkip = null;
+            renderPlan();
+          } else {
+            generation = latest.record;
+            generation.document = merged;
+            if (keepDirty) generation.reviewed_at = null;
+            wholeDocumentDirty = keepDirty;
+            renderGeneration();
+          }
+          var heading = content.querySelector("h1");
+          heading.tabIndex = -1;
+          heading.focus();
+        },
+      });
+    }
+    if (opened) draftSession.baseline(draftState(kind));
+    var host =
+      content.querySelector(".draft-recovery") ||
+      el("section", null, "draft-recovery");
+    host.setAttribute(
+      "aria-label",
+      text("Сақтық нобайлар", "Резервные черновики")
+    );
+    content.insertBefore(host, content.children[1] || null);
+    draftSession.mount(host);
+  }
   var viewVersion = 0,
     editVersion = 0,
     pageRead = null;
@@ -37,6 +142,7 @@
     dirty = true;
     editVersion++;
     updatePlanAction();
+    if (draftSession) draftSession.changed();
   }
   function updatePlanAction() {
     var create = document.querySelector("[data-confirmed-plan]");
@@ -402,16 +508,34 @@
     busy = true;
     var unlock = lockControls();
     note(t("loading"));
-    return request(path, method || "POST", data, function (err, result) {
-      busy = false;
-      unlock();
-      if (err) {
-        note(err, true);
-        return;
+    return request(
+      path,
+      method || "POST",
+      data,
+      function (err, result, status) {
+        busy = false;
+        unlock();
+        if (err) {
+          if (
+            status === 409 &&
+            draftSession &&
+            dirty &&
+            (/^ktp\/[^/]+\/(rows|confirm)$/.test(path) ||
+              /^generations\/[^/]+\/(document|tasks\/[^/]+)$/.test(path))
+          ) {
+            note("");
+            draftSession.compare();
+            return;
+          }
+          note(err, true);
+          if (draftSession) draftSession.resume();
+          return;
+        }
+        note("");
+        done(result);
+        if (draftSession) draftSession.resume();
       }
-      note("");
-      done(result);
-    });
+    );
   }
   function field(parent, title, value, type, change) {
     var label = add(parent, el("label", title));
@@ -440,7 +564,14 @@
       };
     return s;
   }
-  function clear(title) {
+  function clear(title, kind) {
+    if (!kind && draftSession) {
+      draftSession.stop();
+      draftSession = null;
+      draftIdentity = "";
+      activeTask = null;
+      wholeDocumentDirty = false;
+    }
     invalidateReads();
     content.textContent = "";
     add(content, el("h1", title));
@@ -1163,12 +1294,14 @@
           datesBeforeSkip = null;
           generation = null;
           renderPlan();
+          bindDraft("ktp", true);
         }
       );
     });
   }
   function renderPlan() {
-    clear(plan.title);
+    clear(plan.title, "ktp");
+    bindDraft("ktp");
     var actions = add(content, el("div", null, "actions"));
     add(
       actions,
@@ -1270,6 +1403,7 @@
           plan.revision = saved.revision;
           plan.status = confirm ? "confirmed" : "review";
           dirty = false;
+          if (draftSession) draftSession.accepted();
           updatePlanAction();
           openPlan(plan.id);
           note(t("saved"));
@@ -1613,7 +1747,10 @@
           dirty = false;
           generation = g;
           plan = null;
+          activeTask = null;
+          wholeDocumentDirty = false;
           renderGeneration();
+          bindDraft("generation", true);
         }
       );
     });
@@ -1644,7 +1781,28 @@
     });
   }
   function renderGeneration() {
-    clear(generation.title);
+    activeTask = null;
+    clear(generation.title, "generation");
+    bindDraft("generation");
+    if (dirty && wholeDocumentDirty)
+      add(
+        content,
+        button(
+          t("save"),
+          function () {
+            var snapshot = draftState("generation").draft;
+            action(
+              "generations/" + generation.id + "/document",
+              { revision: generation.revision, document: snapshot },
+              function (saved) {
+                acceptGeneration(saved, snapshot);
+              },
+              "PATCH"
+            );
+          },
+          true
+        )
+      );
     var actions = add(content, el("div", null, "actions"));
     add(
       actions,
@@ -1707,7 +1865,7 @@
         button(
           text("Тапсырмаларды мақұлдау", "Одобрить задания"),
           function () {
-            if (!review.checked) return;
+            if (!review.checked || dirty) return;
             action(
               "generations/" + generation.id + "/approve",
               { revision: generation.revision, teacherReviewed: true },
@@ -1721,7 +1879,7 @@
       );
       approve.disabled = true;
       review.onchange = function () {
-        approve.disabled = !review.checked;
+        approve.disabled = !review.checked || dirty;
       };
     } else
       add(
@@ -1813,7 +1971,9 @@
   }
   function editTask(index) {
     var draft = JSON.parse(JSON.stringify(generation.document.tasks[index]));
-    clear(t("edit") + " — " + String(index + 1));
+    activeTask = { index: index, draft: draft };
+    clear(t("edit") + " — " + String(index + 1), "generation");
+    bindDraft("generation");
     add(
       content,
       el(
@@ -2055,30 +2215,43 @@
       button(t("discard"), function () {
         leave(function () {
           dirty = false;
+          activeTask = null;
+          if (draftSession) draftSession.accepted();
           renderGeneration();
         });
       })
     );
     form.onsubmit = function (event) {
       event.preventDefault();
+      var snapshot = draftState("generation").draft;
       action(
-        "generations/" +
-          generation.id +
-          "/tasks/" +
-          encodeURIComponent(draft.id),
-        { revision: generation.revision, task: draft },
+        wholeDocumentDirty
+          ? "generations/" + generation.id + "/document"
+          : "generations/" +
+              generation.id +
+              "/tasks/" +
+              encodeURIComponent(draft.id),
+        wholeDocumentDirty
+          ? { revision: generation.revision, document: snapshot }
+          : { revision: generation.revision, task: draft },
         function (saved) {
-          generation.revision = saved.revision;
-          generation.status = "needs_review";
-          generation.reviewed_at = null;
-          generation.document.tasks[index] = JSON.parse(JSON.stringify(draft));
-          dirty = false;
-          openGeneration(generation.id);
-          note(t("saved"));
+          acceptGeneration(saved, snapshot);
         },
         "PATCH"
       );
     };
+  }
+  function acceptGeneration(saved, snapshot) {
+    generation.revision = saved.revision;
+    generation.status = "needs_review";
+    generation.reviewed_at = null;
+    generation.document = snapshot;
+    activeTask = null;
+    wholeDocumentDirty = false;
+    dirty = false;
+    if (draftSession) draftSession.accepted();
+    openGeneration(generation.id);
+    note(t("saved"));
   }
   window.addEventListener("beforeunload", function (e) {
     if (dirty) {

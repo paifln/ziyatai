@@ -93,6 +93,7 @@ try {
     capabilities: {
       alwaysMatch: {
         browserName: "firefox",
+        unhandledPromptBehavior: "accept",
         "moz:firefoxOptions": {
           binary: browserBinary,
           args: ["-headless"],
@@ -119,7 +120,11 @@ try {
     headers,
     data: { email, password, name: "Legacy QA Teacher", callbackURL: "/lite/" },
   });
-  assert.equal(signed.ok(), true);
+  assert.equal(
+    signed.ok(),
+    true,
+    `Legacy signup returned HTTP ${signed.status()}`,
+  );
   const publicConfig = await (await api.get("/api/public-config")).json();
   if (publicConfig.emailVerificationRequired !== false) {
     let mailLink = "";
@@ -192,7 +197,7 @@ try {
   await until(async () => {
     if (
       await execute(
-        "return !!document.querySelector('#content select[aria-label=\"Класс\"]')",
+        "return !!document.querySelector('#content input[aria-label=\"Учебный год\"]')",
       )
     )
       return true;
@@ -206,7 +211,7 @@ try {
     '#content select[aria-label="Класс"] option[value="7"]',
   );
   await call(`/element/${gradeOption}/click`, {});
-  await fill("#content .fields input", "2026–2027");
+  await fill('#content input[aria-label="Учебный год"]', "2026–2027");
   await click("Подтвердить КТП");
   await until(() =>
     execute(
@@ -273,8 +278,34 @@ try {
   await until(() =>
     execute("return document.querySelectorAll('.task').length===9"),
   );
+  const generationLink = await execute(
+    "return document.querySelector('#content a[href*=\"?generation=\"]').getAttribute('href')",
+  );
+  const draftGenerationId = new URL(generationLink, base).searchParams.get(
+    "generation",
+  );
   await click("Редактировать 1");
   await fill("#content textarea", "Firefox 115: к числу 2 прибавьте 3.");
+  await until(() =>
+    execute(
+      "return document.querySelector('.draft-recovery').textContent.indexOf('Резервный черновик сохранён в аккаунте')>=0",
+    ),
+  );
+  await call("/url", {
+    url: base + "/lite/?generation=" + encodeURIComponent(draftGenerationId!),
+  });
+  await until(() =>
+    execute(
+      "return Array.prototype.some.call(document.querySelectorAll('button'),function(b){return b.textContent==='Восстановить черновик';})",
+    ),
+  );
+  await click("Восстановить черновик");
+  await until(() =>
+    execute(
+      "return Array.prototype.some.call(document.querySelectorAll('button'),function(b){return b.textContent==='Применить объединение';})",
+    ),
+  );
+  await click("Применить объединение");
   await click("Сохранить");
   await until(() =>
     execute(
@@ -318,6 +349,8 @@ try {
     importConfirmed: true,
     generationClassAndTopicSearch: true,
     taskEdited: true,
+    draftBackedUp: true,
+    draftRecovered: true,
     teacherReviewAcknowledged: true,
     docxExported: true,
     limitations: [

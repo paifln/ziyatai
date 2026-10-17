@@ -472,6 +472,69 @@ th {
   gap: 12px;
   margin: 20px 0;
 }
+.draft-recovery {
+  margin: 18px 0;
+  overflow-wrap: anywhere;
+}
+.draft-recovery:empty {
+  display: none;
+}
+.draft-row > span {
+  flex: 1 0 130px;
+}
+.draft-recovery .draft-row > button {
+  flex: 1 1 190px;
+}
+.draft-choice {
+  border: 0;
+  padding: 0;
+  margin: 20px 0;
+  min-width: 0;
+}
+.draft-choice legend {
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.draft-options {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+}
+.draft-options label {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid #c4cfc1;
+  border-radius: 12px;
+  background: #fff;
+  color: #26382d;
+}
+.draft-options input {
+  width: 18px;
+  height: 18px;
+  min-height: 0;
+  margin: 0 8px 0 0;
+  padding: 0;
+  display: inline-block;
+}
+.draft-options pre {
+  max-height: 240px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: inherit;
+  padding: 10px;
+  background: #f1f4ec;
+  color: #26382d;
+}
+html[data-theme="dark"] .draft-options label {
+  background: #1d2620;
+  color: #e8eee6;
+  border-color: #4d6051;
+}
+html[data-theme="dark"] .draft-options pre {
+  background: #26382d;
+  color: #e4eddf;
+}
 .skip {
   position: fixed;
   top: -100px;
@@ -491,6 +554,12 @@ footer {
   color: #646469;
 }
 @media (max-width: 600px) {
+  .draft-row > span {
+    flex-basis: 100%;
+  }
+  .draft-options {
+    grid-template-columns: minmax(0, 1fr);
+  }
   header {
     padding: 16px;
     flex-wrap: wrap;
@@ -520,6 +589,23 @@ footer {
   }
 }
 @media print {
+  html[data-theme="dark"] body,
+  html[data-theme="dark"] .panel,
+  html[data-theme="dark"] .notice,
+  html[data-theme="dark"] input,
+  html[data-theme="dark"] select,
+  html[data-theme="dark"] textarea,
+  html[data-theme="dark"] .source,
+  html[data-theme="dark"] .task pre {
+    background: white;
+    color: #202923;
+    border-color: #d8dfd7;
+  }
+  html[data-theme="dark"] .muted,
+  html[data-theme="dark"] small,
+  html[data-theme="dark"] footer {
+    color: #48584c;
+  }
   header,
   nav,
   .actions,
@@ -528,6 +614,9 @@ footer {
   .pagination,
   button,
   .skip {
+    display: none;
+  }
+  .draft-recovery {
     display: none;
   }
   body {

@@ -6,19 +6,22 @@ export type DraftConflict = {
   remote: unknown;
 };
 
-const absent = Symbol("absent");
+const absent = Object.create(null);
+const has = (value: object, key: string) =>
+  Object.prototype.hasOwnProperty.call(value, key);
 function object(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 export function draftsEqual(a: unknown, b: unknown): boolean {
-  if (Object.is(a, b)) return true;
+  if (a === b || (a !== a && b !== b)) return true;
+  if (a === absent || b === absent) return false;
   if (Array.isArray(a) && Array.isArray(b))
     return a.length === b.length && a.every((v, i) => draftsEqual(v, b[i]));
   if (object(a) && object(b)) {
     const keys = Object.keys(a);
     return (
       keys.length === Object.keys(b).length &&
-      keys.every((key) => Object.hasOwn(b, key) && draftsEqual(a[key], b[key]))
+      keys.every((key) => has(b, key) && draftsEqual(a[key], b[key]))
     );
   }
   return false;
@@ -41,22 +44,33 @@ export function mergeDrafts<T>(
     if (draftsEqual(b, l)) return r;
     if (draftsEqual(b, r)) return l;
     if (object(b) && object(l) && object(r)) {
-      const keys = new Set([
-        ...Object.keys(b),
-        ...Object.keys(l),
-        ...Object.keys(r),
-      ]);
-      return Object.fromEntries(
-        [...keys].flatMap((key) => {
-          const value = merge(
-            Object.hasOwn(b, key) ? b[key] : absent,
-            Object.hasOwn(l, key) ? l[key] : absent,
-            Object.hasOwn(r, key) ? r[key] : absent,
-            [...path, key],
-          );
-          return value === absent ? [] : [[key, value]];
+      const seen = Object.create(null),
+        keys: string[] = [];
+      [b, l, r].forEach((value) =>
+        Object.keys(value).forEach((key) => {
+          if (!has(seen, key)) {
+            seen[key] = true;
+            keys.push(key);
+          }
         }),
       );
+      const result: Record<string, unknown> = {};
+      keys.forEach((key) => {
+        const value = merge(
+          has(b, key) ? b[key] : absent,
+          has(l, key) ? l[key] : absent,
+          has(r, key) ? r[key] : absent,
+          [...path, key],
+        );
+        if (value !== absent)
+          Object.defineProperty(result, key, {
+            value,
+            enumerable: true,
+            configurable: true,
+            writable: true,
+          });
+      });
+      return result;
     }
     if (Array.isArray(b) && Array.isArray(l) && Array.isArray(r)) {
       const ids = (items: unknown[]) =>
@@ -66,12 +80,13 @@ export function mergeDrafts<T>(
       const bi = ids(b),
         li = ids(l),
         ri = ids(r);
-      if (
-        bi.every((id) => id !== null) &&
-        new Set(bi).size === bi.length &&
-        draftsEqual(bi, li) &&
-        draftsEqual(bi, ri)
-      )
+      const unique = Object.create(null);
+      const validIds = bi.every((id) => {
+        if (id === null || has(unique, id)) return false;
+        unique[id] = true;
+        return true;
+      });
+      if (validIds && draftsEqual(bi, li) && draftsEqual(bi, ri))
         return b.map((value, i) =>
           merge(value, l[i], r[i], [...path, String(i)]),
         );

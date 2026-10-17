@@ -1,0 +1,37 @@
+{
+  "date": "2026-10-17",
+  "scope": "Product reliability and usability in both Lite editors; hosting remains deferred",
+  "changes": [
+    "Private server-backed draft autosave, recovery, deletion and explicit retry without browser text storage",
+    "Three-way comparison preserves independent edits and requires teacher choice for conflicts",
+    "Canonical saving and teacher approval remain explicit",
+    "Cancellable recovery reads, stale-response protection and lost-save acknowledgement reconciliation",
+    "ES5-generated shared merge implementation with syntax and business-rule regression tests",
+    "Readable mobile recovery controls and white-paper native printing in dark mode"
+  ],
+  "verification": {
+    "productionBuild": "passed",
+    "unitTests": 95,
+    "chromiumEarlierIntegrationCases": 20,
+    "webkitEarlierIntegrationCases": 14,
+    "chromiumFinalLiteCases": 9,
+    "webkitFinalLiteCases": "8 passed initially; the remaining case passed in isolation after a shared Playwright artifact-directory collision between concurrent runners",
+    "legacyFirefox": "Actual Firefox ESR 115.40.0: import, class/topic selection, task edit, server draft backup/recovery, teacher review and DOCX export passed",
+    "typecheck": "passed",
+    "eslint": "passed",
+    "sourceVisibility": "passed",
+    "recognizableSecretScan": "passed"
+  },
+  "performance": {
+    "additionalJavaScriptGzipBytes": 9219,
+    "method": "gzipSync estimate against previous committed Lite JavaScript; not a device performance benchmark",
+    "backgroundPollingAdded": false
+  },
+  "limitations": [
+    "Current Windows host with legacy browser, not a physical Windows 7 computer",
+    "Synthetic demonstration data; no paid AI generation during these checks",
+    "Native print CSS checks do not replace physical printer verification",
+    "Structural list conflicts require choosing a whole list",
+    "Public cloud deployment, measured cloud costs and pedagogical expert review remain pending"
+  ]
+}
