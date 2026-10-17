@@ -13,6 +13,12 @@
     "Restoring an old version asks before replacing unsaved changes and locks editor fields while fetching"
   ],
   "verification": {
+    "githubCi": {
+      "commit": "3c348c32c7ba016df2b25712185026b71f43c349",
+      "url": "https://github.com/paifln/ziyatai/actions/runs/39011605301",
+      "sourceJob": "success",
+      "integrationJob": "success"
+    },
     "productionWebImageBuilt": true,
     "unitTests": 87,
     "typecheck": "passed",

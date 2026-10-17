@@ -657,7 +657,7 @@ export async function handle(req: Request, path: string[]) {
     }
     if (resource === "ktp" && !id && method === "GET") {
       const status = z
-        .enum(["confirmed", "needs_review", "extracting", "failed"])
+        .enum(["confirmed", "review", "extracting", "failed"])
         .optional()
         .parse(url.searchParams.get("status") ?? undefined);
       return json(

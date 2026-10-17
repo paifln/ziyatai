@@ -30,10 +30,31 @@
     generation = null,
     authMode = "login";
   var classFilter = "";
+  var viewVersion = 0,
+    editVersion = 0,
+    pageRead = null;
+  function changed() {
+    dirty = true;
+    editVersion++;
+  }
+  function invalidateReads() {
+    viewVersion++;
+    if (pageRead) {
+      pageRead.abort();
+      pageRead = null;
+    }
+  }
   function gradeOf(r) {
     if (r.grade) return Number(r.grade);
     var sheet = (r.source && r.source.sheet) || "";
-    var found = sheet.match(/^\s*(1[01]|[1-9])\s*[А-ЯӘҒҚҢӨҰҮҺІA-Z]?\s*$/i);
+    var range = /\d\s*[-–]\s*\d{1,2}\s*(?:класс|сынып)/i.test(sheet);
+    var found =
+      !range &&
+      (sheet.match(
+        /(?:^|[^А-ЯӘҒҚҢӨҰҮҺІA-Z0-9])(1[01]|[1-9])\s*[-–]?\s*(?:класс(?:а|ы)?|сынып)(?=$|[^А-ЯӘҒҚҢӨҰҮҺІA-Z])/i
+      ) ||
+        sheet.match(/(?:класс|сынып)\s*[:№-]?\s*(1[01]|[1-9])(?!\d)/i) ||
+        sheet.match(/^\s*(1[01]|[1-9])\s*[А-ЯӘҒҚҢӨҰҮҺІA-Z]?\s*$/i));
     return found ? Number(found[1]) : (plan && plan.grade) || null;
   }
   var rowPage = 0,
@@ -408,6 +429,7 @@
     return s;
   }
   function clear(title) {
+    invalidateReads();
     content.textContent = "";
     add(content, el("h1", title));
   }
@@ -849,11 +871,14 @@
           ? "history"
           : "library";
     var panel = add(content, el("section", t("loading"), "panel"));
-    request(
+    var version = viewVersion;
+    pageRead = request(
       resource + "?limit=20&offset=" + listOffset,
       "GET",
       undefined,
       function (err, items) {
+        if (version !== viewVersion) return;
+        pageRead = null;
         if (err) {
           panel.textContent = "";
           note(err, true);
@@ -1104,11 +1129,17 @@
   }
   function openPlan(id) {
     leave(function () {
-      request(
+      invalidateReads();
+      var version = viewVersion,
+        edits = editVersion;
+      pageRead = request(
         "ktp/" + encodeURIComponent(id),
         "GET",
         undefined,
         function (err, p) {
+          if (version !== viewVersion) return;
+          pageRead = null;
+          if (edits !== editVersion) return;
           if (err) {
             note(err, true);
             return;
@@ -1152,12 +1183,12 @@
       String(plan.grade || ""),
       function (v) {
         plan.grade = v ? Number(v) : null;
-        dirty = true;
+        changed();
       }
     );
     field(settings, t("year"), plan.school_year, "text", function (v) {
       plan.school_year = v;
-      dirty = true;
+      changed();
     });
     var skipDates = add(
       actions,
@@ -1184,7 +1215,7 @@
                 );
             });
             datesBeforeSkip = null;
-            dirty = true;
+            changed();
             renderPlan();
           } else
             confirmAction(
@@ -1203,7 +1234,7 @@
                     return w.indexOf("date") < 0;
                   });
                 });
-                dirty = true;
+                changed();
                 renderPlan();
               }
             );
@@ -1223,7 +1254,9 @@
           grade: plan.grade,
           schoolYear: plan.school_year || "",
         },
-        function () {
+        function (saved) {
+          plan.revision = saved.revision;
+          plan.status = confirm ? "confirmed" : "review";
           dirty = false;
           openPlan(plan.id);
           note(t("saved"));
@@ -1266,8 +1299,7 @@
         actions,
         link(t("source"), "/api/uploads/" + encodeURIComponent(plan.file_id))
       );
-    var panel = add(content, el("section", null, "panel")),
-      rows = plan.rows || [];
+    var rows = plan.rows || [];
     var classes = [];
     rows.forEach(function (r) {
       var g = gradeOf(r);
@@ -1291,6 +1323,7 @@
         renderPlan();
       }
     );
+    var panel = add(content, el("section", null, "panel"));
     var visibleRows = rows.filter(function (r) {
       return !classFilter || String(gradeOf(r)) === classFilter;
     });
@@ -1307,7 +1340,7 @@
         );
         function update(key, value) {
           r[key] = value;
-          dirty = true;
+          changed();
           if (r.source) r.source.method = "manual";
         }
         field(section, t("topic"), r.topic, "textarea", function (v) {
@@ -1330,7 +1363,7 @@
                 : text("Мақсатсыз · БЖБ/ТЖБ", "Без целей · СОР/СОЧ"),
               function () {
                 r.goalsSkipped = !r.goalsSkipped;
-                dirty = true;
+                changed();
                 renderPlan();
               }
             )
@@ -1407,14 +1440,49 @@
     }
     var form = add(content, el("form", null, "panel")),
       rows = plan.rows || [];
-    var row = select(
+    var grades = [],
+      unknownGrade = false;
+    rows.forEach(function (item) {
+      var value = gradeOf(item);
+      if (!value) unknownGrade = true;
+      else if (grades.indexOf(value) < 0) grades.push(value);
+    });
+    grades.sort(function (a, b) {
+      return a - b;
+    });
+    var options = grades.map(function (value) {
+      return [String(value), String(value)];
+    });
+    if (unknownGrade)
+      options.push([
+        "unknown",
+        text("Сынып анықталмаған", "Класс не определён"),
+      ]);
+    var initialGrade =
+      grades.indexOf(Number(classFilter)) >= 0
+        ? classFilter
+        : grades.indexOf(Number(plan.grade)) >= 0
+          ? String(plan.grade)
+          : grades.length
+            ? String(grades[0])
+            : "unknown";
+    var grade = select(form, t("grade"), options, initialGrade, function () {
+      updateTopics();
+    });
+    var search = field(
       form,
-      t("topic"),
-      rows.map(function (r) {
-        return [r.id, r.topic];
-      }),
-      rows.length ? rows[0].id : ""
+      text("Тақырыпты іздеу", "Найти тему"),
+      "",
+      "search",
+      function () {
+        updateTopics();
+      }
     );
+    search.maxLength = 200;
+    var row = select(form, t("topic"), [], "");
+    var result = add(form, el("p", "", "muted"));
+    result.setAttribute("role", "status");
+    result.setAttribute("aria-live", "polite");
     var lang = select(
       form,
       t("locale"),
@@ -1444,8 +1512,47 @@
     constraints.maxLength = 2000;
     var submit = add(form, el("button", t("generate"), "primary"));
     submit.type = "submit";
+    function updateTopics() {
+      var previous = row.value,
+        query = search.value.toLowerCase().trim();
+      var matches = rows.filter(function (item) {
+        return (
+          String(gradeOf(item) || "unknown") === grade.value &&
+          (item.topic + " " + item.goals + " " + item.section)
+            .toLowerCase()
+            .indexOf(query) >= 0
+        );
+      });
+      row.textContent = "";
+      matches.forEach(function (item) {
+        var option = el("option", item.topic);
+        option.value = item.id;
+        add(row, option);
+      });
+      if (
+        matches.some(function (item) {
+          return item.id === previous;
+        })
+      )
+        row.value = previous;
+      row.disabled = !matches.length;
+      submit.disabled = !matches.length || grade.value === "unknown";
+      result.textContent = matches.length
+        ? text("Табылған тақырыптар: ", "Найдено тем: ") + matches.length
+        : text(
+            "Бұл сыныпта сәйкес тақырып табылмады. Іздеуді өзгертіңіз.",
+            "В этом классе подходящих тем нет. Измените поиск."
+          );
+      if (grade.value === "unknown" && matches.length)
+        result.textContent = text(
+          "Алдымен КТЖ-дағы сыныпты көрсетіңіз.",
+          "Сначала укажите класс при проверке КТП."
+        );
+    }
+    updateTopics();
     form.onsubmit = function (e) {
       e.preventDefault();
+      if (row.disabled || !row.value || grade.value === "unknown") return;
       action(
         "generations",
         {
@@ -1467,11 +1574,17 @@
   }
   function openGeneration(id) {
     leave(function () {
-      request(
+      invalidateReads();
+      var version = viewVersion,
+        edits = editVersion;
+      pageRead = request(
         "generations/" + encodeURIComponent(id),
         "GET",
         undefined,
         function (err, g) {
+          if (version !== viewVersion) return;
+          pageRead = null;
+          if (edits !== editVersion) return;
           if (err) {
             note(err, true);
             return;
@@ -1692,9 +1805,6 @@
       )
     );
     var form = add(content, el("form", null, "panel"));
-    function changed() {
-      dirty = true;
-    }
     function editBlocks(parent, title, data) {
       add(parent, el("h3", title));
       data.forEach(function (block, blockIndex) {
@@ -1922,10 +2032,10 @@
     add(
       actions,
       button(t("discard"), function () {
-        if (leave()) {
+        leave(function () {
           dirty = false;
           renderGeneration();
-        }
+        });
       })
     );
     form.onsubmit = function (event) {
@@ -1936,7 +2046,11 @@
           "/tasks/" +
           encodeURIComponent(draft.id),
         { revision: generation.revision, task: draft },
-        function () {
+        function (saved) {
+          generation.revision = saved.revision;
+          generation.status = "needs_review";
+          generation.reviewed_at = null;
+          generation.document.tasks[index] = JSON.parse(JSON.stringify(draft));
           dirty = false;
           openGeneration(generation.id);
           note(t("saved"));

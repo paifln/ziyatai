@@ -1,0 +1,39 @@
+{
+  "scope": "Lite product usability, reliability and dark-theme accessibility; not public deployment acceptance",
+  "changes": [
+    "Class-aware generation with numeric class order, explicit sheet-label detection and topic/objective search",
+    "Class filter precedes curriculum rows; filtering preserves the whole plan",
+    "Obsolete collection/resource reads are aborted or ignored after navigation or newer edits",
+    "Successful saves immediately update the known revision for both curriculum and task editing",
+    "Discard task changes correctly supports cancel and confirm without corrupting the saved task snapshot",
+    "Readable dark navigation, success/error messages, source text, logo and keyboard skip link",
+    "Curriculum status filter uses review rather than the generation-specific needs_review"
+  ],
+  "reproducedBeforeFix": [
+    "A delayed opened curriculum replaced the upload screen after navigation",
+    "Axe reported source-text contrast around 1.06:1 in the dark theme"
+  ],
+  "verification": {
+    "productionWebImageBuilt": true,
+    "unitTests": 87,
+    "es5SyntaxContract": "passed",
+    "typecheck": "passed",
+    "eslint": "passed",
+    "chromiumScenarios": 8,
+    "webkitScenarios": 5,
+    "finalKeyboardFocusContrastScenario": "passed in Chromium and WebKit after the final skip-link CSS adjustment",
+    "axeFindingsInTestedDarkSuccessErrorAndKeyboardFocusStates": 0,
+    "actualLegacyBrowser": "Firefox ESR 115.40.0 win32; isolated profile on the current Windows host",
+    "legacyWorkflow": "login without verification, DOCX import/confirmation, class/topic search, task editing, teacher approval and DOCX export",
+    "legacyReport": "legacy-browser.json",
+    "responsiveWidth": 360,
+    "screenshotsVisuallyReviewed": true,
+    "newPaidAiCalls": 0
+  },
+  "limits": [
+    "A physical Windows 7 PC, its TLS stack and hardware speed were not tested",
+    "The generation request contract test intercepts the provider operation; it does not evaluate AI pedagogy",
+    "Unsaved-curriculum generation transitions, multi-tab conflict UX, account password management and the wider product audit remain active work",
+    "Public deployment remains deferred until payment"
+  ]
+}

@@ -53,6 +53,53 @@ html[data-theme="dark"] small,
 html[data-theme="dark"] footer {
   color: #b8c4b8;
 }
+html[data-theme="dark"] nav button[aria-current="page"] {
+  background: #314c3c;
+  color: #f1f6ed;
+  border-color: #a0bb91;
+}
+html[data-theme="dark"] #message {
+  background: #23372c;
+  color: #d9edce;
+  border-color: #55735e;
+}
+html[data-theme="dark"] #message.error {
+  background: #4c2923;
+  color: #ffe0d1;
+  border-color: #b67a62;
+}
+html[data-theme="dark"] .skip,
+html[data-theme="dark"] .source,
+html[data-theme="dark"] .task pre {
+  background: #26382d;
+  color: #e4eddf;
+}
+html[data-theme="dark"] .brand img {
+  background: #edf1e5;
+  border-radius: 8px;
+  padding: 3px;
+}
+html[data-theme="dark"] .field-error {
+  color: #efb39c;
+}
+html[data-theme="dark"] input[aria-invalid="true"],
+html[data-theme="dark"] textarea[aria-invalid="true"],
+html[data-theme="dark"] select[aria-invalid="true"] {
+  background: #35231f;
+  border-color: #d58d73;
+}
+html[data-theme="dark"] button:hover,
+html[data-theme="dark"] .button:hover {
+  background: #2d3d32;
+  color: #e8eee6;
+}
+html[data-theme="dark"] button.primary:hover {
+  background: #c9e3ba;
+  color: #193323;
+}
+html[data-theme="dark"] :focus {
+  outline-color: #c7b16b;
+}
 body {
   margin: 0;
   font:

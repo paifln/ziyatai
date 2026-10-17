@@ -1,5 +1,5 @@
 {
-  "date": "2026-10-16T20:35:59.438Z",
+  "date": "2026-10-17T07:09:31.250Z",
   "browser": "115.40.0",
   "driver": "0.35.0",
   "binary": "Official Mozilla Firefox ESR 115, win32",
@@ -11,12 +11,15 @@
     "overflow": false
   },
   "lite": {
+    "theme": "dark",
     "width": 450,
     "height": 815,
     "overflow": false,
     "nextScripts": 0
   },
+  "emailVerificationRequired": false,
   "importConfirmed": true,
+  "generationClassAndTopicSearch": true,
   "taskEdited": true,
   "teacherReviewAcknowledged": true,
   "docxExported": true,

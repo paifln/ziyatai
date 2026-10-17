@@ -70,6 +70,11 @@ async function click(label: string) {
 }
 async function fill(selector: string, value: string) {
   const id = await element("css selector", selector);
+  if (value === "") {
+    // Firefox WebDriver clear does not emit input; use actual Ctrl+A/Backspace.
+    await call(`/element/${id}/value`, { text: "\uE009a\uE000\uE003" });
+    return;
+  }
   await call(`/element/${id}/clear`, {});
   await call(`/element/${id}/value`, { text: value });
 }
@@ -115,34 +120,37 @@ try {
     data: { email, password, name: "Legacy QA Teacher", callbackURL: "/lite/" },
   });
   assert.equal(signed.ok(), true);
-  let mailLink = "";
-  await until(async () => {
-    const data = await (
-      await api.get("http://127.0.0.1:8025/api/v1/messages")
-    ).json();
-    const mail = data.messages?.find((m: { To: { Address: string }[] }) =>
-      m.To.some((to) => to.Address === email),
-    );
-    if (!mail) return false;
-    const detail = await (
-      await api.get(`http://127.0.0.1:8025/api/v1/message/${mail.ID}`)
-    ).json();
-    mailLink = detail.Text.match(/\b\d{6}\b/)?.[0] || "";
-    return !!mailLink;
-  });
-  let verified = await api.post("/api/auth/email-otp/verify-email", {
-    headers,
-    data: { email, otp: mailLink },
-  });
-  const verificationDeadline = Date.now() + 70000;
-  while (verified.status() === 429 && Date.now() < verificationDeadline) {
-    await new Promise((done) => setTimeout(done, 5000));
-    verified = await api.post("/api/auth/email-otp/verify-email", {
+  const publicConfig = await (await api.get("/api/public-config")).json();
+  if (publicConfig.emailVerificationRequired !== false) {
+    let mailLink = "";
+    await until(async () => {
+      const data = await (
+        await api.get("http://127.0.0.1:8025/api/v1/messages")
+      ).json();
+      const mail = data.messages?.find((m: { To: { Address: string }[] }) =>
+        m.To.some((to) => to.Address === email),
+      );
+      if (!mail) return false;
+      const detail = await (
+        await api.get(`http://127.0.0.1:8025/api/v1/message/${mail.ID}`)
+      ).json();
+      mailLink = detail.Text.match(/\b\d{6}\b/)?.[0] || "";
+      return !!mailLink;
+    });
+    let verified = await api.post("/api/auth/email-otp/verify-email", {
       headers,
       data: { email, otp: mailLink },
     });
+    const verificationDeadline = Date.now() + 70000;
+    while (verified.status() === 429 && Date.now() < verificationDeadline) {
+      await new Promise((done) => setTimeout(done, 5000));
+      verified = await api.post("/api/auth/email-otp/verify-email", {
+        headers,
+        data: { email, otp: mailLink },
+      });
+    }
+    assert.equal(verified.ok(), true);
   }
-  assert.equal(verified.ok(), true);
   await call("/url", { url: base + "/lite/" });
   await until(() =>
     execute("return !!document.querySelector('input[type=email]')"),
@@ -206,7 +214,18 @@ try {
     ),
   );
   await call("/window/rect", { width: 360, height: 900 });
+  if (
+    await execute(
+      "return document.documentElement.getAttribute('data-theme')!=='dark'",
+    )
+  ) {
+    const themeToggle = await element("css selector", "#theme-toggle");
+    await call(`/element/${themeToggle}/click`, {});
+  }
   const lite = {
+    theme: await execute(
+      "return document.documentElement.getAttribute('data-theme')",
+    ),
     width: await execute("return innerWidth"),
     height: await execute("return innerHeight"),
     overflow: await execute(
@@ -219,6 +238,31 @@ try {
   assert.equal(lite.overflow, false);
   assert.equal(lite.nextScripts, 0);
   await screenshot("firefox115-lite-review");
+  await click("Создать задания");
+  await until(() =>
+    execute("return !!document.querySelector('#content input[type=search]')"),
+  );
+  assert.equal(
+    await execute(
+      "return document.querySelector('#content select[aria-label=\"Класс\"]').value",
+    ),
+    "7",
+  );
+  await fill("#content input[type=search]", "No matching synthetic topic");
+  assert.equal(
+    await execute(
+      "return document.querySelector('#content select[aria-label=\"Тема урока\"]').disabled",
+    ),
+    true,
+  );
+  await fill("#content input[type=search]", "");
+  assert.equal(
+    await execute(
+      "return document.querySelector('#content select[aria-label=\"Тема урока\"]').disabled",
+    ),
+    false,
+  );
+  await screenshot("firefox115-lite-generation");
   await click("Задания");
   await until(() =>
     execute(
@@ -270,7 +314,9 @@ try {
     host: "Current Windows host, not a physical Windows 7 PC",
     main,
     lite,
+    emailVerificationRequired: publicConfig.emailVerificationRequired,
     importConfirmed: true,
+    generationClassAndTopicSearch: true,
     taskEdited: true,
     teacherReviewAcknowledged: true,
     docxExported: true,

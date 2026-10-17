@@ -24,7 +24,7 @@ test("generation searches confirmed plans beyond the dashboard limit and pages t
     );
     seeded = (
       await pool.query(
-        "INSERT INTO plans(id,owner_id,title,status,created_at) SELECT gen_random_uuid(),$1,'Synthetic navigation plan '||g,CASE WHEN g<=100 THEN 'needs_review' ELSE 'confirmed' END,now()+g*interval '1 second' FROM generate_series(1,125) g RETURNING id",
+        "INSERT INTO plans(id,owner_id,title,status,created_at) SELECT gen_random_uuid(),$1,'Synthetic navigation plan '||g,CASE WHEN g<=100 THEN 'review' ELSE 'confirmed' END,now()+g*interval '1 second' FROM generate_series(1,125) g RETURNING id",
         [owner],
       )
     ).rows.map((row) => row.id);
@@ -34,6 +34,13 @@ test("generation searches confirmed plans beyond the dashboard limit and pages t
     expect(
       firstDashboardPage.some((p: { id: string }) => p.id === demo.planId),
     ).toBe(false);
+    const reviews = await (
+      await request.get("/api/ktp?status=review&limit=100")
+    ).json();
+    expect(reviews).toHaveLength(100);
+    expect(
+      reviews.every((plan: { status: string }) => plan.status === "review"),
+    ).toBe(true);
     const archived = await (
       await request.get("/api/ktp?status=confirmed&q=Archive%20unique")
     ).json();
