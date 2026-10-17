@@ -79,6 +79,216 @@ async function notifySession(page: Page, status = 200) {
   return response;
 }
 
+test("the active teacher can still save settings and finish confirmed account deletion", async ({
+  page,
+  request,
+}) => {
+  const pool = new Pool({
+    connectionString: parseEnv(await readFile(".env.local", "utf8"))
+      .DATABASE_URL,
+  });
+  try {
+    await actor(request, pool, "one");
+    await enter(page, request);
+    await profile(page);
+    await page
+      .getByLabel("Школа (необязательно)", { exact: true })
+      .fill("Private confirmed school");
+    await page
+      .getByRole("combobox", { name: /^Язык интерфейса/ })
+      .selectOption("ru");
+    await page.getByRole("button", { name: "Сохранить", exact: true }).click();
+    await expect(
+      page.getByText("Изменения сохранены", { exact: true }),
+    ).toBeVisible();
+    expect((await (await page.request.get("/api/profile")).json()).school).toBe(
+      "Private confirmed school",
+    );
+    await page.getByText("Удаление аккаунта", { exact: true }).click();
+    await page.getByRole("button", { name: "Удалить", exact: true }).click();
+    const signedOut = page.waitForResponse(
+      (r) => new URL(r.url()).pathname === "/api/auth/sign-out",
+    );
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "Удалить", exact: true })
+      .click();
+    expect((await signedOut).status()).toBe(200);
+    await expect(page.locator(".profile-card")).toHaveCount(0);
+    expect(
+      await (await page.request.get("/api/auth/get-session")).json(),
+    ).toBeNull();
+    expect((await request.get("/api/profile")).status()).toBe(401);
+  } finally {
+    await pool.end();
+  }
+});
+
+test("a delayed profile save cannot change the next teacher's interface language", async ({
+  page,
+  request,
+  playwright,
+}) => {
+  const pool = new Pool({
+    connectionString: parseEnv(await readFile(".env.local", "utf8"))
+      .DATABASE_URL,
+  });
+  const second = await playwright.request.newContext({
+    baseURL: "http://localhost:3000",
+  });
+  let release!: () => void;
+  let started!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const intercepted = new Promise<void>((resolve) => {
+    started = resolve;
+  });
+  try {
+    await actor(request, pool, "one");
+    const next = await actor(second, pool, "two");
+    await pool.query("UPDATE profiles SET locale='ru' WHERE owner_id=$1", [
+      next.owner,
+    ]);
+    await enter(page, request);
+    await profile(page);
+    await page
+      .getByRole("combobox", { name: /^Язык интерфейса/ })
+      .selectOption("kk");
+    await page.route("**/api/profile", async (route) => {
+      if (route.request().method() !== "PATCH") return route.continue();
+      const response = await route.fetch();
+      expect(response.status()).toBe(200);
+      started();
+      await gate;
+      await route.fulfill({ response });
+    });
+    await page.getByRole("button", { name: "Сохранить", exact: true }).click();
+    await intercepted;
+    await switchAccount(page, second, next.owner);
+    await expect(page.locator(".resource-row")).toContainText(
+      "Private two plan",
+    );
+    const completed = page.waitForResponse(
+      (r) =>
+        new URL(r.url()).pathname === "/api/profile" &&
+        r.request().method() === "PATCH",
+    );
+    release();
+    await completed;
+    await page.evaluate(
+      () =>
+        new Promise((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(resolve)),
+        ),
+    );
+    await expect(page.locator("html")).toHaveAttribute("lang", "ru");
+    await profile(page);
+    await expect(page.getByLabel("Email", { exact: true })).toHaveValue(
+      next.email,
+    );
+    await expect(
+      page.getByRole("combobox", { name: /^Язык интерфейса/ }),
+    ).toHaveValue("ru");
+    expect((await (await request.get("/api/profile")).json()).locale).toBe(
+      "kk",
+    );
+    expect((await (await second.get("/api/profile")).json()).locale).toBe("ru");
+  } finally {
+    release();
+    await page.unrouteAll({ behavior: "wait" });
+    await second.dispose();
+    await pool.end();
+  }
+});
+
+test("a delayed completed account deletion cannot sign out a different teacher", async ({
+  page,
+  request,
+  playwright,
+}) => {
+  const pool = new Pool({
+    connectionString: parseEnv(await readFile(".env.local", "utf8"))
+      .DATABASE_URL,
+  });
+  const second = await playwright.request.newContext({
+    baseURL: "http://localhost:3000",
+  });
+  let release!: () => void;
+  let started!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const intercepted = new Promise<void>((resolve) => {
+    started = resolve;
+  });
+  const signouts: string[] = [];
+  page.on("request", (r) => {
+    if (new URL(r.url()).pathname === "/api/auth/sign-out")
+      signouts.push(r.url());
+  });
+  try {
+    const first = await actor(request, pool, "one");
+    const next = await actor(second, pool, "two");
+    await enter(page, request);
+    await profile(page);
+    await page.route("**/api/account", async (route) => {
+      const response = await route.fetch();
+      expect(response.status()).toBe(200);
+      expect(await response.json()).toEqual({ deleted: true });
+      started();
+      await gate;
+      await route.fulfill({ response });
+    });
+    await page.getByText("Удаление аккаунта", { exact: true }).click();
+    await page.getByRole("button", { name: "Удалить", exact: true }).click();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "Удалить", exact: true })
+      .click();
+    await intercepted;
+    expect((await request.get("/api/profile")).status()).toBe(401);
+    await switchAccount(page, second, next.owner);
+    await expect(page.locator(".resource-row")).toContainText(
+      "Private two plan",
+    );
+    const completed = page.waitForResponse(
+      (r) => new URL(r.url()).pathname === "/api/account",
+    );
+    release();
+    await completed;
+    // A real browser task boundary lets the old promise continuation run.
+    await page.evaluate(
+      () =>
+        new Promise((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(resolve)),
+        ),
+    );
+    expect(signouts).toEqual([]);
+    expect(
+      (await (await page.request.get("/api/auth/get-session")).json()).user.id,
+    ).toBe(next.owner);
+    await profile(page);
+    await expect(page.getByLabel("Email", { exact: true })).toHaveValue(
+      next.email,
+    );
+    expect((await second.get("/api/profile")).status()).toBe(200);
+    expect(
+      (
+        await pool.query(
+          'SELECT count(*)::int AS n FROM session WHERE "userId"=$1',
+          [first.owner],
+        )
+      ).rows[0].n,
+    ).toBe(0);
+  } finally {
+    release();
+    await page.unrouteAll({ behavior: "wait" });
+    await second.dispose();
+    await pool.end();
+  }
+});
+
 test("same-owner session changes and temporary auth errors preserve private edits and confirmation state", async ({
   page,
   request,

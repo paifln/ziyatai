@@ -43,7 +43,12 @@
     "baselinePrimarySkipped": 3,
     "baselineOtpPassed": 1,
     "baselineMailFreePassed": 3,
-    "newChange": "Requires its own complete remote run after push"
+    "newChangeRun": 39042351433,
+    "newChangeConclusion": "failure",
+    "newChangePrimaryPassed": 146,
+    "newChangePrimarySkipped": 3,
+    "newChangeFailure": "Delayed-profile case timed out waiting for HTTP 200 from get-session after cross-tab notification; exact response status was not retained in the CI log",
+    "followUp": "de11c4a replaces the independently reproduced idle-reset read budget; its own complete CI result remains required. The prior failure must not be treated as green or assigned an unproven cause"
   },
   "limits": [
     "The boundary follows authoritative session identity, not raw cookie changes before session lookup finishes",

@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-17",
+  "scope": "Main React ProfilePanel continuations after unmount, using real writes on synthetic local accounts",
+  "before": {
+    "runtimeCommit": "de11c4a",
+    "accountDeletion": "The real first-account DELETE completed server-side; its delayed response triggered /api/auth/sign-out after another teacher entered",
+    "profileSave": "The real first-account PATCH completed server-side; its delayed response changed the next workspace document language from ru to kk",
+    "evidence": [
+      ".local/profile-lifecycle-before.log",
+      ".local/profile-save-before-fixed-locator.log"
+    ]
+  },
+  "implementation": "ProfilePanel lifecycle guard suppresses stale save, locale, refresh, error, sign-out and reload continuations after unmount; committed server writes are preserved",
+  "verification": {
+    "runtimeImage": "sha256:4cf16d7549273745d008a80e4b53f8eb75a42e830649e346ca2e21f4fd620da7",
+    "newChromiumCases": 3,
+    "relatedWebkitCases": 7,
+    "activeSaveAndAccountDeletionStillWork": true,
+    "lateDeleteDoesNotSendSignOutForNextTeacher": true,
+    "lateSaveDoesNotChangeNextTeacherLanguage": true,
+    "firstSavePersistsAndNextProfileIsUnchanged": true,
+    "sameOwnerDraftAndTemporaryAuthErrorChecks": true,
+    "pendingConfirmationAndAuthoritativeLogoutChecks": true,
+    "productionDockerBuild": "passed",
+    "unitTests": 122,
+    "latestSourceTypecheck": "passed",
+    "latestSourceLint": "passed",
+    "normalLocalMailConfiguration": "restored"
+  },
+  "limits": [
+    "This guards ProfilePanel after unmount; other asynchronous forms need separate review",
+    "A cookie change before canonical session observation still needs expected-owner mutation fencing",
+    "An already-dispatched server mutation is not rolled back",
+    "Remote CI for this commit remains required; no public deployment was performed"
+  ]
+}

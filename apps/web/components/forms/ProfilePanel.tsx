@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Check } from "lucide-react";
 import { api, authClient } from "../../lib/client";
 import type { Texts, UiLocale } from "../../lib/i18n";
@@ -26,6 +26,13 @@ export function ProfilePanel({
   onDirtyChange: (dirty: boolean) => void;
 }) {
   const confirm = useConfirm();
+  const active = useRef(true);
+  useEffect(() => {
+    active.current = true;
+    return () => {
+      active.current = false;
+    };
+  }, []);
   const [form, setForm] = useState({
       ...profile,
       styles: {
@@ -62,13 +69,14 @@ export function ProfilePanel({
             setBusy(true);
             try {
               await api("profile", "PATCH", form);
+              if (!active.current) return;
               setSavedForm(JSON.stringify(form));
               setLocale(form.locale);
               onSaved();
             } catch (e) {
-              onError((e as Error).message);
+              if (active.current) onError((e as Error).message);
             } finally {
-              setBusy(false);
+              if (active.current) setBusy(false);
             }
           }}
         >
@@ -240,12 +248,14 @@ export function ProfilePanel({
                 ))
               )
                 return;
+              if (!active.current) return;
               try {
                 await api("account", "DELETE");
+                if (!active.current) return;
                 await authClient.signOut();
-                window.location.reload();
+                if (active.current) window.location.reload();
               } catch (e) {
-                onError((e as Error).message);
+                if (active.current) onError((e as Error).message);
               }
             }}
           >
