@@ -185,14 +185,22 @@ export default function GenerationEditor({
     setReport({ ...report, stale: true });
   }
   async function save() {
-    if (!document) return;
+    if (!document || busy) return;
     setBusy(true);
     try {
-      await api(`generations/${id}/document`, "PATCH", {
+      const saved = await api(`generations/${id}/document`, "PATCH", {
         revision: generation.revision,
         document,
       });
-      await load(true);
+      // A failed refresh must not roll back the acknowledged revision.
+      setGeneration((current: any) => ({
+        ...current,
+        revision: saved.revision,
+        status: "needs_review",
+        reviewed_at: null,
+      }));
+      setDirty(false);
+      await load();
       onSaved();
     } catch (e) {
       onError((e as Error).message);

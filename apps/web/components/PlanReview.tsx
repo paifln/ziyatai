@@ -200,14 +200,22 @@ export default function PlanReview({
     setDirty(true);
   }
   async function save(confirm = false) {
+    if (busy) return;
     setBusy(true);
     try {
-      await api(
+      const saved = await api(
         `ktp/${id}/${confirm ? "confirm" : "rows"}`,
         confirm ? "POST" : "PATCH",
         { revision: plan.revision, rows, grade, schoolYear: year },
       );
-      await load(true);
+      // The write is committed even if the following read fails.
+      setPlan((current: any) => ({
+        ...current,
+        revision: saved.revision,
+        status: confirm ? "confirmed" : "review",
+      }));
+      setDirty(false);
+      await load();
       onSaved();
     } catch (e) {
       onError((e as Error).message);
