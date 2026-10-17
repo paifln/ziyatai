@@ -100,7 +100,11 @@ function WorkspaceContent({
   const profileTrigger = useRef<HTMLButtonElement>(null);
   const profileDropdown = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    setCollapsed(localStorage.getItem("ziyatai-sidebar") === "collapsed");
+    try {
+      setCollapsed(localStorage.getItem("ziyatai-sidebar") === "collapsed");
+    } catch {
+      // School browser policies may disable preference storage.
+    }
   }, []);
   useEffect(() => {
     if (!profileMenu) return;
@@ -339,10 +343,14 @@ function WorkspaceContent({
           onClick={() => {
             const next = !collapsed;
             setCollapsed(next);
-            localStorage.setItem(
-              "ziyatai-sidebar",
-              next ? "collapsed" : "expanded",
-            );
+            try {
+              localStorage.setItem(
+                "ziyatai-sidebar",
+                next ? "collapsed" : "expanded",
+              );
+            } catch {
+              // The panel remains usable without persistence.
+            }
           }}
           aria-label={
             locale === "ru"

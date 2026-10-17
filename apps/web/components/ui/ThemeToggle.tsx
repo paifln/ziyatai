@@ -1,15 +1,17 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Moon, Sun } from "lucide-react";
 import type { UiLocale } from "../../lib/i18n";
 
 export function ThemeToggle({ locale }: { locale: UiLocale }) {
   const [theme, setTheme] = useState("light");
+  const manualChoice = useRef(false);
   useEffect(() => {
     const sync = () =>
       setTheme(document.documentElement.getAttribute("data-theme") || "light");
     const system = window.matchMedia("(prefers-color-scheme: dark)");
     const change = () => {
+      if (manualChoice.current) return;
       try {
         if (localStorage.getItem("ziyatai-theme")) return;
       } catch {
@@ -23,6 +25,7 @@ export function ThemeToggle({ locale }: { locale: UiLocale }) {
     };
     const storage = (e: StorageEvent) => {
       if (e.key !== "ziyatai-theme") return;
+      manualChoice.current = e.newValue === "dark" || e.newValue === "light";
       document.documentElement.setAttribute(
         "data-theme",
         e.newValue === "dark" || e.newValue === "light"
@@ -56,6 +59,7 @@ export function ThemeToggle({ locale }: { locale: UiLocale }) {
       title={label}
       aria-label={label}
       onClick={() => {
+        manualChoice.current = true;
         const next = theme === "dark" ? "light" : "dark";
         document.documentElement.setAttribute("data-theme", next);
         try {
