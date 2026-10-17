@@ -64,6 +64,7 @@ test("registration verifies a one-time email code and stores the selected subjec
     localMailbox: true,
     emailVerificationRequired: true,
     passwordResetAvailable: true,
+    socialProviders: { google: false, apple: false },
   });
   const otp = await emailCode(request, email);
   const wrong = String((Number(otp) + 1) % 1000000).padStart(6, "0");

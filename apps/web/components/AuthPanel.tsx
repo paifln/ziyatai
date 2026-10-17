@@ -34,6 +34,10 @@ export default function AuthPanel({
     [message, setMessage] = useState(""),
     [error, setError] = useState("");
   const [subject, setSubject] = useState("");
+  const [socialProviders, setSocialProviders] = useState({
+    google: false,
+    apple: false,
+  });
   const [customSubject, setCustomSubject] = useState("");
   const [otp, setOtp] = useState("");
   const [cooldown, setCooldown] = useState(0);
@@ -46,6 +50,16 @@ export default function AuthPanel({
     void api("public-config")
       .then((config) => {
         if (active) {
+          setSocialProviders({
+            google: config.socialProviders?.google === true,
+            apple: config.socialProviders?.apple === true,
+          });
+          if (new URLSearchParams(window.location.search).has("oauthError"))
+            setError(
+              locale === "ru"
+                ? "Вход не завершён. Попробуйте снова или войдите по почте. Если аккаунт уже существует, используйте прежний способ входа."
+                : "Кіру аяқталмады. Қайталап көріңіз немесе бұрынғы кіру тәсілін қолданыңыз.",
+            );
           setLocalMailbox(
             config.localMailbox === true &&
               ["localhost", "127.0.0.1", "[::1]"].includes(
@@ -64,7 +78,7 @@ export default function AuthPanel({
     return () => {
       active = false;
     };
-  }, []);
+  }, [locale]);
   useEffect(() => {
     if (!cooldown) return;
     const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
@@ -90,6 +104,34 @@ export default function AuthPanel({
         locale === "ru"
           ? "Не удалось отправить код. Повторите позже."
           : "Код жіберілмеді. Кейінірек қайталаңыз.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function socialSignIn(provider: "google" | "apple") {
+    setError("");
+    if (!socialProviders[provider]) {
+      setError(
+        locale === "ru"
+          ? `Вход через ${provider === "google" ? "Google" : "Apple"} пока не подключён. Войдите по почте.`
+          : `${provider === "google" ? "Google" : "Apple"} арқылы кіру әлі қосылмаған. Пошта арқылы кіріңіз.`,
+      );
+      return;
+    }
+    setBusy(true);
+    try {
+      const result = await authClient.signIn.social({
+        provider,
+        callbackURL: "/",
+        errorCallbackURL: "/login?oauthError=1",
+      });
+      if (result.error) throw new Error();
+    } catch {
+      setError(
+        locale === "ru"
+          ? "Не удалось начать вход. Попробуйте ещё раз."
+          : "Кіру басталмады. Қайталап көріңіз.",
       );
     } finally {
       setBusy(false);
@@ -268,6 +310,47 @@ export default function AuthPanel({
                   : "Сынақ поштасын ашу"}
               </a>
             </p>
+          )}
+          {(mode === "login" || mode === "signup") && (
+            <div
+              className="social-auth"
+              aria-label={
+                locale === "ru"
+                  ? "Другие способы входа"
+                  : "Басқа кіру тәсілдері"
+              }
+            >
+              {(["google", "apple"] as const).map((provider) => (
+                <button
+                  key={provider}
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void socialSignIn(provider)}
+                >
+                  <span aria-hidden="true" className="social-auth-mark">
+                    {provider === "google" ? (
+                      "G"
+                    ) : (
+                      <svg
+                        viewBox="0 0 24 24"
+                        width="20"
+                        height="20"
+                        fill="currentColor"
+                      >
+                        <path d="M17.1 12.5c0-2 1.6-3 1.7-3.1-1-1.5-2.5-1.7-3.1-1.7-1.3-.1-2.6.8-3.3.8s-1.7-.8-2.8-.7C8.2 7.8 7 8.5 6.3 9.7c-1.5 2.6-.4 6.5 1 8.6.7 1 1.5 2.1 2.6 2 1-.1 1.4-.7 2.7-.7 1.2 0 1.6.7 2.7.7s1.8-1 2.5-2c.8-1.2 1.1-2.4 1.1-2.4s-1.8-.7-1.8-3.4ZM15 6.3c.6-.8 1.1-1.9 1-3-.9 0-2 .6-2.7 1.4-.6.7-1.1 1.8-1 2.8 1 .1 2.1-.5 2.7-1.2Z" />
+                      </svg>
+                    )}
+                  </span>
+                  {locale === "ru" ? "Продолжить с " : "Жалғастыру: "}
+                  {provider === "google" ? "Google" : "Apple"}
+                </button>
+              ))}
+              <p className="social-auth-divider">
+                {locale === "ru"
+                  ? "или по электронной почте"
+                  : "немесе электрондық пошта арқылы"}
+              </p>
+            </div>
           )}
           <Form key={mode} locale={locale} onSubmit={submit}>
             <fieldset className="editor-fields auth-fields" disabled={busy}>

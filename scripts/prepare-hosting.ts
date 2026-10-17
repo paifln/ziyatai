@@ -71,6 +71,13 @@ export function hostingFiles(
     "UPLOAD_ORIGIN",
   ])
     backend[key] ??= "";
+  for (const key of [
+    "GOOGLE_CLIENT_ID",
+    "GOOGLE_CLIENT_SECRET",
+    "APPLE_CLIENT_ID",
+    "APPLE_CLIENT_SECRET",
+  ])
+    backend[key] ??= source[key] || "";
   backend.STORAGE_FORCE_PATH_STYLE ??= "false";
   const frontend: Values = {
     ZIYATAI_API_ORIGIN:

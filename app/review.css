@@ -1,3 +1,28 @@
+.social-auth {
+  display: grid;
+  gap: 10px;
+  margin: 22px 0 16px;
+}
+.social-auth button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  font-weight: 600;
+}
+.social-auth-mark {
+  display: inline-flex;
+  font-size: 21px;
+  line-height: 1;
+}
+.social-auth-divider {
+  text-align: center;
+  font-size: 13px;
+  color: var(--ink);
+  margin: 8px 0 0;
+}
 @media (max-width: 600px) {
   .plan-toolbar .search-field {
     flex-basis: 100%;

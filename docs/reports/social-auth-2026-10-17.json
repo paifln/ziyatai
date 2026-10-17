@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-17",
+  "scope": "Google and Apple OAuth wiring, main and Lite login/signup buttons, graceful unconfigured and cancelled flows",
+  "verification": {
+    "unit_passed": 119,
+    "chromium_ui_passed": 4,
+    "webkit_ui_passed": 4,
+    "ui": "360px; light/dark; scoped axe; no horizontal overflow; screenshot inspected",
+    "synthetic_google_initiation_passed": 1,
+    "google_assertions": ["state", "PKCE S256", "canonical callback origin", "untrusted return URL rejected", "invalid state creates no session"],
+    "email_signup_login_regressions_passed": 3,
+    "otp_signup_passed": 1,
+    "hosting_security_cases_passed": 11,
+    "lint": "passed",
+    "typecheck": "passed",
+    "source_check": "passed",
+    "railway_check": "offline passed"
+  },
+  "limits": [
+    "No real OAuth credentials were provided; Google/Apple sign-in is not activated",
+    "No real provider code exchange or account linking was exercised",
+    "Apple requires an active Developer account, HTTPS domain and client-secret JWT rotation",
+    "No public deployment or paid resources created",
+    "Remote CI result remains separate from local verification"
+  ]
+}

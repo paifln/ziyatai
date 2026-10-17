@@ -9,6 +9,10 @@ const input = {
 it("keeps backend keys out of Netlify and preserves existing credentials on repeated preparation", () => {
   const first = hostingFiles(input, {
     OPENAI_API_KEY: "synthetic-backend-key",
+    GOOGLE_CLIENT_ID: "synthetic-google-id",
+    GOOGLE_CLIENT_SECRET: "synthetic-google-secret",
+    APPLE_CLIENT_ID: "synthetic-apple-id",
+    APPLE_CLIENT_SECRET: "synthetic-apple-secret",
   });
   expect(first.frontend.NETLIFY_PROXY_SECRET).toBe(
     first.backend.NETLIFY_PROXY_SECRET,
@@ -21,6 +25,16 @@ it("keeps backend keys out of Netlify and preserves existing credentials on repe
     "ZIYATAI_API_ORIGIN",
   ]);
   expect(JSON.stringify(first.frontend)).not.toContain("synthetic-backend-key");
+  for (const key of [
+    "GOOGLE_CLIENT_ID",
+    "GOOGLE_CLIENT_SECRET",
+    "APPLE_CLIENT_ID",
+    "APPLE_CLIENT_SECRET",
+  ]) {
+    expect(first.backend[key]).toBeTruthy();
+    expect(first.frontend).not.toHaveProperty(key);
+    expect(JSON.stringify(first.frontend)).not.toContain(first.backend[key]);
+  }
   const second = hostingFiles(input, {}, first.backend, first.frontend);
   expect(second.backend).toEqual(first.backend);
   expect(first.unresolved).toContain("ZIYATAI_API_ORIGIN");

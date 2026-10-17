@@ -173,14 +173,19 @@ describe("deployment preflight", () => {
         (check) => check.status === "blocked",
       ),
     ).toEqual([]);
-    expect(
-      (
-        await deploymentChecks(
-          { ...frontend, OPENAI_API_KEY: "accidentally-copied-key" },
-          "frontend",
-        )
-      ).find((check) => check.id === "frontend-secrets")?.status,
-    ).toBe("blocked");
+    for (const key of [
+      "OPENAI_API_KEY",
+      "GOOGLE_CLIENT_SECRET",
+      "APPLE_CLIENT_SECRET",
+    ])
+      expect(
+        (
+          await deploymentChecks(
+            { ...frontend, [key]: "accidentally-copied-key" },
+            "frontend",
+          )
+        ).find((check) => check.id === "frontend-secrets")?.status,
+      ).toBe("blocked");
   });
   it("rejects local and credential-bearing public origins", async () => {
     for (const APP_URL of [

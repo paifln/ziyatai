@@ -180,6 +180,13 @@ export async function handle(req: Request, path: string[]) {
       const e = env();
       return json({
         emailVerificationRequired: e.EMAIL_VERIFICATION_REQUIRED === "true",
+        socialProviders: {
+          google: !!e.GOOGLE_CLIENT_ID && !!e.GOOGLE_CLIENT_SECRET,
+          apple:
+            !!e.APPLE_CLIENT_ID &&
+            !!e.APPLE_CLIENT_SECRET &&
+            e.APP_URL.startsWith("https://"),
+        },
         passwordResetAvailable: !!e.SMTP_HOST && !!e.SMTP_FROM,
         localMailbox:
           e.APP_ENV === "local" &&

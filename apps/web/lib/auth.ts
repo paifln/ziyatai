@@ -31,6 +31,29 @@ function makeAuth() {
     baseURL: e.APP_URL,
     secret: e.AUTH_SECRET,
     database: db(),
+    socialProviders: {
+      ...(e.GOOGLE_CLIENT_ID && e.GOOGLE_CLIENT_SECRET
+        ? {
+            google: {
+              clientId: e.GOOGLE_CLIENT_ID,
+              clientSecret: e.GOOGLE_CLIENT_SECRET,
+              prompt: "select_account" as const,
+            },
+          }
+        : {}),
+      ...(e.APPLE_CLIENT_ID &&
+      e.APPLE_CLIENT_SECRET &&
+      e.APP_URL.startsWith("https://")
+        ? {
+            apple: {
+              clientId: e.APPLE_CLIENT_ID,
+              clientSecret: e.APPLE_CLIENT_SECRET,
+            },
+          }
+        : {}),
+    },
+    // Never merge a mail-free, unverified password account by matching email alone.
+    account: { accountLinking: { requireLocalEmailVerified: true } },
     user: {
       additionalFields: {
         teachingSubject: {
@@ -97,7 +120,14 @@ function makeAuth() {
       // actions retain their existing stricter provider/plugin rules.
       customRules: { "/get-session": { window: 60, max: 240 } },
     },
-    trustedOrigins: [e.APP_URL],
+    trustedOrigins: [
+      e.APP_URL,
+      ...(e.APPLE_CLIENT_ID &&
+      e.APPLE_CLIENT_SECRET &&
+      e.APP_URL.startsWith("https://")
+        ? ["https://appleid.apple.com"]
+        : []),
+    ],
     session: { expiresIn: 60 * 60 * 24 * 7, updateAge: 60 * 60 * 24 },
   });
 }

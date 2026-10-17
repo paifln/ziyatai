@@ -826,6 +826,78 @@
     var form = add(content, el("form", null, "panel auth"));
     if (mode === "reset") mailPreview(form);
     add(form, el("h2", t(mode)));
+    if (mode === "login" || mode === "signup") {
+      var social = add(form, el("div", null, "social-auth"));
+      ["google", "apple"].forEach(function (provider) {
+        var label = provider === "google" ? "Google" : "Apple";
+        var socialButton = add(
+          social,
+          button(text("Жалғастыру: ", "Продолжить с ") + label, function () {
+            socialButton.disabled = true;
+            request("public-config", "GET", undefined, function (err, config) {
+              if (
+                err ||
+                !config.socialProviders ||
+                !config.socialProviders[provider]
+              ) {
+                socialButton.disabled = false;
+                note(
+                  err ||
+                    text(
+                      label +
+                        " арқылы кіру әлі қосылмаған. Пошта арқылы кіріңіз.",
+                      "Вход через " +
+                        label +
+                        " пока не подключён. Войдите по почте."
+                    ),
+                  true
+                );
+                return;
+              }
+              request(
+                "auth/sign-in/social",
+                "POST",
+                {
+                  provider: provider,
+                  callbackURL: "/lite/",
+                  errorCallbackURL: "/lite/?oauthError=1",
+                  disableRedirect: true,
+                },
+                function (error, result) {
+                  socialButton.disabled = false;
+                  if (error || !result || !result.url)
+                    note(
+                      error ||
+                        text(
+                          "Кіру басталмады. Қайталап көріңіз.",
+                          "Не удалось начать вход. Попробуйте ещё раз."
+                        ),
+                      true
+                    );
+                  else window.location.assign(result.url);
+                }
+              );
+            });
+          })
+        );
+      });
+      add(
+        social,
+        el(
+          "p",
+          text("немесе электрондық пошта арқылы", "или по электронной почте"),
+          "social-auth-divider"
+        )
+      );
+      if (new URLSearchParams(window.location.search).has("oauthError"))
+        note(
+          text(
+            "Кіру аяқталмады. Бұрынғы кіру тәсілін қолданыңыз.",
+            "Вход не завершён. Попробуйте снова или используйте прежний способ входа."
+          ),
+          true
+        );
+    }
     var name, email, password, subject;
     if (mode === "signup") {
       name = field(form, t("name"), "", "text");

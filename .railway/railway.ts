@@ -111,7 +111,16 @@ export default defineRailway((ctx) => {
     healthcheck: "/api/health/live",
     healthcheckTimeout: 60,
     cdn: { enabled: false },
-    env: { ...common, ZIYATAI_TARGET: "web", PORT: "3000", HOSTNAME: "::" },
+    env: {
+      ...common,
+      ZIYATAI_TARGET: "web",
+      PORT: "3000",
+      HOSTNAME: "::",
+      GOOGLE_CLIENT_ID: ctx.shared.GOOGLE_CLIENT_ID,
+      GOOGLE_CLIENT_SECRET: ctx.shared.GOOGLE_CLIENT_SECRET,
+      APPLE_CLIENT_ID: ctx.shared.APPLE_CLIENT_ID,
+      APPLE_CLIENT_SECRET: ctx.shared.APPLE_CLIENT_SECRET,
+    },
   });
   const worker = service("worker", {
     source,

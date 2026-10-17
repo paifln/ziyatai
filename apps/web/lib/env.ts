@@ -31,6 +31,10 @@ const schema = z.object({
   STORAGE_ACCESS_KEY: z.string().min(1),
   STORAGE_SECRET_KEY: z.string().min(1),
   EMAIL_VERIFICATION_REQUIRED: z.enum(["true", "false"]).default("true"),
+  GOOGLE_CLIENT_ID: z.string().trim().default(""),
+  GOOGLE_CLIENT_SECRET: z.string().trim().default(""),
+  APPLE_CLIENT_ID: z.string().trim().default(""),
+  APPLE_CLIENT_SECRET: z.string().trim().default(""),
   DEFAULT_EXPORT_FONT: z
     .enum([
       "Times New Roman",

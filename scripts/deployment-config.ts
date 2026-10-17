@@ -79,6 +79,8 @@ export async function deploymentChecks(
         "STORAGE_ACCESS_KEY",
         "STORAGE_SECRET_KEY",
         "SMTP_PASSWORD",
+        "GOOGLE_CLIENT_SECRET",
+        "APPLE_CLIENT_SECRET",
         "OPENAI_API_KEY",
         "RENDERER_TOKEN",
       ].every((name) => !values[name]),
