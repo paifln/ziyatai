@@ -4,6 +4,7 @@ import { z } from "zod";
 import nodemailer from "nodemailer";
 import { db } from "./db";
 import { env } from "./env";
+import { sessionReadBudget } from "./session-read-budget";
 let instance: ReturnType<typeof makeAuth> | undefined;
 function makeAuth() {
   const e = env();
@@ -65,6 +66,7 @@ function makeAuth() {
       },
     },
     plugins: [
+      sessionReadBudget(e.AUTH_SECRET),
       emailOTP({
         otpLength: 6,
         expiresIn: 600,
@@ -116,9 +118,9 @@ function makeAuth() {
       storage: "database",
       window: 60,
       max: 30,
-      // A school's shared IP serves many legitimate session reads. Sensitive
-      // actions retain their existing stricter provider/plugin rules.
-      customRules: { "/get-session": { window: 60, max: 240 } },
+      // Session reads use the shared, replenishing plugin budget. Sensitive
+      // actions retain their existing provider/plugin rules and database storage.
+      customRules: { "/get-session": false },
     },
     trustedOrigins: [
       e.APP_URL,

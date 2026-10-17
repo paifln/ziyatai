@@ -1,82 +1,86 @@
 {
   "environment": "local PostgreSQL container",
   "date": "2026-10-17",
-  "backupBytes": 6743130,
-  "sourceVersions": 1749,
-  "restoredVersions": 1749,
+  "backupBytes": 7411433,
+  "sourceVersions": 1951,
+  "restoredVersions": 1951,
   "consistentSnapshot": true,
   "contentHashesMatch": true,
   "unicodeSearchVerified": true,
   "allPublicTablesVerified": true,
-  "migrations": 13,
+  "migrations": 14,
   "tables": [
     {
       "table": "account",
-      "rows": 1238
+      "rows": 1532
     },
     {
       "table": "api_limits",
-      "rows": 770
+      "rows": 935
     },
     {
       "table": "api_read_budgets",
-      "rows": 338
+      "rows": 751
     },
     {
       "table": "audit",
-      "rows": 43
+      "rows": 55
+    },
+    {
+      "table": "auth_session_read_budgets",
+      "rows": 0
     },
     {
       "table": "editor_drafts",
-      "rows": 233
+      "rows": 250
     },
     {
       "table": "exports",
-      "rows": 227
+      "rows": 301
     },
     {
       "table": "generation_versions",
-      "rows": 1238
+      "rows": 1414
     },
     {
       "table": "generations",
-      "rows": 790
+      "rows": 935
     },
     {
       "table": "jobs",
-      "rows": 734
+      "rows": 830
     },
     {
       "table": "ktp_rows",
-      "rows": 43748
+      "rows": 44528
     },
     {
       "table": "plan_versions",
-      "rows": 1749
+      "rows": 1951
     },
     {
       "table": "plans",
-      "rows": 1182
+      "rows": 9528
     },
     {
       "table": "profiles",
-      "rows": 864
+      "rows": 1100
     },
     {
       "table": "rateLimit",
-      "rows": 3
+      "rows": 1
     },
     {
       "table": "schema_migrations",
-      "rows": 13
+      "rows": 14
     },
     {
       "table": "session",
-      "rows": 2363
+      "rows": 2922
     },
     {
       "table": "uploads",
-      "rows": 405
+      "rows": 445
     },
     {
       "table": "usage_ledger",
@@ -84,7 +88,7 @@
     },
     {
       "table": "user",
-      "rows": 1238
+      "rows": 1532
     },
     {
       "table": "verification",
@@ -95,7 +99,7 @@
       "rows": 13
     }
   ],
-  "durationMs": 15075,
+  "durationMs": 14925,
   "verified": true,
   "limits": "This verifies local restore, not production backup scheduling or storage encryption"
 }
