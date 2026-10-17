@@ -962,6 +962,29 @@ input[type="checkbox"] {
 .revision-conflict > .text-button {
   margin-top: 18px;
 }
+.draft-recovery {
+  margin-bottom: 20px;
+  overflow-wrap: anywhere;
+}
+.draft-recovery summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.draft-recovery .version-row {
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+.draft-recovery .version-row > span {
+  flex: 1 0 110px;
+}
+.draft-recovery .version-row .actions {
+  flex: 1 1 260px;
+  flex-wrap: wrap;
+  margin-top: 0;
+}
+.draft-recovery button {
+  white-space: normal;
+}
 @media (max-width: 700px) {
   .revision-conflict-options {
     grid-template-columns: minmax(0, 1fr);
@@ -1788,6 +1811,22 @@ progress::-webkit-progress-value {
   align-items: center;
   gap: 16px;
 }
+.session-retry {
+  padding: 20px;
+}
+.session-retry > section {
+  width: 100%;
+  max-width: 520px;
+}
+.session-retry h1 {
+  font-size: 24px;
+  line-height: 1.35;
+}
+.session-retry img {
+  background: #f4f6ed;
+  border-radius: 10px;
+  padding: 4px;
+}
 .inline-loading {
   padding: 44px;
   text-align: center;
@@ -2565,7 +2604,9 @@ progress::-webkit-progress-value {
   .site-footer,
   .mobile-overlay,
   .toast,
-  .skip-link {
+  .skip-link,
+  .draft-recovery,
+  .revision-conflict {
     display: none !important;
   }
   .main-shell,

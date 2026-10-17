@@ -88,7 +88,15 @@ function makeAuth() {
       database: { generateId: "uuid" },
       useSecureCookies: e.APP_URL.startsWith("https://"),
     },
-    rateLimit: { enabled: true, storage: "database", window: 60, max: 30 },
+    rateLimit: {
+      enabled: true,
+      storage: "database",
+      window: 60,
+      max: 30,
+      // A school's shared IP serves many legitimate session reads. Sensitive
+      // actions retain their existing stricter provider/plugin rules.
+      customRules: { "/get-session": { window: 60, max: 240 } },
+    },
     trustedOrigins: [e.APP_URL],
     session: { expiresIn: 60 * 60 * 24 * 7, updateAge: 60 * 60 * 24 },
   });

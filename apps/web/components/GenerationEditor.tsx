@@ -34,6 +34,8 @@ import TableEditor from "./TableEditor";
 import { DisplayBlocks } from "./generations/DisplayBlocks";
 import { TaskReview } from "./generations/TaskReview";
 import { RevisionConflict, type RevisionSnapshot } from "./RevisionConflict";
+import { useServerDraft } from "../lib/use-server-draft";
+import { DraftRecovery } from "./DraftRecovery";
 type Block = TaskDocument["contentBlocks"][number];
 const blank = (type: Block["type"] = "paragraph"): Block => ({
   type,
@@ -82,6 +84,14 @@ export default function GenerationEditor({
   const [conflict, setConflict] = useState(false);
   const busy = working || conflict;
   const baseline = useRef<GenerationDocument | undefined>(undefined);
+  const backup = useServerDraft({
+    kind: "generation",
+    resourceId: id,
+    revision: generation?.revision,
+    draft: document,
+    dirty,
+    enabled: !busy,
+  });
   const loadLatest = useCallback(
     async (
       signal: AbortSignal,
@@ -381,6 +391,27 @@ export default function GenerationEditor({
     );
   return (
     <>
+      <DraftRecovery
+        controller={backup}
+        dirty={dirty}
+        disabled={busy}
+        locale={locale}
+        onBusyChange={setBusy}
+        onRestore={(stored) => {
+          readController.current?.abort();
+          baseline.current = stored.base;
+          setGeneration((current: any) => ({
+            ...current,
+            revision: stored.baseRevision,
+            reviewed_at: null,
+          }));
+          setDocument(stored.draft);
+          setReport((current: any) => ({ ...current, stale: true }));
+          setTeacherReviewed(false);
+          setDirty(true);
+          setConflict(true);
+        }}
+      />
       {conflict && baseline.current && (
         <RevisionConflict
           base={baseline.current}

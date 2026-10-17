@@ -35,6 +35,7 @@ import {
   type KtpRow,
 } from "../../../packages/contracts";
 import { validateDocument } from "../../../packages/domain/validation";
+import { editorDrafts } from "./editor-drafts";
 const uid = z.string().uuid();
 async function owned(
   table: "plans" | "generations" | "exports" | "uploads" | "jobs",
@@ -200,6 +201,7 @@ export async function handle(req: Request, path: string[]) {
       .min(0)
       .max(1000000)
       .parse(url.searchParams.get("offset") ?? "0");
+    if (resource === "drafts") return await editorDrafts(req, path, owner);
     if (resource === "account" && method === "DELETE") {
       await transaction(async (c) => {
         await c.query(
@@ -207,6 +209,7 @@ export async function handle(req: Request, path: string[]) {
           [owner],
         );
         await c.query('DELETE FROM session WHERE "userId"=$1', [owner]);
+        await c.query("DELETE FROM editor_drafts WHERE owner_id=$1", [owner]);
         for (const table of ["uploads", "plans", "generations", "exports"])
           await c.query(
             `UPDATE ${table} SET deleted_at=now() WHERE owner_id=$1`,

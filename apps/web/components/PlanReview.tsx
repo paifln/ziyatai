@@ -2,7 +2,7 @@
 import { useUnsavedChanges } from "../lib/use-unsaved-changes";
 import { useDraftState } from "../lib/use-draft-state";
 import { useConfirm } from "./ui/ConfirmProvider";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import {
   ArrowRight,
   Plus,
@@ -30,7 +30,9 @@ import {
 import { normalizeDate } from "../../../packages/domain/dates";
 import { planGrades, rowGrade } from "../../../packages/domain/grades";
 import { RevisionConflict, type RevisionSnapshot } from "./RevisionConflict";
-type PlanDraft = { rows: KtpRow[]; grade: number | null; schoolYear: string };
+import type { PlanDraft } from "../../../packages/contracts/drafts";
+import { useServerDraft } from "../lib/use-server-draft";
+import { DraftRecovery } from "./DraftRecovery";
 export default function PlanReview({
   id,
   t,
@@ -76,6 +78,18 @@ export default function PlanReview({
   const [conflict, setConflict] = useState(false);
   const busy = working || conflict;
   const baseline = useRef<PlanDraft | undefined>(undefined);
+  const draft = useMemo(
+    () => ({ rows, grade, schoolYear: year }),
+    [rows, grade, year],
+  );
+  const backup = useServerDraft({
+    kind: "ktp",
+    resourceId: id,
+    revision: plan?.revision,
+    draft,
+    dirty,
+    enabled: !busy,
+  });
   const loadLatest = useCallback(
     async (signal: AbortSignal): Promise<RevisionSnapshot<PlanDraft>> => {
       const p = await api(`ktp/${id}`, "GET", undefined, undefined, signal);
@@ -359,6 +373,33 @@ export default function PlanReview({
     )[w] ?? t.warningCode;
   return (
     <>
+      <DraftRecovery
+        controller={backup}
+        dirty={dirty}
+        disabled={busy}
+        locale={locale}
+        onBusyChange={setBusy}
+        onRestore={(stored) => {
+          readController.current?.abort();
+          baseline.current = stored.base;
+          setPlan((current: any) => ({
+            ...current,
+            revision: stored.baseRevision,
+          }));
+          setRows(stored.draft.rows);
+          setGrade(stored.draft.grade);
+          setYear(stored.draft.schoolYear);
+          setDatesBeforeSkip(null);
+          setClassFilter("");
+          setSheet("");
+          setQuery("");
+          setQuarter("");
+          setPage(0);
+          setSort("original");
+          setDirty(true);
+          setConflict(true);
+        }}
+      />
       {conflict && baseline.current && (
         <RevisionConflict
           base={baseline.current}
@@ -381,6 +422,12 @@ export default function PlanReview({
             setGrade(merged.grade);
             setYear(merged.schoolYear);
             setDatesBeforeSkip(null);
+            setClassFilter("");
+            setSheet("");
+            setQuery("");
+            setQuarter("");
+            setPage(0);
+            setSort("original");
             setDirty(changed);
             setConflict(false);
             onError("");

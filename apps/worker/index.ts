@@ -577,6 +577,9 @@ async function fail(job: Job, error: unknown) {
 }
 async function janitor() {
   await db().query(
+    "DELETE FROM editor_drafts WHERE id IN (SELECT id FROM editor_drafts WHERE expires_at<=now() ORDER BY expires_at LIMIT 500)",
+  );
+  await db().query(
     "UPDATE jobs SET status=CASE WHEN cancel_requested THEN 'cancelled' ELSE 'queued' END,lease_until=NULL,lease_token=NULL,available_at=now(),error_code='WORKER_RESTART' WHERE status='running' AND lease_until<now() AND attempt<max_attempts",
   );
   await db().query(

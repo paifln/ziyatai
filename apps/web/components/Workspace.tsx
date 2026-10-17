@@ -79,7 +79,12 @@ function WorkspaceContent({
   const confirm = useConfirm();
   const [locale, setLocaleState] = useState<UiLocale>(initialLocale ?? "kk");
   const t = dictionary[locale];
-  const { data: session, isPending } = authClient.useSession();
+  const {
+    data: session,
+    isPending,
+    error: sessionError,
+    refetch: refetchSession,
+  } = authClient.useSession();
   const [sessionLoaded, setSessionLoaded] = useState(false);
   useEffect(() => {
     if (!isPending) setSessionLoaded(true);
@@ -265,7 +270,7 @@ function WorkspaceContent({
     return <AuthPanel t={t} locale={locale} setLocale={setLocale} />;
   if (isPending && !sessionLoaded && initialGuest && !authMode)
     return <Landing locale={locale} setLocale={setLocale} />;
-  if (isPending && !sessionLoaded)
+  if (isPending && !session)
     return (
       <div className="loading-screen">
         <div>
@@ -274,6 +279,38 @@ function WorkspaceContent({
           <span>{t.loading}</span>
         </div>
       </div>
+    );
+  if (!session && sessionError && sessionError.status !== 401)
+    return (
+      <main className="loading-screen session-retry">
+        <section className="card" aria-labelledby="session-retry-title">
+          <img src="/brand-owl.png" width="42" height="42" alt="ZiyatAI" />
+          <h1 id="session-retry-title">
+            {locale === "ru"
+              ? "Не удалось проверить вход"
+              : "Кіру күйін тексеру мүмкін болмады"}
+          </h1>
+          <p role="alert">
+            {locale === "ru"
+              ? "Проверка сеанса временно недоступна. Повторите попытку; при ограничении запросов подождите минуту."
+              : "Сеансты тексеру уақытша қолжетімсіз. Қайта көріңіз; сұраулар шектелсе, бір минут күтіңіз."}
+          </p>
+          <div className="actions">
+            <button
+              className="button primary"
+              onClick={() => void refetchSession()}
+            >
+              {locale === "ru" ? "Повторить проверку" : "Қайта тексеру"}
+            </button>
+            <button
+              className="button secondary"
+              onClick={() => setLocale(locale === "ru" ? "kk" : "ru")}
+            >
+              {locale === "ru" ? "Қазақша" : "Русский"}
+            </button>
+          </div>
+        </section>
+      </main>
     );
   if (!session)
     return authMode || passwordReset ? (
@@ -538,7 +575,7 @@ function WorkspaceContent({
                 <PlanReview
                   onBack={() => navigate("plans")}
                   onDirtyChange={setHasChanges}
-                  key={selected}
+                  key={`${session.user.id}:${selected}`}
                   id={selected}
                   t={t}
                   locale={locale}
@@ -570,7 +607,7 @@ function WorkspaceContent({
               )}
               {view === "editor" && (
                 <GenerationEditor
-                  key={selected}
+                  key={`${session.user.id}:${selected}`}
                   id={selected}
                   t={t}
                   locale={locale}
