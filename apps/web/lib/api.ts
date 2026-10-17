@@ -19,7 +19,6 @@ import {
   putObject,
   getObject,
   deleteObject,
-  storageReady,
   signedUpload,
   objectMetadata,
 } from "./storage";
@@ -38,6 +37,7 @@ import { validateDocument } from "../../../packages/domain/validation";
 import { editorDrafts } from "./editor-drafts";
 import { admitRead, ReadBudgetError } from "./read-budgets";
 import { objectDownload } from "./object-download";
+import { readiness } from "./readiness";
 const uid = z.string().uuid();
 async function owned(
   table: "plans" | "generations" | "exports" | "uploads" | "jobs",
@@ -146,14 +146,18 @@ export async function handle(req: Request, path: string[]) {
       url = new URL(req.url);
     const [resource, id, action, child] = path;
     if (resource === "health") {
-      if (action === "ready" || id === "ready") {
-        await db().query("SELECT 1");
-        await storageReady();
-        const h = await db().query(
-          "SELECT 1 FROM worker_health WHERE heartbeat>now()-interval '60 seconds'",
+      if (path.length > 2 || (id && id !== "ready" && id !== "live"))
+        return json({ status: "not_found" }, 404);
+      if (method !== "GET" && method !== "HEAD")
+        return Response.json(
+          { status: "method_not_allowed" },
+          {
+            status: 405,
+            headers: { Allow: "GET, HEAD", "Cache-Control": "no-store" },
+          },
         );
-        if (!h.rowCount) return json({ status: "degraded" }, 503);
-      }
+      if (id === "ready" && !(await readiness()))
+        return json({ status: "degraded" }, 503);
       return json({ status: "ok" });
     }
     req = trustedGatewayRequest(req);

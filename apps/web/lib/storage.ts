@@ -125,8 +125,10 @@ export async function deleteObject(key: string) {
     new DeleteObjectCommand({ Bucket: env().STORAGE_BUCKET, Key: key }),
   );
 }
-export async function storageReady() {
-  await storage().send(new HeadBucketCommand({ Bucket: env().STORAGE_BUCKET }));
+export async function storageReady(signal?: AbortSignal) {
+  await storage().send(new HeadBucketCommand({ Bucket: env().STORAGE_BUCKET }), {
+    abortSignal: signal,
+  });
 }
 export async function listQuarantinePage(cursor?: string) {
   const page = await storage().send(
