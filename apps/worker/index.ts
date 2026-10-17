@@ -19,6 +19,7 @@ import { validateDocument } from "../../packages/domain/validation";
 import { AppError } from "../../packages/domain/errors";
 import { renderDocx } from "../../packages/document-renderer";
 import { generate } from "./ai";
+import { recoverExpiredJobs } from "./recover-jobs";
 import { isolatedRequest } from "../web/lib/renderer";
 import {
   cleanupAbandonedUploads,
@@ -579,15 +580,9 @@ async function janitor() {
   await db().query(
     "DELETE FROM editor_drafts WHERE id IN (SELECT id FROM editor_drafts WHERE expires_at<=now() ORDER BY expires_at LIMIT 500)",
   );
-  await db().query(
-    "UPDATE jobs SET status=CASE WHEN cancel_requested THEN 'cancelled' ELSE 'queued' END,lease_until=NULL,lease_token=NULL,available_at=now(),error_code='WORKER_RESTART' WHERE status='running' AND lease_until<now() AND attempt<max_attempts",
-  );
-  await db().query(
-    "UPDATE jobs SET status='failed',error_code='ATTEMPTS_EXHAUSTED',lease_token=NULL WHERE status='running' AND lease_until<now() AND attempt>=max_attempts",
-  );
-  await db().query(
-    "UPDATE usage_ledger SET state='uncertain' WHERE state='reserved' AND job_id IN(SELECT id FROM jobs WHERE status='failed')",
-  );
+  const recovered = await transaction(recoverExpiredJobs);
+  if (recovered.queued || recovered.failed || recovered.cancelled)
+    console.log(JSON.stringify({ event: "lease_recovery", ...recovered }));
   await db().query(
     "DELETE FROM api_limits WHERE window_start<now()-interval '1 day'",
   );

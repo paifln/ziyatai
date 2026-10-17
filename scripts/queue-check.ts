@@ -5,7 +5,8 @@ import { enqueue, reserveQuota } from "../apps/web/lib/queue";
 import { syntheticDemo } from "../packages/domain/demo";
 const owner = randomUUID(),
   gid = randomUUID(),
-  eid = randomUUID();
+  eid = randomUUID(),
+  exhaustedExport = randomUUID();
 const sample = syntheticDemo("ru");
 const vid = randomUUID();
 await db().query(
@@ -40,6 +41,25 @@ try {
     "UPDATE jobs SET status='running',attempt=1,lease_token=$2,lease_until=now()-interval '1 second' WHERE id=$1",
     [jobId, randomUUID()],
   );
+  const exhaustedJob = await transaction(async (c) => {
+    await c.query(
+      "INSERT INTO exports(id,owner_id,generation_id,generation_version_id,format,audience,styles,teacher_reviewed) VALUES($1,$2,$3,$4,'docx','student','{}',true)",
+      [exhaustedExport, owner, gid, vid],
+    );
+    const id = await enqueue(
+      c,
+      owner,
+      "export",
+      exhaustedExport,
+      {},
+      "test-exhausted",
+    );
+    await c.query(
+      "UPDATE jobs SET status='running',attempt=max_attempts,lease_token=$2,lease_until=now()-interval '1 second' WHERE id=$1",
+      [id, randomUUID()],
+    );
+    return id;
+  });
   await wait(
     async () =>
       (await db().query("SELECT status FROM jobs WHERE id=$1", [jobId])).rows[0]
@@ -49,6 +69,22 @@ try {
     await db().query("SELECT attempt FROM jobs WHERE id=$1", [jobId])
   ).rows[0];
   if (job.attempt !== 2) throw new Error("Expired lease not reclaimed once");
+  const exhausted = (
+    await db().query(
+      "SELECT j.status AS job,j.stage,j.lease_token,j.lease_until,e.status AS export FROM jobs j JOIN exports e ON e.id=j.resource_id WHERE j.id=$1",
+      [exhaustedJob],
+    )
+  ).rows[0];
+  if (
+    exhausted.job !== "failed" ||
+    exhausted.export !== "failed" ||
+    exhausted.stage !== "failed" ||
+    exhausted.lease_token !== null ||
+    exhausted.lease_until !== null
+  )
+    throw new Error(
+      "Expired exhausted export did not reach a consistent terminal state",
+    );
   const same = await transaction((c) =>
     enqueue(c, owner, "export", eid, {}, "test-recovery"),
   );
@@ -89,6 +125,7 @@ try {
     environment: "local real PostgreSQL + worker + private S3",
     leaseRecovery: true,
     attempts: job.attempt,
+    exhaustedExportAndJobSettledTogether: true,
     idempotentJob: true,
     cancelledJobNotClaimed: true,
     concurrentQuota: true,

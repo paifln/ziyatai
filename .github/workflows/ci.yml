@@ -59,6 +59,7 @@ jobs:
       - run: npx tsx --env-file=.env.local scripts/configure-storage.ts
       - run: npm run worker > /tmp/ziyatai-worker.log 2>&1 &
       - run: npx tsx --env-file=.env.local scripts/queue-check.ts && npx tsx --env-file=.env.local scripts/restore-check.ts
+      - run: npx tsx --env-file=.env.local scripts/lease-recovery-check.ts
       - run: npx tsx --env-file=.env.local scripts/upload-cleanup-check.ts
       - run: npx tsx --env-file=.env.local scripts/quarantine-sweep-check.ts
       - run: npx tsx --env-file=.env.local scripts/auth-reset-check.ts

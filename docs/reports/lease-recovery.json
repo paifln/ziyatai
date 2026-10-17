@@ -1,0 +1,18 @@
+{
+  "environment": "real PostgreSQL, synthetic fixtures inside a rolled-back transaction; no AI calls or file changes",
+  "priorStuckPlanReproduced": true,
+  "fixtureCases": 14,
+  "recoveryCounts": {
+    "queued": 1,
+    "failed": 8,
+    "cancelled": 4
+  },
+  "atomicRollback": true,
+  "staleLeaseFenced": true,
+  "teacherApprovalPreserved": true,
+  "uncertainAIIsNotRequeued": true,
+  "cancelledReservationsSettled": true,
+  "ownerAndDeletionGuards": true,
+  "batchLimit": 100,
+  "batchRemainder": 1
+}
