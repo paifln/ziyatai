@@ -50,7 +50,9 @@ test("generation controls remain labelled with topic search and submit the selec
     page.getByLabel("Заданий на каждом уровне", { exact: true }),
   ).toHaveValue("2");
   await page.getByRole("button", { name: "15 мин", exact: true }).click();
-  await page.locator(".generation-layout select").nth(2).selectOption("ru");
+  await page
+    .getByRole("combobox", { name: "Язык заданий", exact: true })
+    .selectOption("ru");
   let submitted: Record<string, unknown> | undefined;
   await page.route("**/api/generations", async (route) => {
     submitted = route.request().postDataJSON();
