@@ -80,6 +80,8 @@ export function sniffFile(bytes: Buffer, name: string) {
   throw new AppError("FILE_TYPE", 415);
 }
 export async function inspectFile(bytes: Buffer, name: string) {
+  if (env().APP_ENV !== "local" && env().SCAN_REQUIRED !== "true")
+    throw new AppError("SCAN_UNAVAILABLE", 503);
   const type = sniffFile(bytes, name);
   const dir = await mkdtemp(join(tmpdir(), "ziyatai-upload-"));
   const path = join(dir, `source.${type.ext}`);

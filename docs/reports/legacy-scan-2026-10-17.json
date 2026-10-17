@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-17",
+  "scope": "Do not inherit development scan exemptions after enabling required scanning",
+  "before": "The new real-runtime regression failed because a development-marked source returned HTTP 200 instead of 409 with required scanning enabled",
+  "implementation": {
+    "trust": "One shared policy for downloads, PDF previews and worker imports; a development marker is trusted only for APP_ENV=local and SCAN_REQUIRED=false",
+    "inspection": "Staging/production inspection fails closed when scanning is disabled",
+    "upgrade": "New import of a legacy source verifies its saved size/checksum, scans and structurally inspects the exact bytes, then publishes a new immutable key",
+    "publication": "Transaction checks active lease and plan ownership; compare-and-set guards both previous scan status and object key",
+    "failure": "Scanner failure never marks the source clean; invalid structure is rejected; checksum mismatch cannot be promoted"
+  },
+  "verification": {
+    "unit": 115,
+    "httpIntegration": "Nine Playwright API cases passed against real PostgreSQL, private S3, worker, renderer and ClamAV",
+    "legacyCases": "GET/HEAD/Range/preview denied, foreign owner denied, successful rescan preserves exact bytes/checksum while changing object key, PNG preview works afterward, mismatched checksum and malformed archive stay unavailable",
+    "scanner": "Local ClamAV 1.4.6 accepted a clean DOCX and rejected the harmless standard EICAR test signature",
+    "mockFailureCoverage": "No structural parsing after unavailable/rejecting scanner; successful scanner still requires structural inspection; explicit local development keeps structural inspection without AV",
+    "build": "Production web and worker Docker images built and started; lint, typecheck and source checks passed"
+  },
+  "remaining": [
+    "Already-imported legacy files need a separate queued rescan action and UI feedback. Repeating the successful import intentionally returns its original idempotent job",
+    "Full staging/production migration and actual cloud ACL/gateway behavior are not verified by local tests",
+    "The standard scanner signature does not prove detection of every malicious document",
+    "Exact rebuilt image digests need their own fresh vulnerability scan before deployment",
+    "Remote CI has not yet finished for the latest changes"
+  ]
+}

@@ -38,6 +38,7 @@ import { editorDrafts } from "./editor-drafts";
 import { admitRead, ReadBudgetError } from "./read-budgets";
 import { objectDownload } from "./object-download";
 import { readiness } from "./readiness";
+import { trustedScan } from "./scan-policy";
 const uid = z.string().uuid();
 async function owned(
   table: "plans" | "generations" | "exports" | "uploads" | "jobs",
@@ -593,10 +594,7 @@ export async function handle(req: Request, path: string[]) {
     }
     if (resource === "uploads" && id && ["GET", "HEAD"].includes(method)) {
       const f = await owned("uploads", id, owner);
-      if (
-        !["clean", "unscanned-development"].includes(f.scan_status) ||
-        f.status !== "complete"
-      )
+      if (!trustedScan(f.scan_status, env()) || f.status !== "complete")
         throw new AppError("CONFLICT", 409);
       return await objectDownload(req, f.object_key, {
         "Content-Type": f.mime,
@@ -684,7 +682,7 @@ export async function handle(req: Request, path: string[]) {
     if (resource === "ktp" && id && action === "preview" && method === "GET") {
       const plan = await owned("plans", id, owner);
       const file = await owned("uploads", plan.file_id, owner);
-      if (!["clean", "unscanned-development"].includes(file.scan_status))
+      if (!trustedScan(file.scan_status, env()))
         throw new AppError("CONFLICT", 409);
       if (file.mime !== "application/pdf") throw new AppError("FILE_TYPE", 415);
       const page = z.coerce

@@ -20,6 +20,7 @@ import { AppError } from "../../packages/domain/errors";
 import { renderDocx } from "../../packages/document-renderer";
 import { generate } from "./ai";
 import { recoverExpiredJobs } from "./recover-jobs";
+import { trustedScan } from "../web/lib/scan-policy";
 import { isolatedRequest } from "../web/lib/renderer";
 import {
   cleanupAbandonedUploads,
@@ -88,7 +89,7 @@ async function importPlan(job: Job) {
       [job.payload.uploadId, job.owner_id],
     )
   ).rows[0];
-  if (!f) throw new AppError("CANCELLED", 409);
+  if (!f || f.status !== "complete") throw new AppError("CANCELLED", 409);
   const ext = f.object_key.split(".").pop();
   const dir = await mkdtemp(join(tmpdir(), "ziyatai-parse-"));
   try {
@@ -96,7 +97,15 @@ async function importPlan(job: Job) {
     const sourceBytes = await getObject(f.object_key);
     if (sourceBytes.length !== Number(f.bytes))
       throw new AppError("FILE_INVALID", 422);
-    if (f.scan_status === "pending") {
+    const legacyRescan =
+      f.scan_status === "unscanned-development" &&
+      env().SCAN_REQUIRED === "true";
+    if (
+      f.scan_status !== "pending" &&
+      createHash("sha256").update(sourceBytes).digest("hex") !== f.checksum
+    )
+      throw new AppError("FILE_INVALID", 422);
+    if (f.scan_status === "pending" || legacyRescan) {
       await stage(job, "scanning");
       let type;
       try {
@@ -126,7 +135,7 @@ async function importPlan(job: Job) {
           await check(c, job);
           await active("plans", job, c);
           const updated = await c.query(
-            "UPDATE uploads SET object_key=$3,mime=$4,checksum=$5,scan_status=$6 WHERE id=$1 AND owner_id=$2 AND deleted_at IS NULL AND scan_status='pending' RETURNING id",
+            "UPDATE uploads SET object_key=$3,mime=$4,checksum=$5,scan_status=$6 WHERE id=$1 AND owner_id=$2 AND deleted_at IS NULL AND scan_status=$7 AND object_key=$8 RETURNING id",
             [
               f.id,
               job.owner_id,
@@ -136,6 +145,8 @@ async function importPlan(job: Job) {
               env().SCAN_REQUIRED === "true"
                 ? "clean"
                 : "unscanned-development",
+              f.scan_status,
+              f.object_key,
             ],
           );
           if (!updated.rowCount) throw new AppError("CONFLICT", 409);
@@ -145,12 +156,8 @@ async function importPlan(job: Job) {
         if (!published) await deleteObject(cleanKey);
       }
       await deleteObject(f.object_key);
-    } else if (!["clean", "unscanned-development"].includes(f.scan_status))
+    } else if (!trustedScan(f.scan_status, env()))
       throw new AppError("FILE_UNSAFE", 422);
-    else if (
-      createHash("sha256").update(sourceBytes).digest("hex") !== f.checksum
-    )
-      throw new AppError("FILE_INVALID", 422);
     await writeFile(path, sourceBytes);
     const e = env();
     let output: string;
