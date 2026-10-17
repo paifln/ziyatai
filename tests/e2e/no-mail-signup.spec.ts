@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { randomBytes } from "node:crypto";
-import { headers } from "./helpers";
+import { headers, authRequest, verifiedUser, submitSignup } from "./helpers";
 
 test("Lite registration also enters the workspace without a verification code", async ({
   page,
@@ -26,7 +26,14 @@ test("Lite registration also enters the workspace without a verification code", 
     .getByLabel("Құпиясөз", { exact: true })
     .fill(randomBytes(16).toString("hex"));
   await page.getByRole("checkbox").check();
-  await page.getByRole("button", { name: "Тіркелу", exact: true }).click();
+  expect(
+    (
+      await submitSignup(
+        page,
+        page.getByRole("button", { name: "Тіркелу", exact: true }),
+      )
+    ).status(),
+  ).toBe(200);
   await expect(
     page.getByRole("heading", { name: "Менің КТЖ", exact: true }),
   ).toBeVisible();
@@ -63,26 +70,58 @@ test("registration without email verification creates a working session without 
   await page.getByLabel("Email", { exact: true }).fill(email);
   await page.getByLabel("Пароль", { exact: true }).fill(password);
   await page.getByRole("checkbox").check();
-  await page
-    .getByRole("button", { name: "Создать аккаунт", exact: true })
-    .click();
+  let limited = false;
+  await page.route(
+    "**/api/auth/sign-up/email",
+    async (route) => {
+      limited = true;
+      await route.fulfill({
+        status: 429,
+        headers: { "Retry-After": "1" },
+        contentType: "application/json",
+        body: JSON.stringify({
+          code: "TOO_MANY_REQUESTS",
+          message: "Synthetic test limit",
+        }),
+      });
+    },
+    { times: 1 },
+  );
+  const signup = await submitSignup(
+    page,
+    page.getByRole("button", { name: "Создать аккаунт", exact: true }),
+    async () => {
+      await expect(page.locator(".notice[role=alert]")).toContainText(
+        "Слишком много попыток",
+      );
+    },
+  );
+  expect(signup.status()).toBe(200);
+  expect(limited).toBe(true);
   await expect(
     page.getByRole("heading", { name: "Мои КТП", exact: true }),
   ).toBeVisible();
-  expect((await page.request.get("/api/profile")).ok()).toBe(true);
+  const profile = await page.request.get("/api/profile");
+  expect(profile.status()).toBe(200);
+  expect(await profile.json()).toMatchObject({
+    name: "Synthetic No Mail Teacher",
+    teachingSubject: "mathematics",
+  });
   const session = await (
     await page.request.get("/api/auth/get-session")
   ).json();
   expect(session.user.emailVerified).toBe(false);
-  await page.request.post("/api/auth/sign-out", { headers, data: {} });
-  expect(
-    (
-      await page.request.post("/api/auth/sign-in/email", {
-        headers,
-        data: { email, password },
-      })
-    ).ok(),
-  ).toBe(true);
+  const signedOut = await authRequest(() =>
+    page.request.post("/api/auth/sign-out", { headers, data: {} }),
+  );
+  expect(signedOut.status()).toBe(200);
+  const signedIn = await authRequest(() =>
+    page.request.post("/api/auth/sign-in/email", {
+      headers,
+      data: { email, password },
+    }),
+  );
+  expect(signedIn.status()).toBe(200);
   expect((await page.request.get("/api/profile")).ok()).toBe(true);
   if (!config.passwordResetAvailable) {
     const reset = await page.request.post("/api/auth/request-password-reset", {
@@ -91,4 +130,43 @@ test("registration without email verification creates a working session without 
     });
     expect(reset.status()).toBe(503);
   }
+});
+
+test("mail-free login retains real brute-force limits and recovers only after throttling expires", async ({
+  request,
+}) => {
+  const config = await (await request.get("/api/public-config")).json();
+  if (process.env.QA_REQUIRE_NO_MAIL === "1")
+    expect(config.emailVerificationRequired).toBe(false);
+  test.skip(
+    config.emailVerificationRequired !== false,
+    "Requires mail-free mode",
+  );
+  const account = await verifiedUser(request);
+  expect(
+    (
+      await authRequest(() =>
+        request.post("/api/auth/sign-out", { headers, data: {} }),
+      )
+    ).status(),
+  ).toBe(200);
+  let status = 0;
+  for (let i = 0; i < 6; i++) {
+    const probe = await request.post("/api/auth/sign-in/email", {
+      headers,
+      data: {
+        email: `invalid-${randomBytes(6).toString("hex")}@example.test`,
+        password: randomBytes(16).toString("hex"),
+      },
+    });
+    status = probe.status();
+    if (status === 429) break;
+    expect(status).toBe(401);
+  }
+  expect(status, "Real authentication limiter must reject the burst").toBe(429);
+  const recovered = await authRequest(() =>
+    request.post("/api/auth/sign-in/email", { headers, data: account }),
+  );
+  expect(recovered.status()).toBe(200);
+  expect((await request.get("/api/profile")).status()).toBe(200);
 });

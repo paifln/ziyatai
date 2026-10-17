@@ -2,7 +2,13 @@ import { test, expect } from "@playwright/test";
 import { randomBytes } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { basename } from "node:path";
-import { emailCode, verifiedUser, headers, jobDone } from "./helpers";
+import {
+  emailCode,
+  verifiedUser,
+  headers,
+  jobDone,
+  submitSignup,
+} from "./helpers";
 
 test("registration verifies a one-time email code and stores the selected subject", async ({
   page,
@@ -38,9 +44,14 @@ test("registration verifies a one-time email code and stores the selected subjec
     .getByLabel("Пароль", { exact: true })
     .fill(randomBytes(16).toString("hex"));
   await page.getByRole("checkbox").check();
-  await page
-    .getByRole("button", { name: "Создать аккаунт", exact: true })
-    .click();
+  expect(
+    (
+      await submitSignup(
+        page,
+        page.getByRole("button", { name: "Создать аккаунт", exact: true }),
+      )
+    ).status(),
+  ).toBe(200);
   await expect(
     page.getByRole("heading", { name: "Проверьте почту" }),
   ).toBeVisible();

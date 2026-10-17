@@ -1,4 +1,9 @@
-import { expect, type APIRequestContext } from "@playwright/test";
+import {
+  expect,
+  type APIRequestContext,
+  type Page,
+  type Locator,
+} from "@playwright/test";
 import { randomBytes } from "node:crypto";
 export const origin = "http://localhost:3000";
 export const headers = { Origin: origin };
@@ -13,7 +18,7 @@ export async function approveGeneration(
   });
   expect(response.ok(), await response.text()).toBe(true);
 }
-async function authRequest<T extends { status: () => number }>(
+export async function authRequest<T extends { status: () => number }>(
   send: () => Promise<T>,
 ): Promise<T> {
   let response = await send();
@@ -28,6 +33,23 @@ async function authRequest<T extends { status: () => number }>(
       )
       .not.toBe(429);
   return response;
+}
+export async function submitSignup(
+  page: Page,
+  button: Locator,
+  onThrottled?: () => Promise<void>,
+) {
+  return authRequest(async () => {
+    const waiting = page.waitForResponse(
+      (r) =>
+        r.request().method() === "POST" &&
+        new URL(r.url()).pathname === "/api/auth/sign-up/email",
+    );
+    await button.click();
+    const response = await waiting;
+    if (response.status() === 429 && onThrottled) await onThrottled();
+    return response;
+  });
 }
 export async function emailLink(
   request: APIRequestContext,
