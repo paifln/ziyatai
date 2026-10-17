@@ -4,14 +4,22 @@ import { ShieldCheck, LaptopMinimal, Check } from "lucide-react";
 import { authClient } from "../../lib/client";
 import type { UiLocale } from "../../lib/i18n";
 import { useConfirm } from "../ui/ConfirmProvider";
+import { PasswordChangeForm } from "./PasswordChangeForm";
 
-export function AccountSecurity({ locale }: { locale: UiLocale }) {
+export function AccountSecurity({
+  locale,
+  onDirtyChange,
+}: {
+  locale: UiLocale;
+  onDirtyChange: (dirty: boolean) => void;
+}) {
   const confirm = useConfirm();
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<"sessions" | "password" | null>(null);
   const [result, setResult] = useState("");
   const [error, setError] = useState(false);
   const ru = locale === "ru";
   async function revoke() {
+    if (busy) return;
     if (
       !(await confirm(
         ru
@@ -20,7 +28,7 @@ export function AccountSecurity({ locale }: { locale: UiLocale }) {
       ))
     )
       return;
-    setBusy(true);
+    setBusy("sessions");
     setResult("");
     setError(false);
     try {
@@ -39,7 +47,7 @@ export function AccountSecurity({ locale }: { locale: UiLocale }) {
           : "Сеанстар аяқталмады. Қайта көріңіз.",
       );
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   }
   return (
@@ -57,12 +65,12 @@ export function AccountSecurity({ locale }: { locale: UiLocale }) {
       </div>
       <button
         className="button secondary"
-        disabled={busy}
-        aria-busy={busy}
+        disabled={!!busy}
+        aria-busy={busy === "sessions"}
         onClick={revoke}
       >
         <LaptopMinimal size={17} />
-        {busy
+        {busy === "sessions"
           ? ru
             ? "Завершаем сеансы…"
             : "Сеанстар аяқталуда…"
@@ -78,6 +86,13 @@ export function AccountSecurity({ locale }: { locale: UiLocale }) {
           {!error && <Check size={14} />} {result}
         </div>
       )}
+      <PasswordChangeForm
+        locale={locale}
+        onDirtyChange={onDirtyChange}
+        busy={busy === "password"}
+        disabled={!!busy}
+        onBusyChange={(value) => setBusy(value ? "password" : null)}
+      />
     </section>
   );
 }

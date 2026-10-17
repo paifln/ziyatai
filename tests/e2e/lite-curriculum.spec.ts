@@ -12,6 +12,74 @@ test.afterEach(async ({ page }) => {
   await page.unrouteAll({ behavior: "wait" });
 });
 
+test("Lite only generates from the saved and confirmed curriculum", async ({
+  page,
+  request,
+}) => {
+  await verifiedUser(request);
+  const demo = await (
+    await request.post("/api/demo", { headers, data: { locale: "ru" } })
+  ).json();
+  await page.route("**/api/profile", async (route) => {
+    const response = await route.fetch(),
+      profile = await response.json();
+    await route.fulfill({
+      response,
+      json: { ...profile, capabilities: { ...profile.capabilities, ai: true } },
+    });
+  });
+  let reads = 0,
+    release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route(`**/api/ktp/${demo.planId}`, async (route) => {
+    const response = await route.fetch();
+    reads++;
+    if (reads === 2) await gate;
+    await route.fulfill({ response });
+  });
+  try {
+    await enterLite(page, request);
+    await page.getByRole("button", { name: "Открыть", exact: true }).click();
+    const create = page.getByRole("button", {
+      name: "Создать задания",
+      exact: true,
+    });
+    await expect(create).toBeEnabled();
+    await page
+      .getByLabel("Тема урока", { exact: true })
+      .first()
+      .fill("Новая подтверждённая тема Lite");
+    await expect(create).toBeDisabled();
+    await expect(
+      page.getByText("Сначала сохраните изменения и подтвердите КТП.", {
+        exact: true,
+      }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Сохранить", exact: true }).click();
+    await expect.poll(() => reads).toBe(2);
+    await expect(create).toBeDisabled();
+    release();
+    await expect(create).toHaveCount(0);
+    await page
+      .getByRole("button", { name: "Подтвердить КТП", exact: true })
+      .click();
+    await expect(create).toBeEnabled();
+    await create.click();
+    await expect(
+      page.getByRole("combobox", { name: "Тема урока", exact: true }),
+    ).toContainText("Новая подтверждённая тема Lite");
+    const canonical = await (
+      await request.get(`/api/ktp/${demo.planId}`)
+    ).json();
+    expect(canonical.status).toBe("confirmed");
+    expect(canonical.rows[0].topic).toBe("Новая подтверждённая тема Lite");
+  } finally {
+    release();
+  }
+});
+
 test("Lite dark navigation, source and success/error messages have readable contrast", async ({
   page,
   request,

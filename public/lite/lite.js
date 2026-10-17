@@ -36,6 +36,14 @@
   function changed() {
     dirty = true;
     editVersion++;
+    updatePlanAction();
+  }
+  function updatePlanAction() {
+    var create = document.querySelector("[data-confirmed-plan]");
+    var hint = document.getElementById("plan-generation-warning");
+    var unavailable = dirty || !plan || plan.status !== "confirmed";
+    if (create) create.disabled = busy || unavailable;
+    if (hint) hint.hidden = !unavailable;
   }
   function invalidateReads() {
     viewVersion++;
@@ -92,6 +100,10 @@
     source: ["Дереккөз", "Источник"],
     open: ["Ашу", "Открыть"],
     generate: ["Тапсырма құрастыру", "Создать задания"],
+    saveBeforeGenerate: [
+      "Алдымен өзгерістерді сақтап, КТЖ-ны растаңыз.",
+      "Сначала сохраните изменения и подтвердите КТП.",
+    ],
     locale: ["Тапсырма тілі", "Язык заданий"],
     count: ["Әр деңгейдегі тапсырма саны", "Заданий на каждом уровне"],
     minutes: ["Уақыт, минут", "Время, минут"],
@@ -1258,6 +1270,7 @@
           plan.revision = saved.revision;
           plan.status = confirm ? "confirmed" : "review";
           dirty = false;
+          updatePlanAction();
           openPlan(plan.id);
           note(t("saved"));
         },
@@ -1280,20 +1293,24 @@
         true
       )
     );
-    if (plan.status === "confirmed")
-      add(
+    if (plan.status === "confirmed") {
+      var create = add(
         actions,
         button(
           t("generate"),
           function () {
-            leave(function () {
-              dirty = false;
-              generateForm();
-            });
+            generateForm();
           },
           true
         )
       );
+      create.setAttribute("data-confirmed-plan", "true");
+      create.setAttribute("aria-describedby", "plan-generation-warning");
+      create.title = t("saveBeforeGenerate");
+      var hint = add(content, el("p", t("saveBeforeGenerate"), "notice"));
+      hint.id = "plan-generation-warning";
+      updatePlanAction();
+    }
     if (plan.file_id)
       add(
         actions,
@@ -1433,6 +1450,10 @@
       );
   }
   function generateForm() {
+    if (!plan || dirty || plan.status !== "confirmed") {
+      note(t("saveBeforeGenerate"), true);
+      return;
+    }
     clear(t("generate"));
     if (!profile.capabilities.ai) {
       add(content, el("p", t("unavailable"), "notice"));

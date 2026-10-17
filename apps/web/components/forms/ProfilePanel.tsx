@@ -45,7 +45,8 @@ export function ProfilePanel({
   const baseline = useRef(JSON.stringify(form));
   const [savedForm, setSavedForm] = useState(baseline.current);
   const dirty = JSON.stringify(form) !== savedForm;
-  useUnsavedChanges(dirty, onDirtyChange);
+  const [securityDirty, setSecurityDirty] = useState(false);
+  useUnsavedChanges(dirty || securityDirty, onDirtyChange);
   return (
     <>
       <div className="page-heading">
@@ -62,7 +63,6 @@ export function ProfilePanel({
             try {
               await api("profile", "PATCH", form);
               setSavedForm(JSON.stringify(form));
-              onDirtyChange(false);
               setLocale(form.locale);
               onSaved();
             } catch (e) {
@@ -253,7 +253,7 @@ export function ProfilePanel({
           </button>
         </details>
       </section>
-      <AccountSecurity locale={locale} />
+      <AccountSecurity locale={locale} onDirtyChange={setSecurityDirty} />
     </>
   );
 }
