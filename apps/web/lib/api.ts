@@ -36,6 +36,7 @@ import {
 } from "../../../packages/contracts";
 import { validateDocument } from "../../../packages/domain/validation";
 import { editorDrafts } from "./editor-drafts";
+import { admitRead, ReadBudgetError } from "./read-budgets";
 const uid = z.string().uuid();
 async function owned(
   table: "plans" | "generations" | "exports" | "uploads" | "jobs",
@@ -182,6 +183,7 @@ export async function handle(req: Request, path: string[]) {
       [owner],
     );
     if (p.rows[0]?.deleted_at) throw new AppError("UNAUTHORIZED", 401);
+    if (["GET", "HEAD"].includes(method)) await admitRead(owner, path);
     if (!["GET", "HEAD"].includes(method)) {
       if (req.headers.get("origin") !== env().APP_URL)
         throw new AppError("CSRF", 403);
@@ -1278,14 +1280,20 @@ export async function handle(req: Request, path: string[]) {
     console.error(
       JSON.stringify({ requestId, outcome: "failed", code: error.code }),
     );
-    return json(
+    const response = json(
       {
         code: error.code,
         message: messages[error.code] ?? messages.INTERNAL,
         requestId,
         fieldErrors: error.fieldErrors,
+        ...(error instanceof ReadBudgetError
+          ? { retryAfter: error.retryAfter }
+          : {}),
       },
       error.status,
     );
+    if (error instanceof ReadBudgetError)
+      response.headers.set("Retry-After", String(error.retryAfter));
+    return response;
   }
 }

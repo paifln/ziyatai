@@ -1,22 +1,26 @@
 {
   "environment": "local PostgreSQL container",
   "date": "2026-10-17",
-  "backupBytes": 3350938,
-  "sourceVersions": 1150,
-  "restoredVersions": 1150,
+  "backupBytes": 6549697,
+  "sourceVersions": 1629,
+  "restoredVersions": 1629,
   "consistentSnapshot": true,
   "contentHashesMatch": true,
   "unicodeSearchVerified": true,
   "allPublicTablesVerified": true,
-  "migrations": 10,
+  "migrations": 11,
   "tables": [
     {
       "table": "account",
-      "rows": 753
+      "rows": 1063
     },
     {
       "table": "api_limits",
-      "rows": 314
+      "rows": 625
+    },
+    {
+      "table": "api_read_budgets",
+      "rows": 46
     },
     {
       "table": "audit",
@@ -24,39 +28,39 @@
     },
     {
       "table": "editor_drafts",
-      "rows": 50
+      "rows": 235
     },
     {
       "table": "exports",
-      "rows": 214
+      "rows": 218
     },
     {
       "table": "generation_versions",
-      "rows": 741
+      "rows": 1140
     },
     {
       "table": "generations",
-      "rows": 413
+      "rows": 700
     },
     {
       "table": "jobs",
-      "rows": 615
+      "rows": 624
     },
     {
       "table": "ktp_rows",
-      "rows": 14913
+      "rows": 43441
     },
     {
       "table": "plan_versions",
-      "rows": 1150
+      "rows": 1629
     },
     {
       "table": "plans",
-      "rows": 741
+      "rows": 1033
     },
     {
       "table": "profiles",
-      "rows": 525
+      "rows": 791
     },
     {
       "table": "rateLimit",
@@ -64,15 +68,15 @@
     },
     {
       "table": "schema_migrations",
-      "rows": 10
+      "rows": 11
     },
     {
       "table": "session",
-      "rows": 1403
+      "rows": 2023
     },
     {
       "table": "uploads",
-      "rows": 332
+      "rows": 337
     },
     {
       "table": "usage_ledger",
@@ -80,7 +84,7 @@
     },
     {
       "table": "user",
-      "rows": 753
+      "rows": 1063
     },
     {
       "table": "verification",
@@ -91,7 +95,7 @@
       "rows": 12
     }
   ],
-  "durationMs": 4742,
+  "durationMs": 12274,
   "verified": true,
   "limits": "This verifies local restore, not production backup scheduling or storage encryption"
 }

@@ -71,6 +71,7 @@ export default function PlanReview({
   const { dirty, setDirty, guard } = useDraftState();
   const readController = useRef<AbortController | null>(null);
   const [previewFailed, setPreviewFailed] = useState(false);
+  const [readFailed, setReadFailed] = useState(false);
   const [page, setPage] = useState(0);
   const [sheet, setSheet] = useState("");
   const [classFilter, setClassFilter] = useState("");
@@ -114,6 +115,7 @@ export default function PlanReview({
       const controller = new AbortController();
       readController.current = controller;
       const checkpoint = guard.checkpoint();
+      setReadFailed(false);
       try {
         const p = await api(
           `ktp/${id}`,
@@ -144,7 +146,10 @@ export default function PlanReview({
         setDatesBeforeSkip(null);
         setDirty(false);
       } catch (e) {
-        if (!controller.signal.aborted) onError((e as Error).message);
+        if (!controller.signal.aborted) {
+          setReadFailed(true);
+          onError((e as Error).message);
+        }
       }
     },
     [id, onError, guard, setDirty],
@@ -270,7 +275,21 @@ export default function PlanReview({
   if (!plan)
     return (
       <div className="inline-loading">
-        <span className="spinner" /> {t.loading}
+        {readFailed ? (
+          <button
+            className="button secondary"
+            onClick={() => {
+              onError("");
+              void load();
+            }}
+          >
+            {t.retry}
+          </button>
+        ) : (
+          <>
+            <span className="spinner" /> {t.loading}
+          </>
+        )}
         <button className="button secondary" onClick={onBack}>
           {t.cancel}
         </button>

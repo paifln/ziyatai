@@ -304,6 +304,10 @@
       "Сыныпты, тақырыпты және толық мақсат мәтінін енгізіңіз.",
       "Укажите класс, тему и полный текст целей обучения.",
     ],
+    READ_LIMIT: [
+      "Материалдарға сұраулар тым жиі жіберілді. Сәл күтіп, қайталаңыз. Өзгерістер редакторда қалады.",
+      "Слишком частые запросы к материалам. Подождите немного и повторите. Правки остаются в редакторе.",
+    ],
     LIMIT: [
       "Лимитке жеттіңіз. Біраздан кейін қайталаңыз.",
       "Достигнут лимит. Повторите позже.",
@@ -482,8 +486,20 @@
       }
       if (xhr.status < 200 || xhr.status >= 300) {
         var code = result.code || (result.error && result.error.code);
-        if (xhr.status === 429) code = "LIMIT";
-        done(words[code] ? t(code) : t("error"), result, xhr.status);
+        if (xhr.status === 429 && code !== "READ_LIMIT") code = "LIMIT";
+        var reason = words[code] ? t(code) : t("error");
+        if (
+          code === "READ_LIMIT" &&
+          typeof result.retryAfter === "number" &&
+          Math.floor(result.retryAfter) === result.retryAfter &&
+          result.retryAfter > 0 &&
+          result.retryAfter <= 600
+        )
+          reason +=
+            locale === "ru"
+              ? " Повторите через " + result.retryAfter + " с."
+              : " " + result.retryAfter + " секундтан кейін қайталаңыз.";
+        done(reason, result, xhr.status);
         return;
       }
       if (signature) delete requestKeys[signature];
@@ -692,6 +708,10 @@
       document.cookie =
         "ziyatai-locale=" + locale + "; Path=/; SameSite=Lax; Max-Age=31536000";
       language();
+      if (user && !profile) {
+        loadProfile();
+        return;
+      }
       renderNav();
       if (user) render();
       else if (authMode === "verify") verifyForm(verificationEmail);
@@ -2377,17 +2397,41 @@
       return;
     }
     user = session.user;
-    request("profile", "GET", undefined, function (error, p) {
-      if (error) {
-        note(error, true);
-        authForm("login");
-        return;
-      }
-      profile = p;
-      renderNav();
-      var id = new URLSearchParams(window.location.search).get("generation");
-      if (id && /^[0-9a-f-]{36}$/i.test(id)) openGeneration(id);
-      else render();
-    });
+    loadProfile();
   });
+  function loadProfile() {
+    clear("ZiyatAI");
+    note("");
+    navigation.hidden = true;
+    add(content, el("p", t("loading"), "panel"));
+    var version = viewVersion;
+    pageRead = request(
+      "profile",
+      "GET",
+      undefined,
+      function (error, p, status) {
+        if (version !== viewVersion) return;
+        pageRead = null;
+        if (error) {
+          if (status === 401) {
+            user = null;
+            profile = null;
+            renderNav();
+            authForm("login");
+            note(error, true);
+            return;
+          }
+          clear(text("Кабинет ашылмады", "Не удалось открыть кабинет"));
+          note(error, true);
+          add(content, button(t("retry"), loadProfile));
+          return;
+        }
+        profile = p;
+        renderNav();
+        var id = new URLSearchParams(window.location.search).get("generation");
+        if (id && /^[0-9a-f-]{36}$/i.test(id)) openGeneration(id);
+        else render();
+      }
+    );
+  }
 })();

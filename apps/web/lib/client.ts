@@ -118,10 +118,21 @@ export async function api(
     value.error.message = translated[value.error.code] ?? translated.INTERNAL;
   if (!response.ok)
     throw Object.assign(
-      new Error(translated[value.code] ?? translated.INTERNAL),
+      new Error(
+        (translated[value.code] ?? translated.INTERNAL) +
+          (value.code === "READ_LIMIT" &&
+          Number.isInteger(value.retryAfter) &&
+          value.retryAfter > 0 &&
+          value.retryAfter <= 600
+            ? document.documentElement.lang === "kk"
+              ? ` ${value.retryAfter} секундтан кейін қайталаңыз.`
+              : ` Повторите через ${value.retryAfter} с.`
+            : ""),
+      ),
       {
         code: value.code,
         status: response.status,
+        retryAfter: value.retryAfter,
       },
     );
   return value;

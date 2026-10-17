@@ -80,6 +80,7 @@ export default function GenerationEditor({
   const { dirty, setDirty, guard } = useDraftState();
   const readController = useRef<AbortController | null>(null);
   const [activeTask, setActiveTask] = useState("");
+  const [readFailed, setReadFailed] = useState(false);
   const [teacherReviewed, setTeacherReviewed] = useState(false);
   const [conflict, setConflict] = useState(false);
   const busy = working || conflict;
@@ -138,6 +139,7 @@ export default function GenerationEditor({
       const controller = new AbortController();
       readController.current = controller;
       const checkpoint = guard.checkpoint();
+      setReadFailed(false);
       try {
         const g = await api(
           `generations/${id}`,
@@ -167,7 +169,10 @@ export default function GenerationEditor({
           if (!controller.signal.aborted) setVersions(history);
         }
       } catch (e) {
-        if (!controller.signal.aborted) onError((e as Error).message);
+        if (!controller.signal.aborted) {
+          setReadFailed(true);
+          onError((e as Error).message);
+        }
       }
     },
     [id, onError, guard, setDirty],
@@ -364,7 +369,21 @@ export default function GenerationEditor({
   if (!generation)
     return (
       <div className="inline-loading">
-        <span className="spinner" /> {t.loading}
+        {readFailed ? (
+          <button
+            className="button secondary"
+            onClick={() => {
+              onError("");
+              void load();
+            }}
+          >
+            {t.retry}
+          </button>
+        ) : (
+          <>
+            <span className="spinner" /> {t.loading}
+          </>
+        )}
       </div>
     );
   if (!document)
