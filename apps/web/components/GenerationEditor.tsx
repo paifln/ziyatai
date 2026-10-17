@@ -33,6 +33,7 @@ import { usePolling } from "../lib/use-polling";
 import TableEditor from "./TableEditor";
 import { DisplayBlocks } from "./generations/DisplayBlocks";
 import { TaskReview } from "./generations/TaskReview";
+import { RevisionConflict, type RevisionSnapshot } from "./RevisionConflict";
 type Block = TaskDocument["contentBlocks"][number];
 const blank = (type: Block["type"] = "paragraph"): Block => ({
   type,
@@ -67,7 +68,7 @@ export default function GenerationEditor({
   const [generation, setGeneration] = useState<any>(),
     [document, setDocument] = useState<GenerationDocument>(),
     [versions, setVersions] = useState<any[]>([]),
-    [busy, setBusy] = useState(false),
+    [working, setBusy] = useState(false),
     [mode, setMode] = useState<"review" | "edit" | "print">("review"),
     [audience, setAudience] = useState<"full" | "student">("full"),
     [styles, setStyles] = useState(Styles.parse(profileStyles)),
@@ -78,6 +79,36 @@ export default function GenerationEditor({
   const readController = useRef<AbortController | null>(null);
   const [activeTask, setActiveTask] = useState("");
   const [teacherReviewed, setTeacherReviewed] = useState(false);
+  const [conflict, setConflict] = useState(false);
+  const busy = working || conflict;
+  const baseline = useRef<GenerationDocument | undefined>(undefined);
+  const loadLatest = useCallback(
+    async (
+      signal: AbortSignal,
+    ): Promise<RevisionSnapshot<GenerationDocument>> => {
+      const g = await api(
+        `generations/${id}`,
+        "GET",
+        undefined,
+        undefined,
+        signal,
+      );
+      if (!g.document)
+        throw new Error(
+          locale === "ru"
+            ? "Сохранённые задания пока недоступны."
+            : "Сақталған тапсырмалар әзірге қолжетімсіз.",
+        );
+      return {
+        revision: g.revision,
+        status: g.status,
+        reviewedAt: g.reviewed_at,
+        validation: g.validation,
+        draft: g.document,
+      };
+    },
+    [id, locale],
+  );
   useEffect(() => {
     setTeacherReviewed(false);
   }, [generation?.revision]);
@@ -113,6 +144,7 @@ export default function GenerationEditor({
         setGeneration(g);
         setDirty(false);
         if (g.document) {
+          baseline.current = g.document;
           setDocument(g.document);
           setReport(g.validation);
           const history = await api(
@@ -200,10 +232,12 @@ export default function GenerationEditor({
         reviewed_at: null,
       }));
       setDirty(false);
+      baseline.current = document;
       await load();
       onSaved();
     } catch (e) {
-      onError((e as Error).message);
+      if ((e as { code?: string }).code === "CONFLICT") setConflict(true);
+      else onError((e as Error).message);
     } finally {
       setBusy(false);
     }
@@ -347,6 +381,36 @@ export default function GenerationEditor({
     );
   return (
     <>
+      {conflict && baseline.current && (
+        <RevisionConflict
+          base={baseline.current}
+          local={document}
+          locale={locale}
+          loadLatest={loadLatest}
+          onClose={() => setConflict(false)}
+          onResolve={(latest, merged, changed) => {
+            readController.current?.abort();
+            baseline.current = latest.draft;
+            setGeneration((current: any) => ({
+              ...current,
+              revision: latest.revision,
+              status: latest.status,
+              reviewed_at: latest.reviewedAt,
+              document: latest.draft,
+            }));
+            setDocument(merged);
+            setReport(
+              changed
+                ? { ...(latest.validation as object), stale: true }
+                : latest.validation,
+            );
+            setDirty(changed);
+            setTeacherReviewed(false);
+            setConflict(false);
+            onError("");
+          }}
+        />
+      )}
       <div className="page-heading">
         <div>
           <span className="small-label">
@@ -404,7 +468,7 @@ export default function GenerationEditor({
             disabled={busy || !dirty}
           >
             <Save size={16} />
-            {busy ? t.loading : t.save}
+            {working ? t.loading : t.save}
           </button>
         </div>
       </div>

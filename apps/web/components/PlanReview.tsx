@@ -29,6 +29,8 @@ import {
 } from "../../../packages/domain/goals";
 import { normalizeDate } from "../../../packages/domain/dates";
 import { planGrades, rowGrade } from "../../../packages/domain/grades";
+import { RevisionConflict, type RevisionSnapshot } from "./RevisionConflict";
+type PlanDraft = { rows: KtpRow[]; grade: number | null; schoolYear: string };
 export default function PlanReview({
   id,
   t,
@@ -57,7 +59,7 @@ export default function PlanReview({
     [rows, setRows] = useState<KtpRow[]>([]),
     [grade, setGrade] = useState<number | null>(null),
     [year, setYear] = useState(""),
-    [busy, setBusy] = useState(false),
+    [working, setBusy] = useState(false),
     [query, setQuery] = useState(""),
     [quarter, setQuarter] = useState(""),
     [sort, setSort] = useState("original"),
@@ -71,6 +73,24 @@ export default function PlanReview({
   const [classFilter, setClassFilter] = useState("");
   const loadedPlan = useRef("");
   const [datesBeforeSkip, setDatesBeforeSkip] = useState<KtpRow[] | null>(null);
+  const [conflict, setConflict] = useState(false);
+  const busy = working || conflict;
+  const baseline = useRef<PlanDraft | undefined>(undefined);
+  const loadLatest = useCallback(
+    async (signal: AbortSignal): Promise<RevisionSnapshot<PlanDraft>> => {
+      const p = await api(`ktp/${id}`, "GET", undefined, undefined, signal);
+      return {
+        revision: p.revision,
+        status: p.status,
+        draft: {
+          rows: p.rows ?? [],
+          grade: p.grade,
+          schoolYear: p.school_year ?? "",
+        },
+      };
+    },
+    [id],
+  );
   const load = useCallback(
     async (savedDraft = false) => {
       readController.current?.abort();
@@ -91,6 +111,11 @@ export default function PlanReview({
         )
           return;
         setPlan(p);
+        baseline.current = {
+          rows: p.rows ?? [],
+          grade: p.grade,
+          schoolYear: p.school_year ?? "",
+        };
         setRows(p.rows ?? []);
         setGrade(p.grade);
         if (loadedPlan.current !== id) {
@@ -215,10 +240,12 @@ export default function PlanReview({
         status: confirm ? "confirmed" : "review",
       }));
       setDirty(false);
+      baseline.current = { rows, grade, schoolYear: year };
       await load();
       onSaved();
     } catch (e) {
-      onError((e as Error).message);
+      if ((e as { code?: string }).code === "CONFLICT") setConflict(true);
+      else onError((e as Error).message);
     } finally {
       setBusy(false);
     }
@@ -332,6 +359,34 @@ export default function PlanReview({
     )[w] ?? t.warningCode;
   return (
     <>
+      {conflict && baseline.current && (
+        <RevisionConflict
+          base={baseline.current}
+          local={{ rows, grade, schoolYear: year }}
+          locale={locale}
+          loadLatest={loadLatest}
+          onClose={() => setConflict(false)}
+          onResolve={(latest, merged, changed) => {
+            readController.current?.abort();
+            baseline.current = latest.draft;
+            setPlan((current: any) => ({
+              ...current,
+              revision: latest.revision,
+              status: latest.status,
+              rows: latest.draft.rows,
+              grade: latest.draft.grade,
+              school_year: latest.draft.schoolYear,
+            }));
+            setRows(merged.rows);
+            setGrade(merged.grade);
+            setYear(merged.schoolYear);
+            setDatesBeforeSkip(null);
+            setDirty(changed);
+            setConflict(false);
+            onError("");
+          }}
+        />
+      )}
       <div className="page-heading">
         <div>
           <span className="small-label">

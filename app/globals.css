@@ -892,6 +892,85 @@ input[type="checkbox"] {
   color: #3a5e2b;
   border-color: #d6e4ca;
 }
+.revision-conflict {
+  margin-bottom: 24px;
+  border-color: var(--green);
+  color: var(--ink);
+}
+.revision-conflict h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  line-height: 1.4;
+}
+.revision-conflict-field {
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  margin: 22px 0;
+}
+.revision-conflict-field legend {
+  padding: 0;
+  margin-bottom: 10px;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+.revision-conflict-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.revision-conflict-options label {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+.revision-conflict-options label.selected {
+  border-color: var(--green);
+  box-shadow: inset 0 0 0 1px var(--green);
+}
+.revision-conflict-options label > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+.revision-conflict-options input {
+  width: 18px;
+  height: 18px;
+  min-height: 0;
+  flex: 0 0 18px;
+  margin: 0;
+  accent-color: var(--green);
+}
+.revision-conflict-options pre {
+  max-height: 240px;
+  overflow: auto;
+  margin: 12px 0 0;
+  padding: 8px;
+  color: var(--ink);
+  background: var(--bg);
+  border-radius: 6px;
+  font: inherit;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.revision-conflict > .text-button {
+  margin-top: 18px;
+}
+@media (max-width: 700px) {
+  .revision-conflict-options {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .revision-conflict .actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
 .global-error {
   margin-bottom: 24px;
 }
