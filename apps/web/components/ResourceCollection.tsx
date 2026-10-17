@@ -59,23 +59,29 @@ export default function ResourceCollection({
     return () => clearTimeout(timer);
   }, [query]);
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
     setLoading(true);
-    api(`${kind}?q=${encodeURIComponent(search)}&limit=21&offset=${offset}`)
+    api(
+      `${kind}?q=${encodeURIComponent(search)}&limit=21&offset=${offset}`,
+      "GET",
+      undefined,
+      undefined,
+      controller.signal,
+    )
       .then((data: Material[]) => {
-        if (cancelled) return;
+        if (controller.signal.aborted) return;
         setItems(data.slice(0, 20));
         setMore(data.length > 20);
         setError("");
       })
       .catch((e: Error) => {
-        if (!cancelled) setError(e.message);
+        if (!controller.signal.aborted) setError(e.message);
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       });
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [kind, search, offset, revision]);
   const reload = async () => {

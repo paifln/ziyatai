@@ -57,9 +57,11 @@ export default function Workspace({
   initialGuest?: boolean;
   initialLocale?: UiLocale;
 }) {
+  const sessionState = authClient.useSession();
   return (
-    <ConfirmProvider>
+    <ConfirmProvider key={sessionState.data?.user.id ?? "guest"}>
       <WorkspaceContent
+        sessionState={sessionState}
         authMode={authMode}
         initialGuest={initialGuest}
         initialLocale={initialLocale}
@@ -68,10 +70,12 @@ export default function Workspace({
   );
 }
 function WorkspaceContent({
+  sessionState,
   authMode,
   initialGuest,
   initialLocale,
 }: {
+  sessionState: ReturnType<typeof authClient.useSession>;
   authMode?: "login" | "signup";
   initialGuest?: boolean;
   initialLocale?: UiLocale;
@@ -84,7 +88,7 @@ function WorkspaceContent({
     isPending,
     error: sessionError,
     refetch: refetchSession,
-  } = authClient.useSession();
+  } = sessionState;
   const [sessionLoaded, setSessionLoaded] = useState(false);
   useEffect(() => {
     if (!isPending) setSessionLoaded(true);
@@ -141,8 +145,18 @@ function WorkspaceContent({
       ? "Есть несохранённые изменения. Уйти без сохранения?"
       : "Сақталмаған өзгерістер бар. Сақтамай шығу керек пе?";
   const refreshing = useRef(false);
+  const refreshAbort = useRef<AbortController | undefined>(undefined);
   const sessionUserId = session?.user.id;
   const refreshQueued = useRef(false);
+  useEffect(
+    () => () => {
+      refreshAbort.current?.abort();
+      refreshAbort.current = undefined;
+      refreshing.current = false;
+      refreshQueued.current = false;
+    },
+    [],
+  );
   const setLocale = useCallback((l: UiLocale) => {
     setLocaleState(l);
     document.documentElement.lang = l;
@@ -161,19 +175,28 @@ function WorkspaceContent({
       return;
     }
     refreshing.current = true;
+    const controller = new AbortController();
+    refreshAbort.current = controller;
     try {
       do {
         refreshQueued.current = false;
-        const data = await Promise.all([api("profile"), api("jobs")]);
+        const data = await Promise.all([
+          api("profile", "GET", undefined, undefined, controller.signal),
+          api("jobs", "GET", undefined, undefined, controller.signal),
+        ]);
+        if (controller.signal.aborted) return;
         setProfile(data[0]);
         setPlansRevision((revision) => revision + 1);
         setJobs(data[1]);
         setLoaded(true);
       } while (refreshQueued.current);
     } catch (e) {
-      setError((e as Error).message);
+      if (!controller.signal.aborted) setError((e as Error).message);
     } finally {
-      refreshing.current = false;
+      if (refreshAbort.current === controller) {
+        refreshing.current = false;
+        refreshAbort.current = undefined;
+      }
     }
   }, [sessionUserId, passwordReset]);
   useEffect(() => {

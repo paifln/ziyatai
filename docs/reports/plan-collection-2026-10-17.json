@@ -52,7 +52,13 @@
     "baselineCommit": "f4a41c9",
     "baselineRun": 39038527378,
     "baselineConclusion": "success",
-    "newFeature": "Requires its own complete remote run after push"
+    "newFeature": "Complete run passed on 23acdd1",
+    "featureRun": 39040419049,
+    "featureConclusion": "success",
+    "featurePrimaryPassed": 137,
+    "featurePrimarySkipped": 3,
+    "featureOtpPassed": 1,
+    "featureMailFreePassed": 3
   },
   "remaining": [
     "Audit other Workspace views when accounts change across tabs",
