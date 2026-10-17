@@ -81,6 +81,8 @@ async function done(c: any, job: Job, result: unknown) {
   );
 }
 async function importPlan(job: Job) {
+  if (job.kind === "scan" && env().SCAN_REQUIRED !== "true")
+    throw new AppError("SCAN_UNAVAILABLE", 503);
   await stage(job, "extracting");
   await active("plans", job);
   const f = (
@@ -158,6 +160,14 @@ async function importPlan(job: Job) {
       await deleteObject(f.object_key);
     } else if (!trustedScan(f.scan_status, env()))
       throw new AppError("FILE_UNSAFE", 422);
+    if (job.kind === "scan") {
+      await transaction(async (c) => {
+        await check(c, job);
+        await active("plans", job, c);
+        await done(c, job, { uploadId: f.id, checked: true });
+      });
+      return;
+    }
     await writeFile(path, sourceBytes);
     const e = env();
     let output: string;
@@ -632,7 +642,7 @@ while (!stopping) {
     }
     const job = await transaction(async (c) => {
       const claim = await c.query(
-        "SELECT id FROM jobs WHERE status='queued' AND available_at<=now() AND cancel_requested=false ORDER BY created_at FOR UPDATE SKIP LOCKED LIMIT 1",
+        "SELECT id FROM jobs WHERE status='queued' AND kind IN ('import','scan','generate','regenerate','export','delete') AND available_at<=now() AND cancel_requested=false ORDER BY created_at FOR UPDATE SKIP LOCKED LIMIT 1",
       );
       if (!claim.rowCount) return null;
       const token = randomUUID();
@@ -658,11 +668,12 @@ while (!stopping) {
       ]);
     }, 10000);
     try {
-      if (job.kind === "import") await importPlan(job);
+      if (job.kind === "import" || job.kind === "scan") await importPlan(job);
       else if (["generate", "regenerate"].includes(job.kind))
         await generateTasks(job);
       else if (job.kind === "export") await exportDocument(job);
-      else await deleteResources(job);
+      else if (job.kind === "delete") await deleteResources(job);
+      else throw new AppError("INTERNAL", 503);
       console.log(
         JSON.stringify({
           jobId: job.id,

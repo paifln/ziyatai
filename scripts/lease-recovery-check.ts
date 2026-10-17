@@ -54,11 +54,15 @@ try {
     const id = randomUUID(),
       token = randomUUID();
     let resource = randomUUID();
-    if (kind === "import") {
+    if (kind === "import" || kind === "scan") {
       await c.query(
         "INSERT INTO plans(id,owner_id,title,deleted_at) VALUES($1,$2,'Recovery QA',CASE WHEN $3::boolean THEN now() ELSE NULL END)",
         [resource, options.foreign ? foreign : owner, !!options.deleted],
       );
+      if (kind === "scan")
+        await c.query("UPDATE plans SET status='confirmed' WHERE id=$1", [
+          resource,
+        ]);
     } else if (kind === "generate") {
       await c.query(
         "INSERT INTO generations(id,owner_id,row_id,source_snapshot,title,locale) VALUES($1,$2,$3,'{}','Recovery QA','ru')",
@@ -103,6 +107,9 @@ try {
     return id;
   }
   const exhausted = await fixture("import", "failed", "ATTEMPTS_EXHAUSTED");
+  await fixture("scan", "failed", "ATTEMPTS_EXHAUSTED");
+  await fixture("scan", "queued", "WORKER_RESTART", { attempt: 1 });
+  await fixture("scan", "cancelled", "CANCELLED", { cancel: true });
   await fixture("import", "queued", "WORKER_RESTART", { attempt: 1 });
   await fixture("export", "failed", "ATTEMPTS_EXHAUSTED");
   await fixture("export", "cancelled", "CANCELLED", { cancel: true });
@@ -193,6 +200,15 @@ try {
           : fixture.status,
       );
     }
+    if (fixture.kind === "scan")
+      assert.equal(
+        (
+          await c.query("SELECT status FROM plans WHERE id=$1", [
+            fixture.resource,
+          ])
+        ).rows[0].status,
+        "confirmed",
+      );
     if (fixture.ledger)
       assert.equal(
         (

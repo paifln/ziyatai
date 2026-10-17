@@ -7,6 +7,8 @@ it("classifies full material fallback routes and expensive binary work without c
     [["history"], "metadata"],
     [["jobs", "id"], "metadata"],
     [["ktp", "id"], "snapshot"],
+    [["ktp", "id", "source"], "metadata"],
+    [["ktp", "id", "source", "unknown"], "snapshot"],
     [["ktp", "id", "unknown-action"], "snapshot"],
     [["generations", "id", "versions"], "snapshot"],
     [["drafts", "id"], "snapshot"],

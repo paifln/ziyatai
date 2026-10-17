@@ -39,6 +39,7 @@ import { admitRead, ReadBudgetError } from "./read-budgets";
 import { objectDownload } from "./object-download";
 import { readiness } from "./readiness";
 import { trustedScan } from "./scan-policy";
+import { sourceStatus, startSourceCheck } from "./source-checks";
 const uid = z.string().uuid();
 async function owned(
   table: "plans" | "generations" | "exports" | "uploads" | "jobs",
@@ -677,6 +678,23 @@ export async function handle(req: Request, path: string[]) {
             ],
           )
         ).rows,
+      );
+    }
+    if (resource === "ktp" && id && action === "source") {
+      if (path.length !== 3) throw new AppError("NOT_FOUND", 404);
+      uid.parse(id);
+      if (method === "GET" || method === "HEAD")
+        return json(await sourceStatus(owner, id));
+      if (method === "POST") {
+        const key = uid.parse(req.headers.get("idempotency-key"));
+        return json(await startSourceCheck(owner, id, key), 202);
+      }
+      return Response.json(
+        { code: "METHOD_NOT_ALLOWED" },
+        {
+          status: 405,
+          headers: { Allow: "GET, HEAD, POST", "Cache-Control": "no-store" },
+        },
       );
     }
     if (resource === "ktp" && id && action === "preview" && method === "GET") {

@@ -10,7 +10,6 @@ import {
   Check,
   Trash2,
   AlertTriangle,
-  Download,
   ChevronDown,
   Split,
   Merge,
@@ -34,6 +33,7 @@ import type { PlanDraft } from "../../../packages/contracts/drafts";
 import { useServerDraft } from "../lib/use-server-draft";
 import { compactPlanDraft } from "../../../packages/domain/draft-payload";
 import { DraftRecovery } from "./DraftRecovery";
+import { SourceAccess } from "./SourceAccess";
 export default function PlanReview({
   id,
   t,
@@ -68,6 +68,7 @@ export default function PlanReview({
     [sort, setSort] = useState("original"),
     [showWarnings, setShowWarnings] = useState(false);
   const [previewPage, setPreviewPage] = useState(0);
+  const [sourceAvailable, setSourceAvailable] = useState(false);
   const { dirty, setDirty, guard } = useDraftState();
   const readController = useRef<AbortController | null>(null);
   const [previewFailed, setPreviewFailed] = useState(false);
@@ -476,15 +477,6 @@ export default function PlanReview({
           )}
         </div>
         <div className="actions">
-          {plan.file_id && (
-            <a
-              className="button secondary"
-              href={`/api/uploads/${plan.file_id}`}
-            >
-              <Download size={16} />
-              {t.sourceDownload}
-            </a>
-          )}
           <button
             className="button primary"
             disabled={plan.status !== "confirmed" || dirty}
@@ -495,6 +487,15 @@ export default function PlanReview({
           </button>
         </div>
       </div>
+      {plan.file_id && (
+        <SourceAccess
+          key={plan.file_id}
+          planId={id}
+          uploadId={plan.file_id}
+          locale={locale}
+          onAvailability={setSourceAvailable}
+        />
+      )}
       {rows.length > 0 && (
         <section className="sheet-picker card">
           <label>
@@ -612,7 +613,13 @@ export default function PlanReview({
                 {t.cancel}
               </button>
             </div>
-            {previewFailed ? (
+            {!sourceAvailable ? (
+              <p className="notice warning">
+                {locale === "ru"
+                  ? "Проверьте доступность исходника в блоке файла выше."
+                  : "Жоғарыдағы файл бөлімінде бастапқы файлдың қолжетімділігін тексеріңіз."}
+              </p>
+            ) : previewFailed ? (
               <p className="notice warning">
                 {locale === "ru"
                   ? "Предпросмотр недоступен. Скачайте исходник, чтобы проверить страницу."

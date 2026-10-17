@@ -1,3 +1,17 @@
+.source-access {
+  margin: 0 0 20px;
+  padding: 16px 20px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+.source-access p {
+  margin: 0 0 10px;
+}
+@media print {
+  .source-access {
+    display: none !important;
+  }
+}
 .editor-view-switch {
   display: flex;
   flex-wrap: wrap;

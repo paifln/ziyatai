@@ -1,11 +1,11 @@
 {
   "environment": "real PostgreSQL, synthetic fixtures inside a rolled-back transaction; no AI calls or file changes",
   "priorStuckPlanReproduced": true,
-  "fixtureCases": 14,
+  "fixtureCases": 17,
   "recoveryCounts": {
-    "queued": 1,
-    "failed": 8,
-    "cancelled": 4
+    "queued": 2,
+    "failed": 9,
+    "cancelled": 5
   },
   "atomicRollback": true,
   "staleLeaseFenced": true,

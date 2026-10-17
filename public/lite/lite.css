@@ -588,7 +588,17 @@ footer {
     flex: 1;
   }
 }
+.source-access p:first-child {
+  margin-top: 0;
+}
+.source-access button,
+.source-access .button {
+  margin: 4px 8px 4px 0;
+}
 @media print {
+  .source-access {
+    display: none !important;
+  }
   html[data-theme="dark"] body,
   html[data-theme="dark"] .panel,
   html[data-theme="dark"] .notice,

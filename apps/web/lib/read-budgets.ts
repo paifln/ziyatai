@@ -9,6 +9,8 @@ export const readBudgets = {
 } as const;
 export function readBucket(path: string[]) {
   const [resource, id, action] = path;
+  if (resource === "ktp" && id && action === "source" && path.length === 3)
+    return "metadata";
   if (resource === "ktp" && id && action === "preview") return "preview";
   if ((resource === "uploads" && id) || (resource === "exports" && id))
     return "download";
