@@ -1,9 +1,18 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { UiLocale } from "../lib/i18n";
 import type { StoredDraft } from "../../../packages/contracts/drafts";
 import type { useServerDraft } from "../lib/use-server-draft";
 import { useConfirm } from "./ui/ConfirmProvider";
+
+function returnRecoveryFocus(source: HTMLElement | null) {
+  requestAnimationFrame(() => {
+    if (!source?.isConnected) return;
+    const details = source.closest("details");
+    if (details && !details.open) details.querySelector("summary")?.focus();
+    else source.focus();
+  });
+}
 
 export function DraftRecovery<T>({
   controller,
@@ -24,6 +33,30 @@ export function DraftRecovery<T>({
     confirm = useConfirm();
   const [busy, setBusy] = useState(false),
     [error, setError] = useState("");
+  const [restoring, setRestoring] = useState(false);
+  const recovery = useRef<AbortController | null>(null);
+  const trigger = useRef<HTMLElement | null>(null);
+  const cancel = useRef<HTMLButtonElement>(null);
+  useEffect(
+    () => () => {
+      recovery.current?.abort();
+      recovery.current = null;
+    },
+    [],
+  );
+  useEffect(() => {
+    if (restoring) cancel.current?.focus();
+  }, [restoring]);
+  function cancelRecovery() {
+    const request = recovery.current;
+    if (!request) return;
+    recovery.current = null;
+    request.abort();
+    setRestoring(false);
+    setBusy(false);
+    onBusyChange(false);
+    returnRecoveryFocus(trigger.current);
+  }
   if (
     !dirty &&
     !controller.candidates.length &&
@@ -44,6 +77,20 @@ export function DraftRecovery<T>({
       className="draft-recovery"
       aria-label={ru ? "Резервные черновики" : "Сақтық нобайлар"}
     >
+      {restoring && (
+        <div className="status-bar draft-recovery-pending">
+          <span role="status">
+            {ru ? "Загружаем резервный черновик…" : "Сақтық нобай жүктелуде…"}
+          </span>
+          <button
+            ref={cancel}
+            className="button secondary"
+            onClick={cancelRecovery}
+          >
+            {ru ? "Отменить восстановление" : "Қалпына келтіруден бас тарту"}
+          </button>
+        </div>
+      )}
       {dirty && (
         <p role="status" className="status-bar">
           {controller.stage === "saved"
@@ -107,7 +154,8 @@ export function DraftRecovery<T>({
                 <button
                   className="button secondary"
                   disabled={busy || disabled}
-                  onClick={async () => {
+                  onClick={async (event) => {
+                    const source = event.currentTarget;
                     if (
                       dirty &&
                       !(await confirm(
@@ -117,17 +165,39 @@ export function DraftRecovery<T>({
                       ))
                     )
                       return;
+                    if (!source.isConnected || recovery.current) return;
+                    const request = new AbortController();
+                    recovery.current = request;
+                    trigger.current = source;
+                    setRestoring(true);
                     setBusy(true);
                     onBusyChange(true);
                     setError("");
                     try {
-                      const value = await controller.restore(row.id);
-                      onRestore(value);
+                      const value = await controller.restore(
+                        row.id,
+                        request.signal,
+                      );
+                      if (
+                        !request.signal.aborted &&
+                        recovery.current === request
+                      )
+                        onRestore(value);
                     } catch (e) {
-                      setError((e as Error).message);
+                      if (
+                        !request.signal.aborted &&
+                        recovery.current === request
+                      ) {
+                        setError((e as Error).message);
+                        returnRecoveryFocus(source);
+                      }
                     } finally {
-                      setBusy(false);
-                      onBusyChange(false);
+                      if (recovery.current === request) {
+                        recovery.current = null;
+                        setRestoring(false);
+                        setBusy(false);
+                        onBusyChange(false);
+                      }
                     }
                   }}
                 >

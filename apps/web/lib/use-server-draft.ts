@@ -198,8 +198,16 @@ export function useServerDraft<T>({
   }, [ready, dirty, draft, revision, enabled, stage, clear, saveNow]);
 
   const restore = useCallback(
-    async (id: string) => {
-      const result = (await api(`drafts/${id}`)) as StoredDraft<T>;
+    async (id: string, signal?: AbortSignal) => {
+      const result = (await api(
+        `drafts/${id}`,
+        "GET",
+        undefined,
+        undefined,
+        signal,
+      )) as StoredDraft<T>;
+      if (signal?.aborted || !mounted.current)
+        throw new DOMException("Recovery cancelled", "AbortError");
       if (result.kind !== kind || result.resourceId !== resourceId)
         throw new Error(
           document.documentElement.lang === "ru"

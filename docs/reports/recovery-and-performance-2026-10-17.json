@@ -1,0 +1,50 @@
+{
+  "date": "2026-10-17",
+  "scope": "Cancellable main-editor draft recovery and cheaper Lite snapshot preparation",
+  "before": "On the previous runtime a delayed recovery disabled the KTP fields and exposed no cancellation button; the new regression test failed on the missing button",
+  "changes": [
+    "Recovery GETs carry an AbortSignal; cancel and unmount abort the read and ignore late completion",
+    "Each recovery has its own identity so an old finalizer cannot unlock or replace a newer operation",
+    "Cancelled copies are not marked consumed and remain available after a later canonical save",
+    "Cancellation and failure restore keyboard focus; a collapsed copy list receives focus on its summary",
+    "Lite clones the compact wire payload and reconstructs the acknowledged snapshot using only a private immutable baseline plus copied edits",
+    "README removes obsolete test totals, clarifies mail-free registration, and records the prepared but unpublished hosting state"
+  ],
+  "verification": {
+    "productionBuild": "passed",
+    "unitTests": 99,
+    "initialChromiumCases": 19,
+    "initialWebkitCases": 6,
+    "finalChromiumCases": 21,
+    "finalWebkitCases": 18,
+    "legacyFirefox115": "Actual ESR 115.40.0 passed compact KTP autosave, recovery, teacher approval and DOCX export on the current Windows host",
+    "mobileAccessibility": "360 px, light/dark themes, axe checks on the recovery region; screenshots inspected",
+    "largeKtp": "Both editors preserve two separately edited rows during delayed autosave and retain all 2000 rows with the original canonical baseline unchanged",
+    "typecheck": "passed",
+    "eslint": "passed"
+  },
+  "cpuExperiment": {
+    "report": "draft-performance-2026-10-17.json",
+    "command": "node scripts/draft-performance-check.mjs",
+    "rows": 2000,
+    "cpuThrottlingRate": 6,
+    "samplesPerMethod": 24,
+    "litePreviousCompactMedianMs": 52.4,
+    "liteNewSnapshotMedianMs": 22,
+    "litePreviousCompactP95Ms": 58.4,
+    "liteNewSnapshotP95Ms": 25.6,
+    "scope": "Offline snapshot preparation and serialization only, excluding rendering, network and database"
+  },
+  "ci": {
+    "addedSpec": "tests/e2e/recovery-cancel.spec.ts",
+    "configuration": "Running main validations are retained; superseded feature/PR runs can still be cancelled",
+    "reference": "https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency",
+    "limitation": "YAML parsed locally; external CI completion is tracked separately and is not claimed by these local results"
+  },
+  "limitations": [
+    "CPU throttling is not a physical Windows 7 or low-end school PC benchmark",
+    "Memory, PostgreSQL WAL and continuous-session load remain to be measured",
+    "No paid AI calls or public deployment in this batch",
+    "Heavy authenticated GET budgets remain a separate security audit item"
+  ]
+}

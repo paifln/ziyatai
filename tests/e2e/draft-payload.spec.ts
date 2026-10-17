@@ -80,6 +80,11 @@ for (const editor of ["main", "lite"] as const) {
         await field.fill("Первая правка большого КТП");
         await expect.poll(() => writes.length).toBe(1);
         await field.fill("Последняя правка во время медленного сохранения");
+        const second =
+          editor === "main"
+            ? page.getByLabel("Тема урока 2", { exact: true })
+            : page.getByLabel("Тема урока", { exact: true }).nth(1);
+        await second.fill("Правка другой строки до подтверждения первой копии");
         release();
         await expect.poll(() => writes.length).toBe(2);
         await expect(
@@ -92,12 +97,23 @@ for (const editor of ["main", "lite"] as const) {
         expect(stored.draft.rows[0].topic).toBe(
           "Последняя правка во время медленного сохранения",
         );
-        expect(stored.draft.rows.slice(1)).toEqual(rows.slice(1));
-        expect(stored.base.rows[0].topic).toBe(rows[0].topic);
-        const fullBytes = Buffer.byteLength(
-          JSON.stringify({ ...stored.draft, rows }),
+        expect(stored.draft.rows[1].topic).toBe(
+          "Правка другой строки до подтверждения первой копии",
         );
-        expect(writes.every((write) => write.references === 1999)).toBe(true);
+        expect(stored.draft.rows.slice(2)).toEqual(rows.slice(2));
+        expect(stored.base.rows[0].topic).toBe(rows[0].topic);
+        expect(stored.base.rows[1].topic).toBe(rows[1].topic);
+        const fullBytes = Buffer.byteLength(
+          JSON.stringify({
+            id: stored.id,
+            sequence: stored.sequence,
+            kind: stored.kind,
+            resourceId: stored.resourceId,
+            baseRevision: stored.baseRevision,
+            draft: stored.draft,
+          }),
+        );
+        expect(writes.map((write) => write.references)).toEqual([1999, 1998]);
         expect(writes.every((write) => write.bytes < fullBytes * 0.1)).toBe(
           true,
         );
@@ -105,6 +121,7 @@ for (const editor of ["main", "lite"] as const) {
           await request.get(`/api/ktp/${demo.planId}`)
         ).json();
         expect(unchanged.rows[0].topic).toBe(rows[0].topic);
+        expect(unchanged.rows[1].topic).toBe(rows[1].topic);
         await mkdir(".local/qa", { recursive: true });
         await writeFile(
           `.local/qa/draft-payload-${editor}.json`,
@@ -112,7 +129,7 @@ for (const editor of ["main", "lite"] as const) {
             {
               editor,
               rows: 2000,
-              fullDraftBytes: fullBytes,
+              fullRequestBytes: fullBytes,
               writes,
               reductionPercent: 100 * (1 - writes[1].bytes / fullBytes),
               limitations:

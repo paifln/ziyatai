@@ -1,0 +1,129 @@
+{
+  "date": "2026-10-17T09:17:23.668Z",
+  "browser": "155.0.8059.84",
+  "host": "win32",
+  "scope": "Offline JavaScript snapshot preparation and serialization of a single last-row edit",
+  "methods": {
+    "mainFull": "Serialize a React-style immutable snapshot",
+    "mainCompact": "Build row references and serialize the same immutable snapshot",
+    "liteFull": "Clone a mutable Lite snapshot and serialize the complete snapshot",
+    "liteCompact": "Clone the same snapshot, build row references and serialize them",
+    "liteSharedSnapshot": "Build row references, clone only the wire payload, reconstruct the acknowledged snapshot against the private immutable baseline, and serialize the wire payload"
+  },
+  "results": [
+    {
+      "cpuRate": 1,
+      "rows": 200,
+      "samplesPerMethod": 24,
+      "methods": {
+        "mainFull": {
+          "medianMs": 0.2,
+          "p95Ms": 0.4
+        },
+        "mainCompact": {
+          "medianMs": 0,
+          "p95Ms": 0.1
+        },
+        "liteFull": {
+          "medianMs": 0.6,
+          "p95Ms": 0.8
+        },
+        "liteCompact": {
+          "medianMs": 0.6,
+          "p95Ms": 1
+        },
+        "liteSharedSnapshot": {
+          "medianMs": 0.3,
+          "p95Ms": 0.5
+        }
+      }
+    },
+    {
+      "cpuRate": 1,
+      "rows": 2000,
+      "samplesPerMethod": 24,
+      "methods": {
+        "mainFull": {
+          "medianMs": 2.6,
+          "p95Ms": 2.9
+        },
+        "mainCompact": {
+          "medianMs": 0.2,
+          "p95Ms": 0.3
+        },
+        "liteFull": {
+          "medianMs": 6.6,
+          "p95Ms": 7.1
+        },
+        "liteCompact": {
+          "medianMs": 6.8,
+          "p95Ms": 7.4
+        },
+        "liteSharedSnapshot": {
+          "medianMs": 2.7,
+          "p95Ms": 3.5
+        }
+      }
+    },
+    {
+      "cpuRate": 6,
+      "rows": 200,
+      "samplesPerMethod": 24,
+      "methods": {
+        "mainFull": {
+          "medianMs": 2,
+          "p95Ms": 2.3
+        },
+        "mainCompact": {
+          "medianMs": 0.2,
+          "p95Ms": 0.5
+        },
+        "liteFull": {
+          "medianMs": 3.6,
+          "p95Ms": 4.3
+        },
+        "liteCompact": {
+          "medianMs": 3.5,
+          "p95Ms": 4.9
+        },
+        "liteSharedSnapshot": {
+          "medianMs": 1.4,
+          "p95Ms": 2.1
+        }
+      }
+    },
+    {
+      "cpuRate": 6,
+      "rows": 2000,
+      "samplesPerMethod": 24,
+      "methods": {
+        "mainFull": {
+          "medianMs": 15.9,
+          "p95Ms": 17.3
+        },
+        "mainCompact": {
+          "medianMs": 1.5,
+          "p95Ms": 2.1
+        },
+        "liteFull": {
+          "medianMs": 48,
+          "p95Ms": 53.6
+        },
+        "liteCompact": {
+          "medianMs": 52.4,
+          "p95Ms": 58.4
+        },
+        "liteSharedSnapshot": {
+          "medianMs": 22,
+          "p95Ms": 25.6
+        }
+      }
+    }
+  ],
+  "limitations": [
+    "CPU rate 6 is Chromium emulation, not a physical school PC or Windows 7 benchmark",
+    "No DOM rendering, network, database, continuous editing session or garbage collector controls",
+    "These distributions are diagnostic observations, not universal performance guarantees or CI thresholds",
+    "All data is generated synthetic curriculum; no server, account or paid AI usage"
+  ]
+}

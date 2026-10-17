@@ -136,7 +136,17 @@
         return;
       }
       var state = options.get(),
-        snapshot = copy(state.draft),
+        payload =
+          options.kind === "ktp"
+            ? root.ZiyatDraftPayload.compactPlanDraft(base, state.draft)
+            : state.draft,
+        wire = copy(payload),
+        // Only the private baseline is shared. Edited rows are copied before
+        // sending, so later in-place input changes cannot alter this snapshot.
+        snapshot =
+          options.kind === "ktp"
+            ? root.ZiyatDraftPayload.expandPlanDraft(base, wire)
+            : wire,
         owner = slot;
       if (
         lastSaved &&
@@ -163,10 +173,7 @@
           kind: options.kind,
           resourceId: options.id,
           baseRevision: state.revision,
-          draft:
-            options.kind === "ktp"
-              ? root.ZiyatDraftPayload.compactPlanDraft(base, snapshot)
-              : snapshot,
+          draft: wire,
         },
         function (err, result) {
           if (!active || slot !== owner) return;
