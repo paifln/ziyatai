@@ -128,9 +128,28 @@ export default function PlanReview({
     setQuery("");
     setQuarter("");
     setSort("original");
-    setPage(Math.floor((after === undefined ? rows.length : after + 1) / 25));
+    const following = after === undefined ? undefined : rows[after];
+    const inheritedGrade = following
+      ? rowGrade(following, grade)
+      : classFilter && classFilter !== "unknown"
+        ? Number(classFilter)
+        : classFilter === "unknown"
+          ? null
+          : grade;
+    const inheritedSheet = following?.source.sheet ?? (sheet || null);
+    const matching = rows.filter(
+      (r) =>
+        (!sheet || r.source.sheet === sheet) &&
+        (!classFilter ||
+          String(rowGrade(r, grade) ?? "unknown") === classFilter),
+    );
+    const position = following
+      ? matching.findIndex((r) => r.id === following.id) + 1
+      : matching.length;
+    setPage(Math.floor(position / 25));
     const r: KtpRow = {
       id: crypto.randomUUID(),
+      grade: inheritedGrade,
       sourceOrder: rows.length + 1,
       lessonNumberRaw: "",
       section: "",
@@ -147,7 +166,7 @@ export default function PlanReview({
       warnings: [],
       source: {
         page: null,
-        sheet: null,
+        sheet: inheritedSheet,
         range: "manual",
         fragment: "",
         method: "manual",

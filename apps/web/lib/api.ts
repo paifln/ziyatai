@@ -655,20 +655,26 @@ export async function handle(req: Request, path: string[]) {
       });
       return json(result, 202);
     }
-    if (resource === "ktp" && !id && method === "GET")
+    if (resource === "ktp" && !id && method === "GET") {
+      const status = z
+        .enum(["confirmed", "needs_review", "extracting", "failed"])
+        .optional()
+        .parse(url.searchParams.get("status") ?? undefined);
       return json(
         (
           await db().query(
-            "SELECT id,title,grade,school_year,locale,status,revision,created_at FROM plans WHERE owner_id=$1 AND deleted_at IS NULL AND title ILIKE $2 ORDER BY created_at DESC LIMIT $3 OFFSET $4",
+            "SELECT id,title,grade,school_year,locale,status,revision,created_at FROM plans WHERE owner_id=$1 AND deleted_at IS NULL AND title ILIKE $2 AND ($5::text IS NULL OR status=$5) ORDER BY created_at DESC,id DESC LIMIT $3 OFFSET $4",
             [
               owner,
               `%${(url.searchParams.get("q") ?? "").slice(0, 200)}%`,
               limit,
               offset,
+              status ?? null,
             ],
           )
         ).rows,
       );
+    }
     if (resource === "ktp" && id && action === "preview" && method === "GET") {
       const plan = await owned("plans", id, owner);
       const file = await owned("uploads", plan.file_id, owner);

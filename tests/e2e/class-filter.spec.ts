@@ -65,6 +65,60 @@ test("class filtering preserves every lesson and generation class follows the se
   ).toHaveLength(4);
 });
 
+test("adding a lesson under a class filter keeps it visible and saves that class", async ({
+  page,
+  request,
+}) => {
+  await verifiedUser(request);
+  const demo = await (
+    await request.post("/api/demo", { headers, data: { locale: "ru" } })
+  ).json();
+  const plan = await (await request.get(`/api/ktp/${demo.planId}`)).json();
+  const rows = [2, 10].map((grade, index) => ({
+    ...plan.rows[0],
+    id: randomUUID(),
+    grade,
+    sourceOrder: index + 1,
+  }));
+  expect(
+    (
+      await request.post(`/api/ktp/${plan.id}/confirm`, {
+        headers,
+        data: {
+          revision: plan.revision,
+          rows,
+          grade: null,
+          schoolYear: "2026–2027",
+        },
+      })
+    ).ok(),
+  ).toBe(true);
+  await page.context().addCookies((await request.storageState()).cookies);
+  await page.goto("/");
+  await page.getByRole("button", { name: "РУС", exact: true }).click();
+  await page.locator(".resource-text").filter({ hasText: "DEMO" }).click();
+  await page
+    .getByRole("combobox", { name: "Показать класс", exact: true })
+    .selectOption("10");
+  await page
+    .getByRole("button", { name: "Добавить строку", exact: true })
+    .click();
+  const topic = page.getByLabel("Тема урока 3", { exact: true });
+  await expect(topic).toBeVisible();
+  await topic.fill("Новая тема десятого класса");
+  await page.getByRole("button", { name: "Сохранить", exact: true }).click();
+  await expect
+    .poll(
+      async () =>
+        (await (await request.get(`/api/ktp/${plan.id}`)).json()).rows.length,
+    )
+    .toBe(3);
+  const saved = await (await request.get(`/api/ktp/${plan.id}`)).json();
+  expect(saved.rows[2].grade).toBe(10);
+  expect(saved.rows[0].grade).toBe(2);
+  await expect(topic).toHaveValue("Новая тема десятого класса");
+});
+
 test("the owner's multi-class workbook keeps all 426 lessons with all eleven detected classes", async ({
   request,
 }) => {
