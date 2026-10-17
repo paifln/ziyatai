@@ -27,10 +27,22 @@
     "latestSourceLint": "passed",
     "normalLocalMailConfiguration": "restored"
   },
+  "remoteCI": {
+    "standaloneCommit": "5c47674",
+    "standaloneRun": 39044049997,
+    "standaloneConclusion": "cancelled while pending; superseded by the next commit",
+    "combinedCommit": "d5aa137",
+    "combinedRun": 39045004011,
+    "combinedConclusion": "success",
+    "combinedPrimaryPassed": 155,
+    "combinedPrimarySkipped": 3,
+    "combinedOtpPassed": 1,
+    "combinedNoSmtpPassed": 3
+  },
   "limits": [
     "This guards ProfilePanel after unmount; other asynchronous forms need separate review",
     "A cookie change before canonical session observation still needs expected-owner mutation fencing",
     "An already-dispatched server mutation is not rolled back",
-    "Remote CI for this commit remains required; no public deployment was performed"
+    "The later native-auth extension requires its own remote CI run; no public deployment was performed"
   ]
 }

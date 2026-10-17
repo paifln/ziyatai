@@ -42,12 +42,21 @@
     "latestLint": "passed without hook warnings",
     "normalMailConfigurationRestored": true
   },
+  "remoteCI": {
+    "commit": "d5aa137",
+    "run": 39045004011,
+    "conclusion": "success",
+    "primaryPassed": 155,
+    "primarySkipped": 3,
+    "otpPassed": 1,
+    "noSmtpPassed": 3
+  },
   "limits": [
     "Native Better Auth password, session-revocation and sign-out commands require separate intent fencing",
     "Lite account observation and intent binding require a separate lightweight implementation",
     "Older clients without the hint retain cookie-only intent semantics; ownership authorization remains enforced",
     "Already committed mutations are not rolled back",
     "Real cloud proxy forwarding and multi-user school load remain unverified",
-    "This change requires its own completed remote CI run; no public hosting or paid resources were created"
+    "The later native-auth extension requires its own completed remote CI run; no public hosting or paid resources were created"
   ]
 }

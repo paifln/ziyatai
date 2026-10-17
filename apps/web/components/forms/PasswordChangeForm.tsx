@@ -2,6 +2,8 @@
 import { useEffect, useRef, useState } from "react";
 import { LockKeyhole } from "lucide-react";
 import { authClient } from "../../lib/client";
+import { useAccountClient } from "../../lib/account-client";
+import { messages, kazakhMessages } from "../../../../packages/domain/errors";
 import type { UiLocale } from "../../lib/i18n";
 import { Form } from "../ui/Form";
 
@@ -18,6 +20,14 @@ export function PasswordChangeForm({
   disabled: boolean;
   onBusyChange: (busy: boolean) => void;
 }) {
+  const { auth: accountAuth } = useAccountClient();
+  const active = useRef(true);
+  useEffect(() => {
+    active.current = true;
+    return () => {
+      active.current = false;
+    };
+  }, []);
   const ru = locale === "ru";
   const [values, setValues] = useState({ current: "", next: "", repeat: "" });
   const [visible, setVisible] = useState(false);
@@ -66,34 +76,38 @@ export function PasswordChangeForm({
           onBusyChange(true);
           setFeedback(null);
           try {
-            const response = await authClient.changePassword({
+            const response = await accountAuth.changePassword({
               currentPassword: values.current,
               newPassword: values.next,
               revokeOtherSessions: true,
             });
+            if (!active.current) return;
             if (response.error) {
               const code = response.error.code;
               setFeedback({
                 error: true,
                 text:
-                  code === "INVALID_PASSWORD"
-                    ? ru
-                      ? "Текущий пароль указан неверно."
-                      : "Қазіргі құпиясөз дұрыс емес."
-                    : response.error.status === 429
+                  code === "SESSION_CHANGED"
+                    ? (ru ? messages : kazakhMessages).SESSION_CHANGED
+                    : code === "INVALID_PASSWORD"
                       ? ru
-                        ? "Слишком много попыток. Подождите минуту."
-                        : "Әрекет тым көп. Бір минут күтіңіз."
-                      : response.error.status === 401 ||
-                          code === "SESSION_NOT_FRESH"
+                        ? "Текущий пароль указан неверно."
+                        : "Қазіргі құпиясөз дұрыс емес."
+                      : response.error.status === 429
                         ? ru
-                          ? "Войдите в аккаунт заново и повторите смену пароля."
-                          : "Аккаунтқа қайта кіріп, құпиясөзді ауыстырыңыз."
-                        : !response.error.status || response.error.status >= 500
-                          ? uncertain
-                          : ru
-                            ? "Не удалось изменить пароль. Проверьте введённые данные."
-                            : "Құпиясөз ауыстырылмады. Енгізілген деректерді тексеріңіз.",
+                          ? "Слишком много попыток. Подождите минуту."
+                          : "Әрекет тым көп. Бір минут күтіңіз."
+                        : response.error.status === 401 ||
+                            code === "SESSION_NOT_FRESH"
+                          ? ru
+                            ? "Войдите в аккаунт заново и повторите смену пароля."
+                            : "Аккаунтқа қайта кіріп, құпиясөзді ауыстырыңыз."
+                          : !response.error.status ||
+                              response.error.status >= 500
+                            ? uncertain
+                            : ru
+                              ? "Не удалось изменить пароль. Проверьте введённые данные."
+                              : "Құпиясөз ауыстырылмады. Енгізілген деректерді тексеріңіз.",
               });
               return;
             }
@@ -107,9 +121,9 @@ export function PasswordChangeForm({
             });
             void authClient.getSession().catch(() => undefined);
           } catch {
-            setFeedback({ error: true, text: uncertain });
+            if (active.current) setFeedback({ error: true, text: uncertain });
           } finally {
-            onBusyChange(false);
+            if (active.current) onBusyChange(false);
           }
         }}
       >

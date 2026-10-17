@@ -19,7 +19,8 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { authClient } from "../lib/client";
-import { AccountClientProvider, useAccountApi } from "../lib/account-client";
+import { AccountClientProvider, useAccountClient } from "../lib/account-client";
+import { messages, kazakhMessages } from "../../../packages/domain/errors";
 import { dictionary, type UiLocale } from "../lib/i18n";
 import AuthPanel from "./AuthPanel";
 import Landing from "./Landing";
@@ -87,7 +88,14 @@ function WorkspaceContent({
   initialGuest?: boolean;
   initialLocale?: UiLocale;
 }) {
-  const api = useAccountApi();
+  const { api, auth: accountAuth } = useAccountClient();
+  const active = useRef(true);
+  useEffect(() => {
+    active.current = true;
+    return () => {
+      active.current = false;
+    };
+  }, []);
   const confirm = useConfirm();
   const [locale, setLocaleState] = useState<UiLocale>(initialLocale ?? "kk");
   const t = dictionary[locale];
@@ -518,8 +526,29 @@ function WorkspaceContent({
                   <button
                     onClick={async () => {
                       if (hasChanges && !(await confirm(discardPrompt))) return;
-                      await authClient.signOut();
-                      window.location.assign("/");
+                      if (!active.current) return;
+                      try {
+                        const response = await accountAuth.signOut();
+                        if (!active.current) return;
+                        if (response.error) {
+                          const text =
+                            locale === "ru" ? messages : kazakhMessages;
+                          setError(
+                            text[response.error.code ?? ""] ??
+                              (response.error.status === 429
+                                ? text.LIMIT
+                                : text.INTERNAL),
+                          );
+                          return;
+                        }
+                        window.location.assign("/");
+                      } catch {
+                        if (active.current)
+                          setError(
+                            (locale === "ru" ? messages : kazakhMessages)
+                              .INTERNAL,
+                          );
+                      }
                     }}
                   >
                     <LogOut size={17} />

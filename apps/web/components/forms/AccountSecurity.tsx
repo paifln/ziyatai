@@ -1,7 +1,8 @@
 "use client";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { ShieldCheck, LaptopMinimal, Check } from "lucide-react";
-import { authClient } from "../../lib/client";
+import { useAccountClient } from "../../lib/account-client";
+import { messages, kazakhMessages } from "../../../../packages/domain/errors";
 import type { UiLocale } from "../../lib/i18n";
 import { useConfirm } from "../ui/ConfirmProvider";
 import { PasswordChangeForm } from "./PasswordChangeForm";
@@ -13,6 +14,14 @@ export function AccountSecurity({
   locale: UiLocale;
   onDirtyChange: (dirty: boolean) => void;
 }) {
+  const { auth: accountAuth } = useAccountClient();
+  const active = useRef(true);
+  useEffect(() => {
+    active.current = true;
+    return () => {
+      active.current = false;
+    };
+  }, []);
   const confirm = useConfirm();
   const [busy, setBusy] = useState<"sessions" | "password" | null>(null);
   const [result, setResult] = useState("");
@@ -28,26 +37,32 @@ export function AccountSecurity({
       ))
     )
       return;
+    if (!active.current) return;
     setBusy("sessions");
     setResult("");
     setError(false);
     try {
-      const response = await authClient.revokeOtherSessions();
-      if (response.error) throw new Error();
+      const response = await accountAuth.revokeOtherSessions();
+      if (!active.current) return;
+      if (response.error)
+        throw Object.assign(new Error(), { code: response.error.code });
       setResult(
         ru
           ? "Другие сеансы завершены. Текущий сеанс сохранён."
           : "Басқа сеанстар аяқталды. Ағымдағы сеанс сақталды.",
       );
-    } catch {
+    } catch (failure) {
+      if (!active.current) return;
       setError(true);
       setResult(
-        ru
-          ? "Не удалось завершить сеансы. Попробуйте ещё раз."
-          : "Сеанстар аяқталмады. Қайта көріңіз.",
+        (failure as { code?: string })?.code === "SESSION_CHANGED"
+          ? (ru ? messages : kazakhMessages).SESSION_CHANGED
+          : ru
+            ? "Не удалось завершить сеансы. Попробуйте ещё раз."
+            : "Сеанстар аяқталмады. Қайта көріңіз.",
       );
     } finally {
-      setBusy(null);
+      if (active.current) setBusy(null);
     }
   }
   return (

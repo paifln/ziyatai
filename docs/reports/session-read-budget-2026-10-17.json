@@ -41,6 +41,16 @@
     "restoreContentHashesMatch": true,
     "normalMailConfigurationRestored": true
   },
+  "remoteCI": {
+    "commit": "de11c4a",
+    "run": 39043648498,
+    "conclusion": "success",
+    "jobs": ["test", "integration"],
+    "primaryPassed": 149,
+    "primarySkipped": 3,
+    "otpPassed": 1,
+    "noSmtpPassed": 3
+  },
   "limits": [
     "Real multi-replica cloud load and school shared-IP demand remain unverified",
     "Native credential and OTP limits remain separate and unchanged",

@@ -7,7 +7,7 @@ import {
 import { readFile } from "node:fs/promises";
 import { parseEnv } from "node:util";
 import { Pool } from "pg";
-import { headers, verifiedUser } from "./helpers";
+import { authRequest, headers, verifiedUser } from "./helpers";
 
 async function actor(request: APIRequestContext, pool: Pool, tag: string) {
   const credentials = await verifiedUser(request, `Private teacher ${tag}`);
@@ -79,7 +79,13 @@ async function notifySession(page: Page, status = 200) {
   return response;
 }
 
-for (const action of ["profile save", "account deletion"] as const) {
+for (const action of [
+  "profile save",
+  "account deletion",
+  "password change",
+  "session revocation",
+  "sign-out",
+] as const) {
   test(`an old ${action} is rejected while the new session lookup is still pending`, async ({
     page,
     request,
@@ -90,6 +96,9 @@ for (const action of ["profile save", "account deletion"] as const) {
         .DATABASE_URL,
     });
     const second = await playwright.request.newContext({
+      baseURL: "http://localhost:3000",
+    });
+    const extra = await playwright.request.newContext({
       baseURL: "http://localhost:3000",
     });
     let release!: () => void;
@@ -104,12 +113,45 @@ for (const action of ["profile save", "account deletion"] as const) {
     try {
       const first = await actor(request, pool, "one");
       const next = await actor(second, pool, "two");
+      if (action === "password change") {
+        // Model two teachers reusing a password, using synthetic accounts only.
+        await pool.query(
+          'UPDATE account SET password=(SELECT password FROM account WHERE "userId"=$2 AND "providerId"=\'credential\') WHERE "userId"=$1 AND "providerId"=\'credential\'',
+          [first.owner, next.owner],
+        );
+      }
+      const passwordBefore = (
+        await pool.query(
+          'SELECT password FROM account WHERE "userId"=$1 AND "providerId"=\'credential\'',
+          [next.owner],
+        )
+      ).rows[0].password;
+      if (action === "session revocation") {
+        expect(
+          (
+            await authRequest(() =>
+              extra.post("/api/auth/sign-in/email", { headers, data: next }),
+            )
+          ).status(),
+        ).toBe(200);
+      }
       await enter(page, request);
       await profile(page);
       if (action === "profile save")
         await page
           .getByLabel("Школа (необязательно)", { exact: true })
           .fill("Old teacher intent must not enter next profile");
+      if (action === "password change") {
+        await page
+          .getByLabel("Текущий пароль", { exact: true })
+          .fill(next.password);
+        await page
+          .getByLabel("Новый пароль", { exact: true })
+          .fill(next.password + "-changed");
+        await page
+          .getByLabel("Повторите новый пароль", { exact: true })
+          .fill(next.password + "-changed");
+      }
       await page.route("**/api/auth/get-session*", async (route) => {
         started();
         await gate;
@@ -118,6 +160,7 @@ for (const action of ["profile save", "account deletion"] as const) {
       await page.context().clearCookies();
       await page.context().addCookies((await second.storageState()).cookies);
       lookup = notifySession(page);
+      void lookup.catch(() => undefined);
       await intercepted;
       await expect(page.getByLabel("Email", { exact: true })).toHaveValue(
         first.email,
@@ -125,15 +168,25 @@ for (const action of ["profile save", "account deletion"] as const) {
       const result = page.waitForResponse(
         (r) =>
           new URL(r.url()).pathname ===
-            (action === "profile save" ? "/api/profile" : "/api/account") &&
+            {
+              "profile save": "/api/profile",
+              "account deletion": "/api/account",
+              "password change": "/api/auth/change-password",
+              "session revocation": "/api/auth/revoke-other-sessions",
+              "sign-out": "/api/auth/sign-out",
+            }[action] &&
           r.request().method() ===
-            (action === "profile save" ? "PATCH" : "DELETE"),
+            (action === "profile save"
+              ? "PATCH"
+              : action === "account deletion"
+                ? "DELETE"
+                : "POST"),
       );
       if (action === "profile save") {
         await page
           .getByRole("button", { name: "Сохранить", exact: true })
           .click();
-      } else {
+      } else if (action === "account deletion") {
         await page.getByText("Удаление аккаунта", { exact: true }).click();
         await page
           .getByRole("button", { name: "Удалить", exact: true })
@@ -142,10 +195,40 @@ for (const action of ["profile save", "account deletion"] as const) {
           .getByRole("dialog")
           .getByRole("button", { name: "Удалить", exact: true })
           .click();
+      } else if (action === "password change") {
+        await page
+          .getByRole("button", { name: "Изменить пароль", exact: true })
+          .click();
+      } else if (action === "session revocation") {
+        await page
+          .getByRole("button", {
+            name: "Выйти на других устройствах",
+            exact: true,
+          })
+          .click();
+        await page
+          .getByRole("dialog")
+          .getByRole("button", { name: "Продолжить", exact: true })
+          .click();
+      } else {
+        await page
+          .getByRole("button", { name: "Профиль", exact: true })
+          .click();
+        await page.getByRole("button", { name: "Выйти", exact: true }).click();
       }
       const response = await result;
       expect(response.status()).toBe(409);
       expect((await response.json()).code).toBe("SESSION_CHANGED");
+      expect(response.headers()["set-cookie"]).toBeUndefined();
+      if (action === "session revocation")
+        expect((await extra.get("/api/profile")).status()).toBe(200);
+      const passwordAfter = (
+        await pool.query(
+          'SELECT password FROM account WHERE "userId"=$1 AND "providerId"=\'credential\'',
+          [next.owner],
+        )
+      ).rows[0].password;
+      expect(passwordAfter === passwordBefore).toBe(true);
       expect((await (await second.get("/api/profile")).json()).school).toBe(
         "Private two school",
       );
@@ -164,14 +247,15 @@ for (const action of ["profile save", "account deletion"] as const) {
     } finally {
       release();
       await lookup?.catch(() => undefined);
-      await page.unrouteAll({ behavior: "wait" });
+      if (!page.isClosed()) await page.unrouteAll({ behavior: "wait" });
       await second.dispose();
+      await extra.dispose();
       await pool.end();
     }
   });
 }
 
-test("the active teacher can still save settings and finish confirmed account deletion", async ({
+test("the active teacher can cancel sign-out, recover from refusal and leave normally", async ({
   page,
   request,
 }) => {
@@ -180,41 +264,131 @@ test("the active teacher can still save settings and finish confirmed account de
       .DATABASE_URL,
   });
   try {
-    await actor(request, pool, "one");
+    const first = await actor(request, pool, "one");
     await enter(page, request);
     await profile(page);
+    const school = page.getByLabel("Школа (необязательно)", { exact: true });
+    await school.fill("Private unsaved logout draft");
+    const intents: (string | undefined)[] = [];
+    page.on("request", (sent) => {
+      if (new URL(sent.url()).pathname === "/api/auth/sign-out")
+        intents.push(sent.headers()["x-ziyatai-account"]);
+    });
+    async function ask() {
+      if (!(await page.locator("#profile-menu").isVisible()))
+        await page
+          .getByRole("button", { name: "Профиль", exact: true })
+          .click();
+      await page.getByRole("button", { name: "Выйти", exact: true }).click();
+      await expect(page.getByRole("dialog")).toBeVisible();
+    }
+    await ask();
     await page
-      .getByLabel("Школа (необязательно)", { exact: true })
-      .fill("Private confirmed school");
-    await page
-      .getByRole("combobox", { name: /^Язык интерфейса/ })
-      .selectOption("ru");
-    await page.getByRole("button", { name: "Сохранить", exact: true }).click();
-    await expect(
-      page.getByText("Изменения сохранены", { exact: true }),
-    ).toBeVisible();
-    expect((await (await page.request.get("/api/profile")).json()).school).toBe(
-      "Private confirmed school",
+      .getByRole("dialog")
+      .getByRole("button", { name: "Отмена", exact: true })
+      .click();
+    expect(intents).toEqual([]);
+    await expect(school).toHaveValue("Private unsaved logout draft");
+    await page.route(
+      "**/api/auth/sign-out",
+      (route) =>
+        route.fulfill({
+          status: 503,
+          contentType: "application/json",
+          body: JSON.stringify({
+            code: "AUTH_UNAVAILABLE",
+            message: "Synthetic sign-out refusal",
+          }),
+        }),
+      { times: 1 },
     );
-    await page.getByText("Удаление аккаунта", { exact: true }).click();
-    await page.getByRole("button", { name: "Удалить", exact: true }).click();
+    await ask();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "Продолжить", exact: true })
+      .click();
+    await expect(page.locator(".global-error")).toBeVisible();
+    await expect(school).toHaveValue("Private unsaved logout draft");
+    expect(intents).toEqual([first.owner]);
+    await ask();
     const signedOut = page.waitForResponse(
-      (r) => new URL(r.url()).pathname === "/api/auth/sign-out",
+      (response) =>
+        new URL(response.url()).pathname === "/api/auth/sign-out" &&
+        response.status() === 200,
     );
     await page
       .getByRole("dialog")
-      .getByRole("button", { name: "Удалить", exact: true })
+      .getByRole("button", { name: "Продолжить", exact: true })
       .click();
-    expect((await signedOut).status()).toBe(200);
+    await signedOut;
     await expect(page.locator(".profile-card")).toHaveCount(0);
-    expect(
-      await (await page.request.get("/api/auth/get-session")).json(),
-    ).toBeNull();
+    await expect(page.locator('a[href="/login"]').first()).toBeVisible();
+    expect(intents).toEqual([first.owner, first.owner]);
     expect((await request.get("/api/profile")).status()).toBe(401);
   } finally {
     await pool.end();
   }
 });
+
+for (const cleanup of ["normal", "unavailable"] as const) {
+  test(`the active teacher can still save settings and finish confirmed account deletion (${cleanup} cleanup)`, async ({
+    page,
+    request,
+  }) => {
+    const pool = new Pool({
+      connectionString: parseEnv(await readFile(".env.local", "utf8"))
+        .DATABASE_URL,
+    });
+    try {
+      if (cleanup === "unavailable")
+        await page.route("**/api/auth/sign-out", (route) =>
+          route.fulfill({
+            status: 503,
+            contentType: "application/json",
+            body: JSON.stringify({
+              code: "AUTH_UNAVAILABLE",
+              message: "Synthetic cleanup failure",
+            }),
+          }),
+        );
+      await actor(request, pool, "one");
+      await enter(page, request);
+      await profile(page);
+      await page
+        .getByLabel("Школа (необязательно)", { exact: true })
+        .fill("Private confirmed school");
+      await page
+        .getByRole("combobox", { name: /^Язык интерфейса/ })
+        .selectOption("ru");
+      await page
+        .getByRole("button", { name: "Сохранить", exact: true })
+        .click();
+      await expect(
+        page.getByText("Изменения сохранены", { exact: true }),
+      ).toBeVisible();
+      expect(
+        (await (await page.request.get("/api/profile")).json()).school,
+      ).toBe("Private confirmed school");
+      await page.getByText("Удаление аккаунта", { exact: true }).click();
+      await page.getByRole("button", { name: "Удалить", exact: true }).click();
+      const signedOut = page.waitForResponse(
+        (r) => new URL(r.url()).pathname === "/api/auth/sign-out",
+      );
+      await page
+        .getByRole("dialog")
+        .getByRole("button", { name: "Удалить", exact: true })
+        .click();
+      expect((await signedOut).status()).toBe(cleanup === "normal" ? 200 : 503);
+      await expect(page.locator(".profile-card")).toHaveCount(0);
+      expect(
+        await (await page.request.get("/api/auth/get-session")).json(),
+      ).toBeNull();
+      expect((await request.get("/api/profile")).status()).toBe(401);
+    } finally {
+      await pool.end();
+    }
+  });
+}
 
 test("a delayed profile save cannot change the next teacher's interface language", async ({
   page,

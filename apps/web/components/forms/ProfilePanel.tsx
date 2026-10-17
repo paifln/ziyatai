@@ -1,8 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { Check } from "lucide-react";
-import { authClient } from "../../lib/client";
-import { useAccountApi } from "../../lib/account-client";
+import { useAccountClient } from "../../lib/account-client";
 import type { Texts, UiLocale } from "../../lib/i18n";
 import { subjects } from "../../../../packages/domain/subjects";
 import { Form } from "../ui/Form";
@@ -26,7 +25,7 @@ export function ProfilePanel({
   setLocale: (l: UiLocale) => void;
   onDirtyChange: (dirty: boolean) => void;
 }) {
-  const api = useAccountApi();
+  const { api, auth: accountAuth } = useAccountClient();
   const confirm = useConfirm();
   const active = useRef(true);
   useEffect(() => {
@@ -254,7 +253,11 @@ export function ProfilePanel({
               try {
                 await api("account", "DELETE");
                 if (!active.current) return;
-                await authClient.signOut();
+                try {
+                  await accountAuth.signOut();
+                } catch {
+                  // Deletion already revoked the session; reload confirms its state.
+                }
                 if (active.current) window.location.reload();
               } catch (e) {
                 if (active.current) onError((e as Error).message);

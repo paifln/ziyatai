@@ -150,6 +150,15 @@ export function createAccountClient(
   owner?: string,
   onSessionChanged?: () => void,
 ) {
+  const authHeaders =
+    owner === undefined ? undefined : { [accountIntentHeader]: owner };
+  const observeNative = async <T extends { error?: { code?: string } | null }>(
+    pending: Promise<T>,
+  ) => {
+    const result = await pending;
+    if (result.error?.code === "SESSION_CHANGED") onSessionChanged?.();
+    return result;
+  };
   const scopedApi = async (
     path: string,
     method = "GET",
@@ -167,6 +176,29 @@ export function createAccountClient(
   };
   return {
     api: scopedApi,
+    auth: {
+      signOut: () =>
+        observeNative(
+          authClient.signOut({ fetchOptions: { headers: authHeaders } }),
+        ),
+      revokeOtherSessions: () =>
+        observeNative(
+          authClient.revokeOtherSessions({
+            fetchOptions: { headers: authHeaders },
+          }),
+        ),
+      changePassword: (body: {
+        currentPassword: string;
+        newPassword: string;
+        revokeOtherSessions?: boolean;
+      }) =>
+        observeNative(
+          authClient.changePassword({
+            ...body,
+            fetchOptions: { headers: authHeaders },
+          }),
+        ),
+    },
     uploadFile: (
       file: File,
       direct: boolean,

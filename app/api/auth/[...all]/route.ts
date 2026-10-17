@@ -38,7 +38,7 @@ async function handle(req: Request) {
         },
         {
           status: error.status,
-          headers: { "Cache-Control": "private, no-store" },
+          headers: { "Cache-Control": "private, no-store", Vary: "Cookie" },
         },
       );
     return Response.json(
@@ -46,7 +46,10 @@ async function handle(req: Request) {
         code: "AUTH_UNAVAILABLE",
         message: "Authentication is temporarily unavailable",
       },
-      { status: 503, headers: { "Cache-Control": "private, no-store" } },
+      {
+        status: 503,
+        headers: { "Cache-Control": "private, no-store", Vary: "Cookie" },
+      },
     );
   }
 }

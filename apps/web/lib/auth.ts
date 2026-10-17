@@ -5,6 +5,7 @@ import nodemailer from "nodemailer";
 import { db } from "./db";
 import { env } from "./env";
 import { sessionReadBudget } from "./session-read-budget";
+import { authAccountIntent } from "./auth-account-intent";
 let instance: ReturnType<typeof makeAuth> | undefined;
 function makeAuth() {
   const e = env();
@@ -67,6 +68,12 @@ function makeAuth() {
     },
     plugins: [
       sessionReadBudget(e.AUTH_SECRET),
+      authAccountIntent((request): Promise<{ user: { id: string } } | null> =>
+        auth().api.getSession({
+          headers: request.headers,
+          query: { disableCookieCache: true, disableRefresh: true },
+        }),
+      ),
       emailOTP({
         otpLength: 6,
         expiresIn: 600,

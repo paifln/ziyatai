@@ -3,7 +3,10 @@ import { accountIntentHeader } from "../packages/contracts/account-intent";
 import { assertAccountIntent } from "../apps/web/lib/account-intent";
 import { createAccountClient } from "../apps/web/lib/client";
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
+});
 
 it("requires both an authentic session owner and a matching explicit intent", () => {
   expect(() =>
@@ -133,4 +136,48 @@ it("keeps the same owner for signed-upload initialization and completion", async
     calls.map(([, init]) => new Headers(init.headers).get(accountIntentHeader)),
   ).toEqual(["teacher-a", "teacher-a"]);
   expect(storageHeaders).toEqual(["Content-Type"]);
+});
+
+it("native SDK commands retain captured intent and refresh only on a rejected owner", async () => {
+  vi.stubEnv("NEXTAUTH_URL", "http://localhost:3000/api/auth");
+  vi.resetModules();
+  const transport = vi.fn(async () =>
+    Response.json(
+      { code: "SESSION_CHANGED", message: "Synthetic account change" },
+      { status: 409 },
+    ),
+  );
+  vi.stubGlobal("fetch", transport);
+  const { createAccountClient: nativeClient, authClient: canonicalClient } =
+    await import("../apps/web/lib/client");
+  const refresh = vi.fn();
+  const first = nativeClient("teacher-a", refresh);
+  const second = nativeClient("teacher-b", refresh);
+  expect(
+    (
+      await first.auth.changePassword({
+        currentPassword: "synthetic-current",
+        newPassword: "synthetic-next",
+      })
+    ).error?.code,
+  ).toBe("SESSION_CHANGED");
+  expect((await second.auth.revokeOtherSessions()).error?.code).toBe(
+    "SESSION_CHANGED",
+  );
+  expect((await first.auth.signOut()).error?.code).toBe("SESSION_CHANGED");
+  await canonicalClient.getSession();
+  const calls = transport.mock.calls as unknown as [string, RequestInit][];
+  expect(
+    calls.map(([path]) => new URL(path, "http://localhost").pathname),
+  ).toEqual([
+    "/api/auth/change-password",
+    "/api/auth/revoke-other-sessions",
+    "/api/auth/sign-out",
+    "/api/auth/get-session",
+  ]);
+  expect(
+    calls.map(([, init]) => new Headers(init.headers).get(accountIntentHeader)),
+  ).toEqual(["teacher-a", "teacher-b", "teacher-a", null]);
+  expect(refresh).toHaveBeenCalledTimes(3);
+  expect(transport).toHaveBeenCalledTimes(4);
 });

@@ -48,7 +48,14 @@
     "newChangePrimaryPassed": 146,
     "newChangePrimarySkipped": 3,
     "newChangeFailure": "Delayed-profile case timed out waiting for HTTP 200 from get-session after cross-tab notification; exact response status was not retained in the CI log",
-    "followUp": "de11c4a replaces the independently reproduced idle-reset read budget; its own complete CI result remains required. The prior failure must not be treated as green or assigned an unproven cause"
+    "followUpRun": 39043648498,
+    "followUpCommit": "de11c4a",
+    "followUpConclusion": "success",
+    "followUpPrimaryPassed": 149,
+    "followUpPrimarySkipped": 3,
+    "followUpOtpPassed": 1,
+    "followUpNoSmtpPassed": 3,
+    "followUp": "The full run with unchanged workspace-session scenarios and the replenishing read budget passed. The original timeout still has no retained response status, so its exact cause is not asserted"
   },
   "limits": [
     "The boundary follows authoritative session identity, not raw cookie changes before session lookup finishes",
