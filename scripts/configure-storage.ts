@@ -34,7 +34,12 @@ await client.send(
   }),
 );
 console.log("Storage CORS configured for the exact application origin.");
-if (e.APP_ENV === "production") {
+if (e.APP_ENV === "production" && e.STORAGE_LIFECYCLE_MODE === "worker") {
+  console.log(
+    "Provider lifecycle skipped explicitly. Keep the worker healthy: it sweeps expired quarantine objects; downtime delays cleanup.",
+  );
+}
+if (e.APP_ENV === "production" && e.STORAGE_LIFECYCLE_MODE === "provider") {
   const ruleId = "expire-untrusted-upload-urls";
   let rules: LifecycleRule[];
   try {

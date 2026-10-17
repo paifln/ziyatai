@@ -5,6 +5,7 @@ import {
   inferAdditionalFields,
 } from "better-auth/client/plugins";
 import { kazakhMessages, messages } from "../../../packages/domain/errors";
+import { fetchWithWakeRetry } from "./wake-retry";
 export const authClient = createAuthClient({
   plugins: [
     emailOTPClient(),
@@ -76,7 +77,7 @@ export async function api(
   const translated =
     document.documentElement.lang === "kk" ? kazakhMessages : messages;
   try {
-    response = await fetch(`/api/${path}`, {
+    response = await fetchWithWakeRetry(`/api/${path}`, {
       method,
       signal,
       headers:

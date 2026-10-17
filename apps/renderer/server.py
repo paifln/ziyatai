@@ -21,7 +21,7 @@ class Handler(BaseHTTPRequestHandler):
   except ValueError:self.send_response(400);self.end_headers();return
   if not 0<size<=MAX_BYTES:self.send_response(413);self.end_headers();return
   ext=self.headers.get('X-Format','');font=self.headers.get('X-Font','Times New Roman')
-  if ext not in ('pdf','docx','xls','xlsx') or font not in ('Times New Roman','Arial','Calibri'):self.send_response(415);self.end_headers();return
+  if ext not in ('pdf','docx','xls','xlsx') or font not in ('Times New Roman','Arial','Calibri','Liberation Serif','Liberation Sans','Carlito'):self.send_response(415);self.end_headers();return
   try:
    started=time.monotonic();phase='inspect'
    self.connection.settimeout(15)

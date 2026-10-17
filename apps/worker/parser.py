@@ -12,7 +12,14 @@ HEADER = {
  'hours': ['количество часов','кол во часов','часы','сағат саны','сағат'],
  'lessonNumberRaw': ['№','No','no','no п/п','номер','номер урока','р/с','реті','n'],
  'section': ['раздел','раздел/ сквозные темы','бөлім'], 'notes': ['примечание','примечания','ескерту'],
- 'quarter': ['четверть','тоқсан']}
+ 'quarter': ['четверть','тоқсан'], 'grade': ['класс','сынып']}
+
+def grade_from_label(value, bare=False):
+ text=clean(value)
+ if re.search(r'\d\s*[-–]\s*\d{1,2}\s*(?:класс|сынып)',text,re.I):return None
+ match=re.search(r'(?<![^\W_])(1[01]|[1-9])\s*[-–]?\s*(?:класс(?:а|ы)?|сынып)(?![^\W\d_])',text,re.I) or re.search(r'(?:класс|сынып)\s*[:№-]?\s*(1[01]|[1-9])(?!\d)',text,re.I)
+ if not match and bare:match=re.fullmatch(r'\s*(1[01]|[1-9])\s*[А-ЯӘҒҚҢӨҰҮҺІA-Z]?\s*',text,re.I)
+ return int(match.group(1)) if match else None
 
 def clean(value):
  return re.sub(r'\s+', ' ', unicodedata.normalize('NFKC', str(value or '')).replace('\x00','')).strip()
@@ -52,15 +59,18 @@ def row_from(cells,mapping,source,order,section,quarter):
  return {'id':str(uuid.uuid4()),'sourceOrder':order,'lessonNumberRaw':get('lessonNumberRaw'),'section':get('section') or section,'quarter':get('quarter') or quarter,'topic':topic,'goals':goals,'objectiveCodes':codes,'lessonGoals':get('lessonGoals'),'hours':get('hours'),'dateRaw':get('dateRaw'),'dateStart':start,'dateEnd':end,'notes':get('notes'),'warnings':warnings,'source':source}
 
 def normalize(tables):
- rows=[];warnings=[];unrecognized=[];section='';quarter='';mapping={};last_sheet=None
+ rows=[];warnings=[];unrecognized=[];section='';quarter='';mapping={};last_sheet=None;grade=None
  for cells,source in tables:
   if source.get('sheet')!=last_sheet:
-   mapping={};section='';quarter='';last_sheet=source.get('sheet')
+   mapping={};section='';quarter='';last_sheet=source.get('sheet');grade=grade_from_label(last_sheet or '',True)
   if not any(clean(c) for c in cells):continue
   discovered=header_map(cells)
   if discovered:mapping=discovered;continue
   joined=clean(' '.join(str(c or '') for c in cells))
   nonempty=list(dict.fromkeys(clean(c) for c in cells if clean(c)))
+  heading_grade=grade_from_label(joined) if len(nonempty)<=2 else None
+  if heading_grade and (not mapping or len(nonempty)==1):
+   grade=heading_grade;continue
   if len(nonempty)==1 and re.search(r'(четверть|тоқсан)',joined,re.I):quarter=nonempty[0];continue
   if len(nonempty)==1 and not re.match(r'^\d+\s',joined):section=nonempty[0];unrecognized.append(nonempty[0]);continue
   if re.match(r'^(итого|барлығы|всего)\b',joined,re.I):continue
@@ -71,10 +81,12 @@ def normalize(tables):
    unrecognized.append(joined);continue
   source['fragment']=joined[:12000]
   rows.append(row_from(cells,mapping,source,len(rows)+1,section,quarter))
+  grade_cell=cells[mapping['grade']] if 'grade' in mapping and mapping['grade']<len(cells) else ''
+  rows[-1]['grade']=grade_from_label(grade_cell,True) or grade
   if len(rows)>2000:raise ValueError('FILE_SIZE')
  if not rows:warnings.append('no_lesson_rows_found')
  if unrecognized:warnings.append('unrecognized_fragments_require_review')
- return {'schemaVersion':'1.0','rows':rows,'warnings':warnings,'unrecognized':unrecognized,'parserVersion':'ktp-1.2'}
+ return {'schemaVersion':'1.0','rows':rows,'warnings':warnings,'unrecognized':unrecognized,'parserVersion':'ktp-1.3'}
 
 def inspect_pdf_catalog(document):
  from pdfminer.pdftypes import PDFObjRef,PDFStream
@@ -145,8 +157,14 @@ def source(page=None,sheet=None,range='',method='digital'):
 def docx_tables(path):
  with zipfile.ZipFile(path) as z:root=etree.fromstring(z.read('word/document.xml'),etree.XMLParser(resolve_entities=False,no_network=True))
  ns={'w':'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}
- tables=[]
+ tables=[];seen_paragraphs=set()
  for ti,tbl in enumerate(root.xpath('//w:tbl',namespaces=ns)):
+  for paragraph in tbl.xpath('preceding-sibling::w:p',namespaces=ns):
+   identity=root.getroottree().getpath(paragraph)
+   if identity in seen_paragraphs:continue
+   seen_paragraphs.add(identity)
+   text=clean(' '.join(paragraph.xpath('.//w:t/text()',namespaces=ns)))
+   if grade_from_label(text):tables.append(([text],source(range=f'heading:{len(seen_paragraphs)}')))
   vertical={}
   for ri,tr in enumerate(tbl.xpath('./w:tr',namespaces=ns)):
    cells=[];col=0

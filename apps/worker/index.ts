@@ -14,14 +14,19 @@ import { env } from "../web/lib/env";
 import { getObject, putObject, deleteObject } from "../web/lib/storage";
 import { processRun, inspectFile } from "../web/lib/files";
 import { ImportResult } from "../../packages/contracts";
+import { planGrades } from "../../packages/domain/grades";
 import { validateDocument } from "../../packages/domain/validation";
 import { AppError } from "../../packages/domain/errors";
 import { renderDocx } from "../../packages/document-renderer";
 import { generate } from "./ai";
 import { isolatedRequest } from "../web/lib/renderer";
-import { cleanupAbandonedUploads } from "../web/lib/upload-cleanup";
+import {
+  cleanupAbandonedUploads,
+  cleanupQuarantinePage,
+} from "../web/lib/upload-cleanup";
 const workerId = randomUUID();
 let stopping = false;
+let quarantineCursor: string | undefined;
 process.on("SIGTERM", () => {
   stopping = true;
 });
@@ -194,11 +199,15 @@ async function importPlan(job: Job) {
       );
     await stage(job, "normalizing");
     const result = ImportResult.parse(JSON.parse(output));
+    const detectedGrades = planGrades(result.rows);
+    const importedGrade =
+      job.payload.grade ??
+      (detectedGrades.length === 1 ? detectedGrades[0] : null);
     await transaction(async (c) => {
       await check(c, job);
       await active("plans", job, c);
       await c.query(
-        "INSERT INTO plan_versions(id,plan_id,revision,rows,warnings,unrecognized,parser_version) VALUES($1,$2,1,$3,$4,$5,$6) ON CONFLICT(plan_id,revision) DO NOTHING",
+        "INSERT INTO plan_versions(id,plan_id,revision,rows,warnings,unrecognized,parser_version,grade) VALUES($1,$2,1,$3,$4,$5,$6,$7) ON CONFLICT(plan_id,revision) DO NOTHING",
         [
           randomUUID(),
           job.resource_id,
@@ -206,10 +215,12 @@ async function importPlan(job: Job) {
           JSON.stringify(result.warnings),
           JSON.stringify(result.unrecognized),
           result.parserVersion,
+          importedGrade,
         ],
       );
-      await c.query("UPDATE plans SET status='review' WHERE id=$1", [
+      await c.query("UPDATE plans SET status='review',grade=$2 WHERE id=$1", [
         job.resource_id,
+        importedGrade,
       ]);
       await done(c, job, {
         planId: job.resource_id,
@@ -578,6 +589,19 @@ async function janitor() {
     "DELETE FROM api_limits WHERE window_start<now()-interval '1 day'",
   );
   const cleanup = await cleanupAbandonedUploads();
+  try {
+    const sweep = await cleanupQuarantinePage(quarantineCursor);
+    quarantineCursor = sweep.nextCursor;
+    if (sweep.failed)
+      console.error(
+        JSON.stringify({
+          code: "QUARANTINE_CLEANUP_RETRY",
+          count: sweep.failed,
+        }),
+      );
+  } catch {
+    console.error(JSON.stringify({ code: "QUARANTINE_CLEANUP_RETRY" }));
+  }
   if (cleanup.failed)
     console.error(
       JSON.stringify({ code: "UPLOAD_CLEANUP_RETRY", count: cleanup.failed }),

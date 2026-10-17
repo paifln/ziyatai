@@ -1,5 +1,34 @@
 import { transaction, db } from "./db";
-import { deleteObject } from "./storage";
+import { deleteObject, listQuarantinePage } from "./storage";
+
+/** Also removes old signed-URL replays that no longer have a database row. */
+export async function cleanupQuarantinePage(
+  cursor?: string,
+  list = listQuarantinePage,
+  remove = deleteObject,
+  now = Date.now(),
+) {
+  const page = await list(cursor);
+  let removed = 0,
+    failed = 0;
+  for (const object of page.objects) {
+    const age = object.LastModified?.getTime();
+    if (
+      !object.Key?.startsWith("quarantine/") ||
+      age === undefined ||
+      !Number.isFinite(age) ||
+      now - age <= 86400000
+    )
+      continue;
+    try {
+      await remove(object.Key);
+      removed++;
+    } catch {
+      failed++;
+    }
+  }
+  return { removed, failed, nextCursor: page.nextCursor };
+}
 
 /** Failed storage deletes remain tombstoned and are retried next sweep. */
 export async function cleanupAbandonedUploads(remove = deleteObject) {

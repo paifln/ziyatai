@@ -1,4 +1,5 @@
 import { syntheticDemo } from "../../../packages/domain/demo";
+import { rowGrade } from "../../../packages/domain/grades";
 import { GenerationDoc } from "../../../packages/contracts";
 import { normalizeDate } from "../../../packages/domain/dates";
 import {
@@ -107,7 +108,7 @@ async function savePlan(
     ).rows[0];
     if (
       confirm &&
-      (!grade ||
+      ((!grade && rows.some((r) => !rowGrade(r))) ||
         !rows.length ||
         rows.some((r) => !r.topic.trim() || !hasRequiredGoals(r)))
     )
@@ -156,6 +157,8 @@ export async function handle(req: Request, path: string[]) {
     if (resource === "public-config" && path.length === 1 && method === "GET") {
       const e = env();
       return json({
+        emailVerificationRequired: e.EMAIL_VERIFICATION_REQUIRED === "true",
+        passwordResetAvailable: !!e.SMTP_HOST && !!e.SMTP_FROM,
         localMailbox:
           e.APP_ENV === "local" &&
           e.SMTP_PORT === 1025 &&
@@ -166,7 +169,11 @@ export async function handle(req: Request, path: string[]) {
       });
     }
     const session = await auth().api.getSession({ headers: req.headers });
-    if (!session || !session.user.emailVerified)
+    if (
+      !session ||
+      (env().EMAIL_VERIFICATION_REQUIRED === "true" &&
+        !session.user.emailVerified)
+    )
       throw new AppError("UNAUTHORIZED", 401);
     const owner = session.user.id;
     const p = await db().query(
@@ -269,7 +276,9 @@ export async function handle(req: Request, path: string[]) {
                 status: "needs_review",
                 demo: true,
                 checks: ["synthetic"],
-                limitations: ["Prepared demonstration; AI generation was not used"],
+                limitations: [
+                  "Prepared demonstration; AI generation was not used",
+                ],
               },
             ],
           );
@@ -351,13 +360,18 @@ export async function handle(req: Request, path: string[]) {
           "INSERT INTO profiles(owner_id) VALUES($1) ON CONFLICT DO NOTHING",
           [owner],
         );
+        const profile = (
+          await db().query(
+            "SELECT school,locale,grades,styles FROM profiles WHERE owner_id=$1",
+            [owner],
+          )
+        ).rows[0];
         return json({
-          ...(
-            await db().query(
-              "SELECT school,locale,grades,styles FROM profiles WHERE owner_id=$1",
-              [owner],
-            )
-          ).rows[0],
+          ...profile,
+          styles: Styles.parse({
+            font: env().DEFAULT_EXPORT_FONT,
+            ...(profile.styles ?? {}),
+          }),
           name: session.user.name,
           teachingSubject:
             (
@@ -589,6 +603,7 @@ export async function handle(req: Request, path: string[]) {
           uploadId: uid,
           locale: z.enum(["kk", "ru"]),
           includeHidden: z.boolean().default(false),
+          grade: z.number().int().min(1).max(11).nullable().optional(),
         })
         .parse(await body(req));
       const f = await owned("uploads", b.uploadId, owner);
@@ -614,15 +629,26 @@ export async function handle(req: Request, path: string[]) {
           };
         const planId = randomUUID();
         await c.query(
-          "INSERT INTO plans(id,owner_id,file_id,title,locale) VALUES($1,$2,$3,$4,$5)",
-          [planId, owner, b.uploadId, f.original_name, b.locale],
+          "INSERT INTO plans(id,owner_id,file_id,title,locale,grade) VALUES($1,$2,$3,$4,$5,$6)",
+          [
+            planId,
+            owner,
+            b.uploadId,
+            f.original_name,
+            b.locale,
+            b.grade ?? null,
+          ],
         );
         const jobId = await enqueue(
           c,
           owner,
           "import",
           planId,
-          { uploadId: b.uploadId, includeHidden: b.includeHidden },
+          {
+            uploadId: b.uploadId,
+            includeHidden: b.includeHidden,
+            grade: b.grade ?? null,
+          },
           `import:${b.uploadId}`,
         );
         return { id: planId, jobId };
@@ -810,7 +836,7 @@ export async function handle(req: Request, path: string[]) {
       if (plan.revision !== b.revision) throw new AppError("CONFLICT", 409);
       if (plan.status !== "confirmed") throw new AppError("UNCONFIRMED", 422);
       const row = (plan.rows as KtpRow[]).find((r) => r.id === b.rowId);
-      if (!row || !hasRequiredGoals(row) || !plan.grade)
+      if (!row || !hasRequiredGoals(row) || !rowGrade(row, plan.grade))
         throw new AppError("UNCONFIRMED", 422);
       const key = req.headers.get("idempotency-key");
       uid.parse(key);
@@ -849,7 +875,7 @@ export async function handle(req: Request, path: string[]) {
             : row.objectiveCodes.length
               ? row.objectiveCodes
               : ["manual"],
-          grade: plan.grade,
+          grade: rowGrade(row, plan.grade),
           subject:
             (
               await c.query(

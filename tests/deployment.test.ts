@@ -39,6 +39,21 @@ const blocked = async (values: Record<string, string | undefined>) =>
     .map((check) => check.id);
 
 describe("deployment preflight", () => {
+  it("allows an explicitly mail-free launch while still rejecting missing mail in verification mode", async () => {
+    const noMail = {
+      ...backend,
+      SMTP_HOST: "",
+      SMTP_USER: "",
+      SMTP_PASSWORD: "",
+      SMTP_FROM: "",
+    };
+    expect(
+      await blocked({ ...noMail, EMAIL_VERIFICATION_REQUIRED: "false" }),
+    ).toEqual([]);
+    expect(
+      await blocked({ ...noMail, EMAIL_VERIFICATION_REQUIRED: "true" }),
+    ).toContain("smtp");
+  });
   it("accepts the backend shape while keeping external acceptance explicitly manual", async () => {
     const checks = await deploymentChecks(backend, "backend");
     expect(checks.filter((check) => check.status === "blocked")).toEqual([]);

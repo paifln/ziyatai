@@ -51,6 +51,8 @@ test("registration verifies a one-time email code and stores the selected subjec
   await expect(preview).toHaveAttribute("href", "http://localhost:8025");
   expect(await (await request.get("/api/public-config")).json()).toEqual({
     localMailbox: true,
+    emailVerificationRequired: true,
+    passwordResetAvailable: true,
   });
   const otp = await emailCode(request, email);
   const wrong = String((Number(otp) + 1) % 1000000).padStart(6, "0");

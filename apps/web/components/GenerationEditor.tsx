@@ -822,7 +822,14 @@ export default function GenerationEditor({
                     setStyles({ ...styles, font: e.target.value as any })
                   }
                 >
-                  {["Times New Roman", "Arial", "Calibri"].map((f) => (
+                  {[
+                    "Times New Roman",
+                    "Arial",
+                    "Calibri",
+                    "Liberation Serif",
+                    "Liberation Sans",
+                    "Carlito",
+                  ].map((f) => (
                     <option key={f}>{f}</option>
                   ))}
                 </select>

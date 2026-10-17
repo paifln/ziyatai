@@ -161,15 +161,17 @@ export async function deploymentChecks(
     );
     check(
       "smtp",
-      supplied(values.SMTP_HOST) &&
-        [465, 587].includes(Number(values.SMTP_PORT ?? 587)) &&
-        supplied(values.SMTP_FROM) &&
-        /@/.test(values.SMTP_FROM ?? ""),
+      (values.EMAIL_VERIFICATION_REQUIRED === "false" && !values.SMTP_HOST) ||
+        (supplied(values.SMTP_HOST) &&
+          [465, 587].includes(Number(values.SMTP_PORT ?? 587)) &&
+          supplied(values.SMTP_FROM) &&
+          /@/.test(values.SMTP_FROM ?? "")),
       "Внешний SMTP с TLS: порт 465/587 и адрес отправителя.",
     );
     check(
       "smtp-auth",
-      secret("SMTP_USER") && secret("SMTP_PASSWORD"),
+      (values.EMAIL_VERIFICATION_REQUIRED === "false" && !values.SMTP_HOST) ||
+        (secret("SMTP_USER") && secret("SMTP_PASSWORD")),
       "Аутентификация внешнего SMTP задана.",
     );
     const storage =
@@ -244,15 +246,17 @@ export async function deploymentChecks(
     );
     manual(
       "storage-policy",
-      "Применить configure-storage.ts административным ключом: точный CORS и lifecycle quarantine/ за сутки. Railway buckets без lifecycle пока не подходят. Проверить отказ unsigned GET существующего объекта.",
+      "Проверить точный CORS и отказ unsigned GET. Настроить lifecycle quarantine/ за сутки, если он доступен; для Railway buckets проверить worker cleanup старого quarantine, включая объекты без строки БД. При остановленном worker удаление откладывается.",
     );
     manual(
       "fonts",
-      "Установить лицензированные печатные шрифты в renderer и проверить настоящий DOCX/PDF.",
+      "Проверить настоящий DOCX/PDF с DEFAULT_EXPORT_FONT: свободные Liberation/Carlito входят в renderer; TNR/Arial/Calibri требуют отдельно установленных лицензированных шрифтов.",
     );
     manual(
       "real-mail-ai",
-      "Проверить доставку кода и reset в реальный ящик, генерацию AI, одобрение и сброс одобрения после правки.",
+      values.EMAIL_VERIFICATION_REQUIRED === "false" && !values.SMTP_HOST
+        ? "Проверить регистрацию и повторный вход без кода; восстановление почтой должно быть скрыто. Проверить генерацию AI, одобрение и сброс одобрения после правки."
+        : "Проверить доставку кода и reset в реальный ящик, генерацию AI, одобрение и сброс одобрения после правки.",
     );
     manual(
       "backups",

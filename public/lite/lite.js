@@ -6,6 +6,8 @@
   var content = document.getElementById("content");
   var datesBeforeSkip = null;
   var localMailbox = false;
+  var emailVerificationRequired = true,
+    passwordResetAvailable = false;
   var message = document.getElementById("message");
   var navigation = document.getElementById("navigation");
   if (
@@ -27,6 +29,13 @@
     plan = null,
     generation = null,
     authMode = "login";
+  var classFilter = "";
+  function gradeOf(r) {
+    if (r.grade) return Number(r.grade);
+    var sheet = (r.source && r.source.sheet) || "";
+    var found = sheet.match(/^\s*(1[01]|[1-9])\s*[А-ЯӘҒҚҢӨҰҮҺІA-Z]?\s*$/i);
+    return found ? Number(found[1]) : (plan && plan.grade) || null;
+  }
   var rowPage = 0,
     listOffset = 0,
     dirty = false,
@@ -459,6 +468,7 @@
       plan = null;
       generation = null;
       rowPage = 0;
+      classFilter = "";
       listOffset = 0;
       note("");
       renderNav();
@@ -752,8 +762,9 @@
             teachingSubject: subject.value,
             callbackURL: "/lite/",
           },
-          function () {
-            verifyForm(email.value);
+          function (result) {
+            if (result && result.token) window.location.reload();
+            else verifyForm(email.value);
           }
         );
       else if (mode === "reset")
@@ -781,22 +792,30 @@
     };
     var buttons = add(form, el("div", null, "actions"));
     ["login", "signup", "reset"].forEach(function (m) {
-      if (m !== mode)
-        add(
+      if (m !== mode) {
+        var authModeButton = add(
           buttons,
           button(t(m), function () {
             note("");
             authForm(m);
           })
         );
+        if (m === "reset") {
+          authModeButton.id = "auth-reset-option";
+          authModeButton.hidden = !passwordResetAvailable;
+        }
+      }
     });
-    if (mode === "login")
-      add(
+    if (mode === "login") {
+      var verifyOption = add(
         buttons,
         button(text("Поштаны растау", "Подтвердить почту"), function () {
           verifyForm(email.value);
         })
       );
+      verifyOption.id = "auth-verify-option";
+      verifyOption.hidden = !emailVerificationRequired;
+    }
   }
   function render() {
     if (plan) {
@@ -985,6 +1004,10 @@
         "muted"
       )
     );
+    var importGrades = [["", t("select")]];
+    for (var gradeNumber = 1; gradeNumber <= 11; gradeNumber++)
+      importGrades.push([String(gradeNumber), String(gradeNumber)]);
+    var importGrade = select(form, t("grade"), importGrades, "");
     var submit = add(form, el("button", t("import"), "primary"));
     submit.type = "submit";
     var transfer = null,
@@ -1016,7 +1039,12 @@
         if (cancelled) return;
         transfer = action(
           "ktp/imports",
-          { uploadId: f.id, locale: lang.value, includeHidden: false },
+          {
+            uploadId: f.id,
+            locale: lang.value,
+            includeHidden: false,
+            grade: importGrade.value ? Number(importGrade.value) : null,
+          },
           function (p) {
             if (!cancelled) openPlan(p.id);
           }
@@ -1087,6 +1115,8 @@
           }
           dirty = false;
           plan = p;
+          classFilter = p.grade ? String(p.grade) : "";
+          rowPage = 0;
           datesBeforeSkip = null;
           generation = null;
           renderPlan();
@@ -1238,65 +1268,93 @@
       );
     var panel = add(content, el("section", null, "panel")),
       rows = plan.rows || [];
-    rows.slice(rowPage * 10, rowPage * 10 + 10).forEach(function (r, offset) {
-      var section = add(panel, el("section", null, "row"));
-      add(
-        section,
-        el(
-          "h2",
-          String(rowPage * 10 + offset + 1) + ". " + (r.topic || t("topic"))
-        )
-      );
-      function update(key, value) {
-        r[key] = value;
-        dirty = true;
-        if (r.source) r.source.method = "manual";
+    var classes = [];
+    rows.forEach(function (r) {
+      var g = gradeOf(r);
+      if (g && classes.indexOf(g) < 0) classes.push(g);
+    });
+    classes.sort(function (a, b) {
+      return a - b;
+    });
+    select(
+      content,
+      text("Сыныпты көрсету", "Показать класс"),
+      [["", text("Барлық сыныптар", "Все классы")]].concat(
+        classes.map(function (g) {
+          return [String(g), String(g)];
+        })
+      ),
+      classFilter,
+      function (value) {
+        classFilter = value;
+        rowPage = 0;
+        renderPlan();
       }
-      field(section, t("topic"), r.topic, "textarea", function (v) {
-        update("topic", v);
-      });
-      field(section, t("goals"), r.goals, "textarea", function (v) {
-        r.goalsSkipped = false;
-        update("goals", v);
-      });
-      if (
-        /(^|[^А-Яа-яA-Za-z0-9])(СОР|СОЧ|БЖБ|ТЖБ)($|[^А-Яа-яA-Za-z0-9])/i.test(
-          r.topic
-        )
-      ) {
-        var skipGoals = add(
+    );
+    var visibleRows = rows.filter(function (r) {
+      return !classFilter || String(gradeOf(r)) === classFilter;
+    });
+    visibleRows
+      .slice(rowPage * 10, rowPage * 10 + 10)
+      .forEach(function (r, offset) {
+        var section = add(panel, el("section", null, "row"));
+        add(
           section,
-          button(
-            r.goalsSkipped
-              ? text("Мақсаттарды қайтару", "Вернуть цели")
-              : text("Мақсатсыз · БЖБ/ТЖБ", "Без целей · СОР/СОЧ"),
-            function () {
-              r.goalsSkipped = !r.goalsSkipped;
-              dirty = true;
-              renderPlan();
-            }
+          el(
+            "h2",
+            String(rowPage * 10 + offset + 1) + ". " + (r.topic || t("topic"))
           )
         );
-        skipGoals.setAttribute("aria-pressed", String(!!r.goalsSkipped));
-        skipGoals.title = text(
-          "Бастапқы мәтін сақталады",
-          "Исходный текст сохранится"
-        );
-      }
-      var pair = add(section, el("div", null, "fields"));
-      field(pair, t("date"), r.dateRaw, "text", function (v) {
-        r.dateSkipped = false;
-        update("dateRaw", v);
+        function update(key, value) {
+          r[key] = value;
+          dirty = true;
+          if (r.source) r.source.method = "manual";
+        }
+        field(section, t("topic"), r.topic, "textarea", function (v) {
+          update("topic", v);
+        });
+        field(section, t("goals"), r.goals, "textarea", function (v) {
+          r.goalsSkipped = false;
+          update("goals", v);
+        });
+        if (
+          /(^|[^А-Яа-яA-Za-z0-9])(СОР|СОЧ|БЖБ|ТЖБ)($|[^А-Яа-яA-Za-z0-9])/i.test(
+            r.topic
+          )
+        ) {
+          var skipGoals = add(
+            section,
+            button(
+              r.goalsSkipped
+                ? text("Мақсаттарды қайтару", "Вернуть цели")
+                : text("Мақсатсыз · БЖБ/ТЖБ", "Без целей · СОР/СОЧ"),
+              function () {
+                r.goalsSkipped = !r.goalsSkipped;
+                dirty = true;
+                renderPlan();
+              }
+            )
+          );
+          skipGoals.setAttribute("aria-pressed", String(!!r.goalsSkipped));
+          skipGoals.title = text(
+            "Бастапқы мәтін сақталады",
+            "Исходный текст сохранится"
+          );
+        }
+        var pair = add(section, el("div", null, "fields"));
+        field(pair, t("date"), r.dateRaw, "text", function (v) {
+          r.dateSkipped = false;
+          update("dateRaw", v);
+        });
+        field(pair, t("hours"), r.hours, "text", function (v) {
+          update("hours", v);
+        });
+        var details = add(section, el("details"));
+        add(details, el("summary", t("source")));
+        add(details, el("p", (r.source && r.source.fragment) || "—", "source"));
+        if (r.warnings && r.warnings.length)
+          add(section, el("p", t("needsReview"), "muted"));
       });
-      field(pair, t("hours"), r.hours, "text", function (v) {
-        update("hours", v);
-      });
-      var details = add(section, el("details"));
-      add(details, el("summary", t("source")));
-      add(details, el("p", (r.source && r.source.fragment) || "—", "source"));
-      if (r.warnings && r.warnings.length)
-        add(section, el("p", t("needsReview"), "muted"));
-    });
     if (plan.unrecognized && plan.unrecognized.length) {
       var fragments = add(content, el("details", null, "panel"));
       add(
@@ -1317,9 +1375,9 @@
         "span",
         String(rowPage * 10 + 1) +
           "–" +
-          Math.min(rows.length, rowPage * 10 + 10) +
+          Math.min(visibleRows.length, rowPage * 10 + 10) +
           " / " +
-          rows.length
+          visibleRows.length
       )
     );
     if (rowPage > 0)
@@ -1331,7 +1389,7 @@
           window.scrollTo(0, 0);
         })
       );
-    if ((rowPage + 1) * 10 < rows.length)
+    if ((rowPage + 1) * 10 < visibleRows.length)
       add(
         pages,
         button(t("next"), function () {
@@ -1894,11 +1952,17 @@
     }
   });
   language();
-  if (
-    ["localhost", "127.0.0.1", "[::1]"].indexOf(window.location.hostname) >= 0
-  ) {
+  {
     request("public-config", "GET", undefined, function (error, config) {
       localMailbox = !error && config && config.localMailbox === true;
+      emailVerificationRequired =
+        error || !config || config.emailVerificationRequired !== false;
+      passwordResetAvailable =
+        !error && config && config.passwordResetAvailable === true;
+      var resetOption = document.getElementById("auth-reset-option"),
+        verifyOption = document.getElementById("auth-verify-option");
+      if (resetOption) resetOption.hidden = !passwordResetAvailable;
+      if (verifyOption) verifyOption.hidden = !emailVerificationRequired;
       updateMailPreview();
     });
   }

@@ -2,19 +2,27 @@
 
 Целевая схема: Netlify обслуживает главную, кабинет и Lite; Railway запускает API, worker, PostgreSQL, renderer и ClamAV. Файлы — в отдельном приватном S3 bucket, письмо — через внешний SMTP. OpenAI и все рабочие секреты остаются на backend. Локальный Docker остаётся удобным способом демонстрации.
 
-Это инструкция к подготовленному коду. Реальный Railway project, Netlify site, SMTP и staging ещё нужно подключить и проверить на доменах. Пароли и ключи в чат или Git не отправлять.
+Подготовка от 17 октября: пустой Railway project `ziyatai` и Netlify site созданы, CLI подключены. Службы и bucket не развёрнуты, сайт не опубликован: по решению владельца ждём оплаты. Ранее просмотренный облачный plan не применялся. Перед запуском нужен новый plan актуального commit. Пароли и ключи в чат или Git не отправлять.
+
+Регистрация настроена без подтверждения почты (`EMAIL_VERIFICATION_REQUIRED=false`). SMTP для такого запуска не требуется; без SMTP восстановление пароля недоступно, интерфейс не обещает отправку письма. Если позднее включить проверку, сначала подключите настоящего отправителя.
+
+## Подготовленные приватные настройки
+
+`npm run prepare:hosting -- --site-id UUID --site-origin https://your-site.netlify.app --project-id UUID --operator "Имена владельцев"` создаёт `.local/hosting/railway-shared.env`, `netlify.env` и безопасный `manifest.json`. Для этого ПК файлы уже подготовлены. Они игнорируются Git и Docker; не публикуйте env. Повторный запуск сохраняет созданные секреты. OpenAI ключ переносится только в backend, frontend получает отдельный минимальный набор переменных. `--api-origin` и `--contact` позволяют дополнить публичные настройки позднее.
+
+До оплаты остаются незаполненными S3 credentials/origins, HTTPS origin будущего API и публичный контактный email. Это реальные данные будущих ресурсов; подставные значения не используются. После оплаты: включить тариф и лимит расходов, создать приватный bucket, заполнить эти поля, импортировать backend Shared Variables, проверить plan и применить его. Затем настроить CORS, миграции, readiness, Netlify variables и опубликовать сайт. Команда подготовки ничего не отправляет хостингам.
 
 ## Конфигурация проекта в коде
 
-[`.railway/railway.ts`](../.railway/railway.ts) описывает пять служб и три постоянных тома, общий secret references, роли сборки, API migration/healthcheck и отключение сна worker. SDK закреплён как dev dependency и не добавляется в клиентский JavaScript. `npm run check:railway` **без сети** проверяет локальное описание и ссылки между службами, отсутствие literal credentials и совпадение ClamAV image с Compose; выводит имена требуемых Shared Variables, без их значений. Это не облачный plan и не выполненный deploy.
+[`.railway/railway.ts`](../.railway/railway.ts) описывает пять служб и два постоянных тома, shared secret references, роли сборки, API migration/healthcheck. Worker и БД работают постоянно; API, renderer и антивирус допускают сон. Пробуждение и первый запрос нужно проверить в облаке. `npm run check:railway` **без сети** проверяет описание и ссылки, отсутствие literal credentials и совпадение ClamAV image с Compose. Это не облачный deploy.
 
-Используется новый Railway IaC. Старые `railway.json`/`railway.toml` не добавляются: для новых служб Config as Code больше не подключается. [Актуальный workflow Railway](https://docs.railway.com/infrastructure-as-code). Нужен CLI **5.42.1 или новее**. После создания/подключения аккаунта выполните `railway login`, `railway link`, настройте Shared Variables через интерфейс хостинга и просмотрите `railway config plan`. Только проверенный план применяйте через `railway config apply`; расходы, volumes, регион и удаления должны быть понятны до применения. Здесь эти команды с облаком не выполнялись.
+Используется Railway IaC, CLI **5.42.1 или новее**. [Актуальный workflow](https://docs.railway.com/infrastructure-as-code). После заполнения Shared Variables просмотрите `railway config plan`. Только проверенный план применяйте через `railway config apply`; до применения проверьте расходы, volumes, регион и удаления. Apply пока не выполнялся.
 
 Для первого подключения используйте отдельный новый проект `ziyatai`: ожидаемый первый plan содержит только описанные добавления. IaC управляет окружением; удаление ресурса из файла или переименование тома может повлечь удаление/замену облачных данных. Не применяйте этот файл поверх чужого существующего проекта без сверки плана и backup.
 
-`POSTGRES_PASSWORD` задайте отдельным случайным **hex** значением от 32 байт: в DATABASE_URL используется reference без URI-экранирования. API/worker получают URL из postgres, имя антивируса и renderer — из private networking references. Настоящие секреты не записывайте в IaC; `config pull --include-variables` не используйте для файла, который попадёт в Git. Не переименовывайте volumes после появления данных без отдельного плана переноса. Начальные размеры томов — 1 GiB БД, 1 GiB сигнатуры, 512 MiB лицензированные шрифты; рост и backup нужно настроить до нагрузки.
+`POSTGRES_PASSWORD` задайте отдельным случайным **hex** значением от 32 байт: в DATABASE_URL используется reference без URI-экранирования. API/worker получают URL из postgres, имя антивируса и renderer — из private networking references. Настоящие секреты не записывайте в IaC; `config pull --include-variables` не используйте для файла, который попадёт в Git. Не переименовывайте volumes после появления данных без отдельного плана переноса. Начальные размеры томов — 1 GiB БД, 1 GiB сигнатуры; рост и backup нужно настроить до нагрузки.
 
-При первом развёртывании дождитесь PostgreSQL и антивируса, загрузите лицензированные шрифты; если API pre-deploy ещё не дождался новой БД, повторите API deploy после её готовности. Он сам применит миграции. Затем проверьте readiness и worker. Генерацию публичного HTTPS domain включите **только для API**, после чего задайте этот origin в Netlify. Остальные службы оставьте приватными. Внешние S3/SMTP и Netlify не создаются этим файлом. Ручная таблица ниже описывает те же настройки и остаётся запасным способом подключения.
+При первом развёртывании дождитесь PostgreSQL и антивируса. Если API pre-deploy ещё не дождался БД, повторите API deploy после её готовности: он применяет миграции. Затем проверьте readiness и worker. Публичный HTTPS domain включите **только для API** и задайте этот origin в Netlify. Остальные службы оставьте приватными. S3 bucket и Netlify не создаются этим IaC файлом.
 
 ## Сервисы Railway
 
@@ -53,7 +61,7 @@ Renderer слушает IPv6 и IPv4 через dual-stack socket, где это
 | `SCAN_REQUIRED`, `ALLOW_DEMO`                      | `true`, `false`                                                                                     |
 | `DIRECT_UPLOADS`                                   | `true`                                                                                              |
 | `STORAGE_*`                                        | Доступ к приватному S3 bucket; подробнее ниже                                                       |
-| `SMTP_*`                                           | Внешний SMTP, порт 587 с STARTTLS или 465 с TLS; настроенный домен отправителя                      |
+| `EMAIL_VERIFICATION_REQUIRED`, `DEFAULT_EXPORT_FONT` | `false`, `Liberation Serif`; SMTP не нужен для регистрации                                       |
 | `OPENAI_API_KEY`, `OPENAI_MODEL`                   | Новый серверный ключ и проверенная модель; текущий выбор `gpt-5.4-mini`                             |
 | `PARSER_CONTAINER_IMAGE`, `RENDER_CONTAINER_IMAGE` | Пустые: worker обращается к отдельному renderer по HTTP                                             |
 
@@ -67,11 +75,11 @@ Renderer слушает IPv6 и IPv4 через dual-stack socket, где это
 
 Railway также предлагает приватные S3 buckets. Для новых virtual-hosted buckets задайте `STORAGE_FORCE_PATH_STYLE=false`, базовый endpoint из Credentials и настоящий `BUCKET`, не display name. `UPLOAD_ORIGIN` в этом случае — **bucket subdomain**, фактически используемый подписанной ссылкой. Для старых path-style buckets следуйте Credentials. [Railway buckets](https://docs.railway.com/storage-buckets).
 
-На момент проверки документация Railway не обещает bucket lifecycle. Поэтому нельзя считать новый Railway bucket полностью взаимозаменяемым с настроенным production S3: скрипт настройки должен успешно применить lifecycle, иначе используйте провайдера с этой возможностью. Worker удаляет заброшенные uploads, но это не заменяет lifecycle для повторно записанного quarantine object по ещё действующей ссылке. Unsigned GET существующего объекта должен возвращать отказ, а не файл.
+Railway bucket не поддерживает lifecycle. Для него IaC явно задаёт `STORAGE_LIFECYCLE_MODE=worker`: `configure-storage.ts` применяет CORS без неподдерживаемого lifecycle API. Worker постранично перечисляет `quarantine/` и удаляет объекты старше суток, включая повторно записанные объекты без строки БД; при остановке worker очистка задерживается. Нужен мониторинг heartbeat. Для провайдера с lifecycle используйте `provider` и проверьте применение правил. Unsigned GET существующего объекта должен возвращать отказ.
 
 ## Шрифты и изоляция
 
-Локальная демонстрация использует лицензированные шрифты с Windows. Railway не имеет доступа к диску `C:`. Для PDF нужно доставить **законно лицензированные** Times New Roman/Arial/Calibri в renderer volume `/usr/local/share/fonts/licensed`, выполнить `fc-cache -f` и проверить `fc-match`. В публичный image эти файлы не добавлять. Пока шрифты не настроены, сервис должен возвращать `FONT_UNAVAILABLE`, а не незаметно менять печатную вёрстку.
+Облачный default — `Liberation Serif`: свободные Liberation Serif/Sans и Carlito установлены в renderer image. Дополнительный том шрифтов не нужен. Оба макета проверены с казахскими буквами, каждая страница PDF просмотрена. Локально доступны также лицензированные Windows шрифты. Для выбранных Times New Roman/Arial/Calibri в облаке потребуются свои законно лицензированные файлы; иначе возвращается `FONT_UNAVAILABLE`, без скрытой подмены.
 
 Compose read-only/tmpfs/network ограничения автоматически в Railway не переносятся. Renderer не должен получать public domain, рабочие credentials или доступ к общей файловой системе приложений. Отсутствие public domain само по себе не запрещает исходящий интернет. Проверку сетевых ограничений выбранного Railway окружения и загрузку вредоносных тестовых файлов включите в staging; не считать локальный Compose доказательством такой же изоляции в облаке.
 

@@ -6,7 +6,7 @@ RUN /opt/venv/bin/pip install --no-cache-dir -r /tmp/requirements.txt && /opt/ve
 
 FROM ubuntu:24.04@sha256:534baea6a22c03a63003dbc8dbe78fe34bc0d7e595d9a9dc9834884ff530eb55
 ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends python3 libreoffice-writer fontconfig tesseract-ocr tesseract-ocr-kaz tesseract-ocr-rus fonts-dejavu-core && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends python3 libreoffice-writer fontconfig tesseract-ocr tesseract-ocr-kaz tesseract-ocr-rus fonts-dejavu-core fonts-liberation fonts-crosextra-carlito && rm -rf /var/lib/apt/lists/*
 COPY --from=python-deps /opt/venv /opt/venv
 COPY infra/render.sh /scripts/render.sh
 RUN chmod 755 /scripts/render.sh

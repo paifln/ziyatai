@@ -7,6 +7,7 @@ import { env } from "./env";
 let instance: ReturnType<typeof makeAuth> | undefined;
 function makeAuth() {
   const e = env();
+  const mailEnabled = !!e.SMTP_HOST && !!e.SMTP_FROM;
   const mail = nodemailer.createTransport({
     host: e.SMTP_HOST,
     port: e.SMTP_PORT,
@@ -50,6 +51,7 @@ function makeAuth() {
         disableSignUp: true,
         rateLimit: { window: 60, max: 3 },
         async sendVerificationOTP({ email, otp, type }) {
+          if (!mailEnabled) throw new Error("Email delivery is not configured");
           if (type !== "email-verification")
             throw new Error("Only email verification codes are enabled");
           await mail.sendMail({
@@ -63,18 +65,20 @@ function makeAuth() {
     ],
     emailAndPassword: {
       enabled: true,
-      requireEmailVerification: true,
+      requireEmailVerification: e.EMAIL_VERIFICATION_REQUIRED === "true",
       revokeSessionsOnPasswordReset: true,
       minPasswordLength: 12,
-      sendResetPassword: async ({ user, url }) =>
-        send(
-          user.email,
-          url,
-          "Восстановление пароля / Құпиясөзді қалпына келтіру",
-        ),
+      sendResetPassword: mailEnabled
+        ? async ({ user, url }) =>
+            send(
+              user.email,
+              url,
+              "Восстановление пароля / Құпиясөзді қалпына келтіру",
+            )
+        : undefined,
     },
     emailVerification: {
-      sendOnSignUp: true,
+      sendOnSignUp: e.EMAIL_VERIFICATION_REQUIRED === "true",
       autoSignInAfterVerification: true,
     },
     advanced: {

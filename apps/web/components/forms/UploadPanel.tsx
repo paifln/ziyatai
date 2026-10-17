@@ -32,6 +32,7 @@ export function UploadPanel({
   const [file, setFile] = useState<File>();
   const [sourceLocale, setSourceLocale] = useState(locale);
   const [hidden, setHidden] = useState(false);
+  const [grade, setGrade] = useState("");
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
   const [dragging, setDragging] = useState(false);
@@ -77,7 +78,12 @@ export function UploadPanel({
       const imported = await api(
         "ktp/imports",
         "POST",
-        { uploadId: uploaded.id, locale: sourceLocale, includeHidden: hidden },
+        {
+          uploadId: uploaded.id,
+          locale: sourceLocale,
+          includeHidden: hidden,
+          grade: grade ? Number(grade) : null,
+        },
         undefined,
         controller.current.signal,
       );
@@ -211,6 +217,27 @@ export function UploadPanel({
                   {ru
                     ? "Выберите язык самого документа, а не интерфейса."
                     : "Интерфейс тілін емес, құжаттың тілін таңдаңыз."}
+                </small>
+              </label>
+              <label>
+                {ru ? "Класс для работы" : "Жұмыс сыныбы"}
+                <select
+                  value={grade}
+                  onChange={(e) => setGrade(e.target.value)}
+                >
+                  <option value="">
+                    {ru ? "Определить из документа" : "Құжаттан анықтау"}
+                  </option>
+                  {Array.from({ length: 11 }, (_, i) => (
+                    <option key={i} value={i + 1}>
+                      {i + 1}
+                    </option>
+                  ))}
+                </select>
+                <small>
+                  {ru
+                    ? "Если классов несколько, после загрузки покажем уроки выбранного класса. Остальные сохранятся."
+                    : "Бірнеше сынып болса, таңдалған сыныптың сабақтары көрсетіледі. Қалғаны сақталады."}
                 </small>
               </label>
               <details className="advanced-options">

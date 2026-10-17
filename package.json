@@ -16,6 +16,7 @@
     "check:source": "node scripts/check-source.mjs",
     "check:deploy": "tsx scripts/deploy-check.ts",
     "check:railway": "tsx scripts/railway-check.ts",
+    "prepare:hosting": "tsx scripts/prepare-hosting.ts",
     "lint": "eslint .",
     "test": "vitest run",
     "test:parser": "python -m pytest tests/parser -q",

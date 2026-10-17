@@ -5,6 +5,8 @@ export function db() {
   return (globalDb.ziyataiPool ??= new Pool({
     connectionString: env().DATABASE_URL,
     max: 10,
+    idleTimeoutMillis: 10000,
+    allowExitOnIdle: true,
   }));
 }
 export async function transaction<T>(fn: (client: PoolClient) => Promise<T>) {

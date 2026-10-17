@@ -5,6 +5,7 @@ import {
   DeleteObjectCommand,
   HeadBucketCommand,
   HeadObjectCommand,
+  ListObjectsV2Command,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { env } from "./env";
@@ -45,6 +46,20 @@ export async function deleteObject(key: string) {
 }
 export async function storageReady() {
   await storage().send(new HeadBucketCommand({ Bucket: env().STORAGE_BUCKET }));
+}
+export async function listQuarantinePage(cursor?: string) {
+  const page = await storage().send(
+    new ListObjectsV2Command({
+      Bucket: env().STORAGE_BUCKET,
+      Prefix: "quarantine/",
+      MaxKeys: 1000,
+      ContinuationToken: cursor,
+    }),
+  );
+  return {
+    objects: page.Contents ?? [],
+    nextCursor: page.NextContinuationToken,
+  };
 }
 export async function signedUpload(key: string, bytes: number, type: string) {
   const e = env();

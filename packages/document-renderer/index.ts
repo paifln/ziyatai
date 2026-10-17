@@ -50,7 +50,19 @@ export async function renderDocx(
       return b.text.split("\n").map(
         (text) =>
           new Paragraph({
-            children: [new TextRun({ text, font: "Courier New", size: 22 })],
+            children: [
+              new TextRun({
+                text,
+                font: [
+                  "Liberation Serif",
+                  "Liberation Sans",
+                  "Carlito",
+                ].includes(styles.font)
+                  ? "Liberation Mono"
+                  : "Courier New",
+                size: 22,
+              }),
+            ],
             spacing: { after: 0 },
             keepNext,
           }),

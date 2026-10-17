@@ -57,6 +57,7 @@ export const GenerationDoc = z
 export type GenerationDocument = z.infer<typeof GenerationDoc>;
 export type TaskDocument = z.infer<typeof Task>;
 export const Row = z.object({
+  grade: z.number().int().min(1).max(11).nullable().optional(),
   dateSkipped: z.boolean().optional(),
   goalsSkipped: z.boolean().optional(),
   id: z.string().uuid(),
@@ -93,7 +94,14 @@ export const ImportResult = z.object({
 });
 export const Styles = z.object({
   font: z
-    .enum(["Times New Roman", "Arial", "Calibri"])
+    .enum([
+      "Times New Roman",
+      "Arial",
+      "Calibri",
+      "Liberation Serif",
+      "Liberation Sans",
+      "Carlito",
+    ])
     .default("Times New Roman"),
   size: z.number().min(10).max(18).default(14),
   marginLeft: z.number().min(1).max(4).default(3),

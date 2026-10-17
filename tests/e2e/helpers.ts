@@ -71,14 +71,17 @@ export async function verifiedUser(
     }),
   );
   expect(signup.ok(), await signup.text()).toBeTruthy();
-  const otp = await emailCode(request, email);
-  const verified = await authRequest(() =>
-    request.post("/api/auth/email-otp/verify-email", {
-      headers,
-      data: { email, otp },
-    }),
-  );
-  expect(verified.ok(), await verified.text()).toBeTruthy();
+  const configuration = await (await request.get("/api/public-config")).json();
+  if (configuration.emailVerificationRequired !== false) {
+    const otp = await emailCode(request, email);
+    const verified = await authRequest(() =>
+      request.post("/api/auth/email-otp/verify-email", {
+        headers,
+        data: { email, otp },
+      }),
+    );
+    expect(verified.ok(), await verified.text()).toBeTruthy();
+  }
   const login = await authRequest(() =>
     request.post("/api/auth/sign-in/email", {
       headers,

@@ -1,0 +1,37 @@
+{
+  "date": "2026-10-17",
+  "status": "prepared locally; deployment deferred by owner until payment",
+  "cloud": {
+    "emptyRailwayProjectCreated": true,
+    "emptyNetlifySiteCreated": true,
+    "servicesDeployed": false,
+    "sitePublished": false,
+    "paidPlanEnabled": false,
+    "usageLimitConfigured": false,
+    "productionAcceptancePassed": false
+  },
+  "checks": {
+    "unit": 85,
+    "parser": 40,
+    "chromiumClassImportAndSecurity": 8,
+    "webkitNoMailRegistrationAndClassFilter": 3,
+    "ownerWorkbook": {"rows": 426, "grades": 11},
+    "freeFontPdf": {"layouts": 2, "pagesVisuallyReviewed": 6}
+  },
+  "prepared": [
+    "Railway IaC: five services, two persistent volumes",
+    "mail-free registration in main and Lite UI",
+    "private backend/frontend env generation with stable secrets",
+    "free renderer fonts with Kazakh glyphs",
+    "class-aware import, review and generation",
+    "expired quarantine sweep, including DB-less signed upload replays"
+  ],
+  "remainingAtDeployment": [
+    "paid plan and usage limit",
+    "private bucket credentials and exact upload CORS",
+    "API HTTPS origin and Netlify variables",
+    "public contact email",
+    "fresh cloud plan, migrations, backup and end-to-end acceptance",
+    "measure actual resource costs and cold-start behavior"
+  ]
+}

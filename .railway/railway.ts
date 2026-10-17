@@ -16,7 +16,6 @@ export default defineRailway((ctx) => {
   });
   const postgresData = volume("postgres-data", { sizeMB: 1024 });
   const antivirusData = volume("antivirus-data", { sizeMB: 1024 });
-  const licensedFonts = volume("licensed-fonts", { sizeMB: 512 });
   const privateNetworking = {
     serviceDomains: {},
     customDomains: {},
@@ -52,11 +51,10 @@ export default defineRailway((ctx) => {
       builder: "DOCKERFILE",
       dockerfilePath: "infra/Dockerfile.renderer",
     },
-    deploy: continuous,
+    deploy: { ...continuous, sleepApplication: true },
     networking: privateNetworking,
     healthcheck: "/health",
     healthcheckTimeout: 60,
-    volumeMounts: { "/usr/local/share/fonts/licensed": licensedFonts },
     env: {
       PORT: "8090",
       RENDERER_HOST: "::",
@@ -68,7 +66,7 @@ export default defineRailway((ctx) => {
     source: image(
       "clamav/clamav:1.4@sha256:b5b910ce43d595bf8a2fe401e34db56434602b2c755b7c2b07f00c917d04d469",
     ),
-    deploy: continuous,
+    deploy: { ...continuous, sleepApplication: true },
     networking: privateNetworking,
     volumeMounts: { "/var/lib/clamav": antivirusData },
   });
@@ -83,6 +81,10 @@ export default defineRailway((ctx) => {
     NETLIFY_PROXY_SECRET: ctx.shared.NETLIFY_PROXY_SECRET,
     SCAN_REQUIRED: "true",
     ALLOW_DEMO: "false",
+    EMAIL_VERIFICATION_REQUIRED: "false",
+    DEFAULT_EXPORT_FONT: "Liberation Serif",
+    DAILY_AI_LIMIT: "5",
+    GLOBAL_DAILY_AI_LIMIT: "20",
     CLAMAV_HOST: antivirus.env.RAILWAY_PRIVATE_DOMAIN,
     CLAMAV_PORT: "3310",
     RENDERER_URL: "http://${{renderer.RAILWAY_PRIVATE_DOMAIN}}:8090",
@@ -91,15 +93,11 @@ export default defineRailway((ctx) => {
     STORAGE_PUBLIC_ENDPOINT: ctx.shared.STORAGE_PUBLIC_ENDPOINT,
     STORAGE_REGION: ctx.shared.STORAGE_REGION,
     STORAGE_FORCE_PATH_STYLE: ctx.shared.STORAGE_FORCE_PATH_STYLE,
+    STORAGE_LIFECYCLE_MODE: "worker",
     STORAGE_BUCKET: ctx.shared.STORAGE_BUCKET,
     STORAGE_ACCESS_KEY: ctx.shared.STORAGE_ACCESS_KEY,
     STORAGE_SECRET_KEY: ctx.shared.STORAGE_SECRET_KEY,
     UPLOAD_ORIGIN: ctx.shared.UPLOAD_ORIGIN,
-    SMTP_HOST: ctx.shared.SMTP_HOST,
-    SMTP_PORT: ctx.shared.SMTP_PORT,
-    SMTP_USER: ctx.shared.SMTP_USER,
-    SMTP_PASSWORD: ctx.shared.SMTP_PASSWORD,
-    SMTP_FROM: ctx.shared.SMTP_FROM,
     OPENAI_API_KEY: ctx.shared.OPENAI_API_KEY,
     OPENAI_MODEL: "gpt-5.4-mini",
     LEGAL_OPERATOR_NAME: ctx.shared.LEGAL_OPERATOR_NAME,
@@ -108,7 +106,7 @@ export default defineRailway((ctx) => {
   const api = service("api", {
     source,
     build: { builder: "DOCKERFILE", dockerfilePath: "infra/Dockerfile" },
-    deploy: continuous,
+    deploy: { ...continuous, sleepApplication: true },
     preDeploy: "node migrate.mjs",
     healthcheck: "/api/health/live",
     healthcheckTimeout: 60,
@@ -126,7 +124,6 @@ export default defineRailway((ctx) => {
     resources: [
       postgresData,
       antivirusData,
-      licensedFonts,
       postgres,
       renderer,
       antivirus,

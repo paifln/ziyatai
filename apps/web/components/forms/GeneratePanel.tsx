@@ -6,6 +6,7 @@ import type { Texts, UiLocale } from "../../lib/i18n";
 import { displayLevel } from "../../../../packages/domain/validation";
 import { Form } from "../ui/Form";
 import { Workflow } from "../ui/Workflow";
+import { planGrades, rowGrade } from "../../../../packages/domain/grades";
 export function GeneratePanel({
   t,
   locale,
@@ -39,6 +40,7 @@ export function GeneratePanel({
     [busy, setBusy] = useState(false);
   const [planLoading, setPlanLoading] = useState(false);
   const [topicQuery, setTopicQuery] = useState("");
+  const [classFilter, setClassFilter] = useState("");
   useEffect(() => {
     const controller = new AbortController();
     setPlan(undefined);
@@ -49,7 +51,15 @@ export function GeneratePanel({
       api(`ktp/${planId}`, "GET", undefined, undefined, controller.signal)
         .then((p) => {
           setPlan(p);
-          setRowId(p.rows?.[0]?.id ?? "");
+          const grades = planGrades(p.rows ?? [], p.grade);
+          const selectedGrade = grades.includes(p.grade) ? p.grade : grades[0];
+          setClassFilter(selectedGrade ? String(selectedGrade) : "");
+          setRowId(
+            p.rows?.find(
+              (r: any) =>
+                !selectedGrade || rowGrade(r, p.grade) === selectedGrade,
+            )?.id ?? "",
+          );
         })
         .catch((e) => {
           if (!controller.signal.aborted) onError(e.message);
@@ -129,6 +139,31 @@ export function GeneratePanel({
                   ))}
                 </select>
               </label>
+              {plan && (
+                <label>
+                  {t.grade}
+                  <select
+                    aria-label={t.grade}
+                    value={classFilter}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      setClassFilter(next);
+                      setTopicQuery("");
+                      setRowId(
+                        plan.rows.find(
+                          (r: any) => String(rowGrade(r, plan.grade)) === next,
+                        )?.id ?? "",
+                      );
+                    }}
+                  >
+                    {planGrades(plan.rows ?? [], plan.grade).map((g) => (
+                      <option key={g} value={g}>
+                        {g}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
               <div className="mt-20 field-group">
                 <label htmlFor="generation-topic">{t.chooseTopic}</label>
                 {plan?.rows?.length > 20 && (
@@ -155,6 +190,11 @@ export function GeneratePanel({
                   {plan?.rows
                     ?.filter(
                       (r: any) =>
+                        !classFilter ||
+                        String(rowGrade(r, plan.grade)) === classFilter,
+                    )
+                    .filter(
+                      (r: any) =>
                         !topicQuery.trim() ||
                         r.topic
                           .toLocaleLowerCase()
@@ -176,7 +216,8 @@ export function GeneratePanel({
               {row && (
                 <div className="topic-summary">
                   <span className="badge green">
-                    {plan.grade} {t.grade.toLowerCase()} · {t.confirmed}
+                    {rowGrade(row, plan.grade)} {t.grade.toLowerCase()} ·{" "}
+                    {t.confirmed}
                   </span>
                   <h3 className="mt-20">{row.topic}</h3>
                   <p>{row.goals}</p>

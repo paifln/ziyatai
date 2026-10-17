@@ -5,6 +5,31 @@ sys.path.insert(0, str(Path('apps/worker').resolve()))
 spec=importlib.util.spec_from_file_location('ktp_parser','apps/worker/parser.py');parser=importlib.util.module_from_spec(spec);spec.loader.exec_module(parser)
 manifest=json.loads(Path('tests/fixtures/manifest.json').read_text(encoding='utf-8'))
 
+def test_class_context_changes_inside_one_sheet_and_grade_column_wins():
+ def src():return parser.source(sheet='Общий план')
+ result=parser.normalize([
+  (['7 класс'],src()),
+  (['Тема урока','Цели обучения','Часы'],src()),
+  (['Алгоритмы','Описывать алгоритмы','1'],src()),
+  (['8-сынып'],src()),
+  (['Тема урока','Цели обучения','Часы','Класс'],src()),
+  (['Циклы','Составлять циклы','1','9А'],src()),
+  (['Массивы','Обрабатывать массивы','1',''],src()),
+ ])
+ assert [r['grade'] for r in result['rows']]==[7,9,8]
+
+def test_class_context_does_not_leak_between_sheets():
+ result=parser.normalize([
+  (['Тема урока','Цели обучения','Часы'],parser.source(sheet='11А')),
+  (['Алгоритмы','Описывать алгоритмы','1'],parser.source(sheet='11А')),
+  (['Тема урока','Цели обучения','Часы'],parser.source(sheet='Без класса')),
+  (['Циклы','Составлять циклы','1'],parser.source(sheet='Без класса')),
+ ])
+ assert [r['grade'] for r in result['rows']]==[11,None]
+ assert parser.grade_from_label('1-11 классы') is None
+ assert parser.grade_from_label('7.1.1.1') is None
+ assert parser.grade_from_label('3 класс__') == 3
+
 @pytest.mark.parametrize('kind',['javascript','attachment','launch','additional-action','automatic-uri'])
 def test_active_pdf_content_is_rejected_without_executing_it(tmp_path,kind):
  from pypdf import PdfWriter

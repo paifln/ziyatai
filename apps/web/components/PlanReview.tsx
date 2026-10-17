@@ -1,7 +1,7 @@
 "use client";
 import { useUnsavedChanges } from "../lib/use-unsaved-changes";
 import { useConfirm } from "./ui/ConfirmProvider";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   ArrowRight,
   Plus,
@@ -27,6 +27,7 @@ import {
   isAssessmentTopic,
 } from "../../../packages/domain/goals";
 import { normalizeDate } from "../../../packages/domain/dates";
+import { planGrades, rowGrade } from "../../../packages/domain/grades";
 export default function PlanReview({
   id,
   t,
@@ -65,6 +66,8 @@ export default function PlanReview({
   const [previewFailed, setPreviewFailed] = useState(false);
   const [page, setPage] = useState(0);
   const [sheet, setSheet] = useState("");
+  const [classFilter, setClassFilter] = useState("");
+  const loadedPlan = useRef("");
   const [datesBeforeSkip, setDatesBeforeSkip] = useState<KtpRow[] | null>(null);
   const load = useCallback(async () => {
     try {
@@ -72,6 +75,11 @@ export default function PlanReview({
       setPlan(p);
       setRows(p.rows ?? []);
       setGrade(p.grade);
+      if (loadedPlan.current !== id) {
+        setClassFilter(p.grade ? String(p.grade) : "");
+        setSheet("");
+        loadedPlan.current = id;
+      }
       setYear(p.school_year ?? "");
       setDatesBeforeSkip(null);
       setDirty(false);
@@ -238,7 +246,9 @@ export default function PlanReview({
           .toLowerCase()
           .includes(query.toLowerCase()) &&
         (!quarter || r.quarter === quarter) &&
-        (!sheet || r.source.sheet === sheet),
+        (!sheet || r.source.sheet === sheet) &&
+        (!classFilter ||
+          String(rowGrade(r, grade) ?? "unknown") === classFilter),
     )
     .sort((a, b) =>
       sort === "date"
@@ -313,6 +323,46 @@ export default function PlanReview({
           </button>
         </div>
       </div>
+      {rows.length > 0 && (
+        <section className="sheet-picker card">
+          <label>
+            {locale === "ru" ? "Показать класс" : "Сыныпты көрсету"}
+            <select
+              aria-label={
+                locale === "ru" ? "Показать класс" : "Сыныпты көрсету"
+              }
+              value={classFilter}
+              onChange={(e) => {
+                setClassFilter(e.target.value);
+                setSheet("");
+                setPage(0);
+              }}
+            >
+              <option value="">
+                {locale === "ru" ? "Все классы" : "Барлық сыныптар"} ·{" "}
+                {rows.length}
+              </option>
+              {planGrades(rows, grade).map((g) => (
+                <option key={g} value={g}>
+                  {g} · {rows.filter((r) => rowGrade(r, grade) === g).length}
+                </option>
+              ))}
+              {rows.some((r) => !rowGrade(r, grade)) && (
+                <option value="unknown">
+                  {locale === "ru"
+                    ? "Класс не определён"
+                    : "Сынып анықталмаған"}
+                </option>
+              )}
+            </select>
+          </label>
+          <p className="muted">
+            {locale === "ru"
+              ? "Фильтр не удаляет уроки других классов. Порядок уроков внутри класса сохраняется."
+              : "Сүзгі басқа сыныптардың сабақтарын жоймайды. Сабақ реті сақталады."}
+          </p>
+        </section>
+      )}
       {sheets.length > 1 && (
         <section className="sheet-picker card">
           <label>
@@ -415,6 +465,15 @@ export default function PlanReview({
                 value={grade ?? ""}
                 onChange={(e) => {
                   setGrade(e.target.value ? Number(e.target.value) : null);
+                  if (planGrades(rows, grade).length <= 1) {
+                    setRows(
+                      rows.map((r) => ({
+                        ...r,
+                        grade: e.target.value ? Number(e.target.value) : null,
+                      })),
+                    );
+                    setClassFilter(e.target.value);
+                  }
                   setDirty(true);
                 }}
               >
@@ -522,7 +581,7 @@ export default function PlanReview({
               onClick={() => save(true)}
               disabled={
                 busy ||
-                !grade ||
+                (!grade && rows.some((r) => !rowGrade(r))) ||
                 !rows.length ||
                 rows.some((r) => !r.topic.trim() || !hasRequiredGoals(r))
               }
@@ -674,6 +733,37 @@ export default function PlanReview({
                         <summary>
                           {t.section} / {t.notes}
                         </summary>
+                        <label>
+                          {t.grade}
+                          <select
+                            aria-label={`${t.grade} · ${index + 1}`}
+                            value={r.grade ?? ""}
+                            onChange={(e) => {
+                              setRows(
+                                rows.map((row, i) =>
+                                  i === index
+                                    ? {
+                                        ...row,
+                                        grade: e.target.value
+                                          ? Number(e.target.value)
+                                          : null,
+                                      }
+                                    : row,
+                                ),
+                              );
+                              setDirty(true);
+                            }}
+                          >
+                            <option value="">
+                              {locale === "ru" ? "По умолчанию" : "Әдепкі"}
+                            </option>
+                            {Array.from({ length: 11 }, (_, i) => (
+                              <option key={i} value={i + 1}>
+                                {i + 1}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
                         <label>
                           {t.section}
                           <input

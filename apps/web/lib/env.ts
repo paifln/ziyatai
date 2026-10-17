@@ -26,14 +26,26 @@ const schema = z.object({
   STORAGE_PUBLIC_ENDPOINT: z.string().default(""),
   STORAGE_REGION: z.string().min(1),
   STORAGE_FORCE_PATH_STYLE: z.enum(["true", "false"]).default("true"),
+  STORAGE_LIFECYCLE_MODE: z.enum(["provider", "worker"]).default("provider"),
   STORAGE_BUCKET: z.string().min(1),
   STORAGE_ACCESS_KEY: z.string().min(1),
   STORAGE_SECRET_KEY: z.string().min(1),
-  SMTP_HOST: z.string().min(1),
+  EMAIL_VERIFICATION_REQUIRED: z.enum(["true", "false"]).default("true"),
+  DEFAULT_EXPORT_FONT: z
+    .enum([
+      "Times New Roman",
+      "Arial",
+      "Calibri",
+      "Liberation Serif",
+      "Liberation Sans",
+      "Carlito",
+    ])
+    .default("Times New Roman"),
+  SMTP_HOST: z.string().default(""),
   SMTP_PORT: z.coerce.number().default(587),
   SMTP_USER: z.string().default(""),
   SMTP_PASSWORD: z.string().default(""),
-  SMTP_FROM: z.string().min(1),
+  SMTP_FROM: z.string().default(""),
   OPENAI_API_KEY: z.string().default(""),
   OPENAI_MODEL: z.string().default(""),
   PYTHON_PATH: z.string().default("python"),
@@ -71,6 +83,11 @@ export function env() {
       RENDER_CONTAINER_IMAGE: process.env.RENDER_CONTAINER_IMAGE ?? "",
       FONT_DIRECTORY: process.env.FONT_DIRECTORY ?? "",
     };
+    if (
+      parsed.EMAIL_VERIFICATION_REQUIRED === "true" &&
+      (!parsed.SMTP_HOST || !parsed.SMTP_FROM)
+    )
+      throw new Error("Email verification requires a configured mail sender");
     if (
       parsed.APP_ENV === "production" &&
       (parsed.SCAN_REQUIRED !== "true" ||

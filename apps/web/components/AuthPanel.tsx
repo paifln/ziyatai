@@ -38,13 +38,25 @@ export default function AuthPanel({
   const [otp, setOtp] = useState("");
   const [cooldown, setCooldown] = useState(0);
   const [localMailbox, setLocalMailbox] = useState(false);
+  const [passwordResetAvailable, setPasswordResetAvailable] = useState(false);
+  const [emailVerificationRequired, setEmailVerificationRequired] =
+    useState(true);
   useEffect(() => {
-    if (!["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname))
-      return;
     let active = true;
     void api("public-config")
       .then((config) => {
-        if (active) setLocalMailbox(config.localMailbox === true);
+        if (active) {
+          setLocalMailbox(
+            config.localMailbox === true &&
+              ["localhost", "127.0.0.1", "[::1]"].includes(
+                window.location.hostname,
+              ),
+          );
+          setPasswordResetAvailable(config.passwordResetAvailable === true);
+          setEmailVerificationRequired(
+            config.emailVerificationRequired !== false,
+          );
+        }
       })
       .catch(() => {
         /* Optional demo hint must not block sign-in. */
@@ -99,6 +111,10 @@ export default function AuthPanel({
           callbackURL: "/",
         });
         if (!result.error) {
+          if (result.data?.token) {
+            window.location.assign("/");
+            return;
+          }
           setMode("verify");
           setPassword("");
           setCooldown(60);
@@ -258,6 +274,13 @@ export default function AuthPanel({
               <legend className="sr-only">
                 {mode === "signup" ? t.signUp : t.signIn}
               </legend>
+              {mode === "signup" && !emailVerificationRequired && (
+                <p className="notice">
+                  {locale === "ru"
+                    ? "Подтверждение почты не требуется. Сохраните пароль для следующего входа."
+                    : "Поштаны растау қажет емес. Келесі кіру үшін құпиясөзді сақтаңыз."}
+                </p>
+              )}
               {mode === "signup" && (
                 <label>
                   {t.name}
@@ -357,7 +380,7 @@ export default function AuthPanel({
                   onChange={(e) => setPassword(e.target.value)}
                 />
               )}
-              {mode === "login" && (
+              {mode === "login" && passwordResetAvailable && (
                 <button
                   className="text-button forgot"
                   type="button"
