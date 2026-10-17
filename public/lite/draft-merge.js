@@ -1,4 +1,4 @@
-/* Generated from packages/domain/merge-drafts.ts by npm run build:lite. */
+/* Generated from packages/domain/merge-drafts.ts and draft-payload.ts by npm run build:lite. */
 (function (root) {
   "use strict";
   var exports = {};
@@ -121,4 +121,56 @@
   }
 
   root.ZiyatDraftMerge = exports;
+})(window);
+(function (root) {
+  "use strict";
+  var exports = {};
+  function require(name) {
+    if (name === "./merge-drafts") return root.ZiyatDraftMerge;
+    throw new Error("Unsupported Lite dependency");
+  }
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.compactPlanDraft = compactPlanDraft;
+  exports.expandPlanDraft = expandPlanDraft;
+  var merge_drafts_1 = require("./merge-drafts");
+  function compactPlanDraft(base, draft) {
+    var original = Object.create(null);
+    base.rows.forEach(function (row) {
+      original[row.id] = row;
+    });
+    var references = 0;
+    var compact = {
+      encoding: "row-references-v1",
+      grade: draft.grade,
+      schoolYear: draft.schoolYear,
+      rows: draft.rows.map(function (row) {
+        if (
+          !original[row.id] ||
+          !(0, merge_drafts_1.draftsEqual)(original[row.id], row)
+        )
+          return row;
+        references++;
+        return row.id;
+      }),
+    };
+    return references ? compact : draft;
+  }
+  function expandPlanDraft(base, draft) {
+    if (!("encoding" in draft)) return draft;
+    var original = Object.create(null);
+    base.rows.forEach(function (row) {
+      original[row.id] = row;
+    });
+    return {
+      grade: draft.grade,
+      schoolYear: draft.schoolYear,
+      rows: draft.rows.map(function (row) {
+        if (typeof row !== "string") return row;
+        if (!original[row]) throw new Error("Unknown baseline row reference");
+        return original[row];
+      }),
+    };
+  }
+
+  root.ZiyatDraftPayload = exports;
 })(window);

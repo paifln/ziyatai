@@ -32,6 +32,7 @@ import { planGrades, rowGrade } from "../../../packages/domain/grades";
 import { RevisionConflict, type RevisionSnapshot } from "./RevisionConflict";
 import type { PlanDraft } from "../../../packages/contracts/drafts";
 import { useServerDraft } from "../lib/use-server-draft";
+import { compactPlanDraft } from "../../../packages/domain/draft-payload";
 import { DraftRecovery } from "./DraftRecovery";
 export default function PlanReview({
   id,
@@ -87,6 +88,8 @@ export default function PlanReview({
     resourceId: id,
     revision: plan?.revision,
     draft,
+    baseDraft: baseline.current,
+    encodeDraft: compactPlanDraft,
     dirty,
     enabled: !busy,
   });

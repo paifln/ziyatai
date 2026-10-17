@@ -163,7 +163,10 @@
           kind: options.kind,
           resourceId: options.id,
           baseRevision: state.revision,
-          draft: snapshot,
+          draft:
+            options.kind === "ktp"
+              ? root.ZiyatDraftPayload.compactPlanDraft(base, snapshot)
+              : snapshot,
         },
         function (err, result) {
           if (!active || slot !== owner) return;

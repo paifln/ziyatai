@@ -12,8 +12,17 @@ const compiled = ts
     },
   })
   .outputText.replace(/^\s*"use strict";\s*/, "");
+const payload = ts
+  .transpileModule(await readFile("packages/domain/draft-payload.ts", "utf8"), {
+    compilerOptions: {
+      target: ts.ScriptTarget.ES5,
+      module: ts.ModuleKind.CommonJS,
+      removeComments: true,
+    },
+  })
+  .outputText.replace(/^\s*"use strict";\s*/, "");
 const output = await format(
-  `/* Generated from packages/domain/merge-drafts.ts by npm run build:lite. */\n(function(root) { "use strict"; var exports = {};\n${compiled}\nroot.ZiyatDraftMerge = exports;\n})(window);\n`,
+  `/* Generated from packages/domain/merge-drafts.ts and draft-payload.ts by npm run build:lite. */\n(function(root) { "use strict"; var exports = {};\n${compiled}\nroot.ZiyatDraftMerge = exports;\n})(window);\n(function(root) { "use strict"; var exports = {}; function require(name) { if (name === "./merge-drafts") return root.ZiyatDraftMerge; throw new Error("Unsupported Lite dependency"); }\n${payload}\nroot.ZiyatDraftPayload = exports;\n})(window);\n`,
   { parser: "babel", trailingComma: "es5" },
 );
 const path = "public/lite/draft-merge.js";

@@ -9,6 +9,10 @@ export const PlanDraftSchema = z
   })
   .strict();
 export type PlanDraft = z.infer<typeof PlanDraftSchema>;
+const ReferencedPlanDraftSchema = PlanDraftSchema.extend({
+  encoding: z.literal("row-references-v1"),
+  rows: z.array(z.union([z.string().uuid(), Row])).max(2000),
+}).strict();
 export const DraftKind = z.enum(["ktp", "generation"]);
 export type DraftKind = z.infer<typeof DraftKind>;
 export const DraftResource = z
@@ -22,7 +26,11 @@ const fields = {
 };
 export const DraftWrite = z.discriminatedUnion("kind", [
   z
-    .object({ ...fields, kind: z.literal("ktp"), draft: PlanDraftSchema })
+    .object({
+      ...fields,
+      kind: z.literal("ktp"),
+      draft: z.union([PlanDraftSchema, ReferencedPlanDraftSchema]),
+    })
     .strict(),
   z
     .object({ ...fields, kind: z.literal("generation"), draft: GenerationDoc })

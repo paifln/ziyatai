@@ -4,7 +4,10 @@ import {
   DraftResource,
   DraftWrite,
   type DraftKind,
+  PlanDraftSchema,
+  type PlanDraft,
 } from "../../../packages/contracts/drafts";
+import { expandPlanDraft } from "../../../packages/domain/draft-payload";
 import { AppError } from "../../../packages/domain/errors";
 import { db, transaction } from "./db";
 import { readJsonBody } from "./request-body";
@@ -39,8 +42,9 @@ async function baseline(
   revision: number,
 ) {
   const table = tables[kind];
+  const columns = kind === "ktp" ? "rows,grade,school_year" : "document";
   const result = await c.query(
-    `SELECT * FROM ${table.version} WHERE ${table.column}=$1 AND revision=$2`,
+    `SELECT ${columns} FROM ${table.version} WHERE ${table.column}=$1 AND revision=$2`,
     [resourceId, revision],
   );
   const row = result.rows[0];
@@ -141,7 +145,15 @@ export async function editorDrafts(
     });
   }
   if (!id && req.method === "POST" && path.length === 1) {
-    const input = DraftWrite.parse(await readJsonBody(req));
+    let raw: unknown;
+    try {
+      raw = await readJsonBody(req);
+    } catch (error) {
+      if (error instanceof AppError && error.code === "FILE_SIZE")
+        throw new AppError("DRAFT_SIZE", 413);
+      throw error;
+    }
+    const input = DraftWrite.parse(raw);
     const result = await transaction(async (c) => {
       await lockOwner(c, owner);
       await owned(c, owner, input.kind, input.resourceId, true);
@@ -152,6 +164,13 @@ export async function editorDrafts(
         input.baseRevision,
       );
       if (input.kind === "ktp") {
+        try {
+          input.draft = PlanDraftSchema.parse(
+            expandPlanDraft(base as PlanDraft, input.draft),
+          );
+        } catch {
+          throw new AppError("FILE_INVALID", 422);
+        }
         if (
           new Set(input.draft.rows.map((row) => row.id)).size !==
           input.draft.rows.length
@@ -174,6 +193,10 @@ export async function editorDrafts(
           throw new AppError("FILE_INVALID", 422);
       }
       await capacity(c, owner, input.id, true);
+      const payload = JSON.stringify(input.draft);
+      // References reduce transfer size, not the account's storage allowance.
+      if (Buffer.byteLength(payload, "utf8") > 2 * 1024 * 1024)
+        throw new AppError("DRAFT_SIZE", 413);
       const plan = input.kind === "ktp" ? input.resourceId : null,
         generation = input.kind === "generation" ? input.resourceId : null;
       const saved = await c.query(
@@ -185,7 +208,7 @@ export async function editorDrafts(
           generation,
           input.baseRevision,
           input.sequence,
-          JSON.stringify(input.draft),
+          payload,
         ],
       );
       if (!saved.rowCount) await rejected(c, owner, input.id, plan, generation);

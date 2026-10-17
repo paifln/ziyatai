@@ -14,6 +14,8 @@ export function useServerDraft<T>({
   resourceId,
   revision,
   draft,
+  baseDraft,
+  encodeDraft,
   dirty,
   enabled = true,
 }: {
@@ -21,6 +23,8 @@ export function useServerDraft<T>({
   resourceId: string;
   revision?: number;
   draft?: T;
+  baseDraft?: T;
+  encodeDraft?: (base: T, value: T) => unknown;
   dirty: boolean;
   enabled?: boolean;
 }) {
@@ -37,8 +41,8 @@ export function useServerDraft<T>({
     attempted: false,
   });
   const recovered = useRef<DraftSummary | null>(null);
-  const current = useRef({ revision, draft, dirty });
-  current.current = { revision, draft, dirty };
+  const current = useRef({ revision, draft, dirty, baseDraft, encodeDraft });
+  current.current = { revision, draft, dirty, baseDraft, encodeDraft };
   const acknowledged = useRef<{ revision: number; draft: T } | null>(null);
   const failed = useRef<{ revision: number; draft: T } | null>(null);
   const writing = useRef(false),
@@ -144,7 +148,10 @@ export function useServerDraft<T>({
         kind,
         resourceId,
         baseRevision: snapshot.revision,
-        draft: snapshot.draft,
+        draft:
+          snapshot.baseDraft && snapshot.encodeDraft
+            ? snapshot.encodeDraft(snapshot.baseDraft, snapshot.draft)
+            : snapshot.draft,
       })) as DraftSummary;
       if (!mounted.current || owned.current !== slot) return;
       acknowledged.current = {

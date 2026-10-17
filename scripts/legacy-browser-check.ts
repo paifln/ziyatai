@@ -210,8 +210,19 @@ try {
     "css selector",
     '#content select[aria-label="Класс"] option[value="7"]',
   );
+  await execute(
+    "window.__legacyDraftTransport=null;var send=XMLHttpRequest.prototype.send;XMLHttpRequest.prototype.send=function(data){if(typeof data==='string'){try{var body=JSON.parse(data);if(body.kind==='ktp'&&body.draft){window.__legacyDraftTransport={encoding:body.draft.encoding,references:body.draft.rows.filter(function(row){return typeof row==='string';}).length};}}catch(ignore){}}return send.apply(this,arguments);};",
+  );
   await call(`/element/${gradeOption}/click`, {});
   await fill('#content input[aria-label="Учебный год"]', "2026–2027");
+  await until(() =>
+    execute(
+      "return document.querySelector('.draft-recovery').textContent.indexOf('Резервный черновик сохранён в аккаунте')>=0",
+    ),
+  );
+  const transport = await execute("return window.__legacyDraftTransport");
+  assert.equal(transport.encoding, "row-references-v1");
+  assert.ok(transport.references > 0);
   await click("Подтвердить КТП");
   await until(() =>
     execute(
@@ -375,6 +386,7 @@ try {
     importConfirmed: true,
     generationClassAndTopicSearch: true,
     collectionSearch: true,
+    compactDraftTransport: true,
     taskEdited: true,
     draftBackedUp: true,
     draftRecovered: true,
