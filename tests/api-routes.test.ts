@@ -37,6 +37,7 @@ test("a method mismatch never falls back to another operation", () => {
     [["jobs", "id", "cancel"], "GET", "POST"],
     [["uploads", "init"], "GET", "POST"],
     [["ktp", "imports"], "GET", "POST"],
+    [["ktp", "collection"], "DELETE", "GET"],
     [["exports", "id", "download"], "PATCH", "GET, HEAD"],
   ] as const) {
     try {
@@ -53,6 +54,7 @@ test("canonical uploads, edits, task replacement and explicit HEAD remain suppor
     [["uploads", "init"], "POST"],
     [["uploads", "id"], "HEAD"],
     [["ktp", "imports"], "POST"],
+    [["ktp", "collection"], "GET"],
     [["ktp", "id", "rows"], "PATCH"],
     [["ktp", "id", "rows"], "POST"],
     [["ktp", "id", "confirm"], "POST"],

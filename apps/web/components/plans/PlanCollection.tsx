@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Search,
   Plus,
@@ -11,20 +11,17 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 import type { Texts, UiLocale } from "../../lib/i18n";
+import { api } from "../../lib/client";
+import type {
+  PlanCollectionPage,
+  PlanSummary,
+} from "../../../../packages/contracts/plan-collection";
 import {
   planStatuses,
   type PlanStatusValue,
 } from "../../../../packages/domain/plan-status";
-export interface PlanSummary {
-  id: string;
-  title: string;
-  grade: number | null;
-  school_year: string;
-  status: PlanStatusValue;
-  created_at?: string;
-}
 export function PlanCollection({
-  plans,
+  revision,
   t,
   locale,
   onUpload,
@@ -33,7 +30,7 @@ export function PlanCollection({
   onDemo,
   busy,
 }: {
-  plans: PlanSummary[];
+  revision: number;
   t: Texts;
   locale: UiLocale;
   onUpload: () => void;
@@ -46,38 +43,116 @@ export function PlanCollection({
   const [status, setStatus] = useState("all");
   const [grade, setGrade] = useState("");
   const [sort, setSort] = useState("recent");
+  const [offset, setOffset] = useState(0);
+  const [page, setPage] = useState<PlanCollectionPage>();
+  const [pageKey, setPageKey] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [retry, setRetry] = useState(0);
+  const caption = useRef<HTMLDivElement>(null);
+  const focusResults = useRef(false);
+  const inFlight = useRef<
+    | { key: string; started: boolean; again: boolean; cancel: () => void }
+    | undefined
+  >(undefined);
+  const requestKey = new URLSearchParams({
+    q: query,
+    sort,
+    limit: "20",
+    offset: String(offset),
+    ...(grade ? { grade } : {}),
+    ...(status !== "all" ? { status } : {}),
+  }).toString();
+  const ready = pageKey === requestKey;
+  useEffect(
+    () => () => {
+      inFlight.current?.cancel();
+      inFlight.current = undefined;
+    },
+    [],
+  );
+  useEffect(() => {
+    // Polling/resume invalidations queue one refresh instead of starving a slow
+    // request. A changed filter or page still cancels obsolete work immediately.
+    if (inFlight.current?.key === requestKey) {
+      if (inFlight.current.started) inFlight.current.again = true;
+      return;
+    }
+    inFlight.current?.cancel();
+    const controller = new AbortController();
+    const pending = {
+      key: requestKey,
+      started: false,
+      again: false,
+      cancel: () => {
+        clearTimeout(timer);
+        controller.abort();
+      },
+    };
+    inFlight.current = pending;
+    setLoading(true);
+    setError("");
+    const timer = setTimeout(
+      () => {
+        pending.started = true;
+        let succeeded = false;
+        void api(
+          `ktp/collection?${requestKey}`,
+          "GET",
+          undefined,
+          undefined,
+          controller.signal,
+        )
+          .then((result: PlanCollectionPage) => {
+            if (controller.signal.aborted) return;
+            succeeded = true;
+            setPage(result);
+            setPageKey(requestKey);
+            if (
+              result.offset !==
+              Number(new URLSearchParams(requestKey).get("offset"))
+            )
+              setOffset(result.offset);
+            setLoading(false);
+            if (focusResults.current) {
+              focusResults.current = false;
+              caption.current?.focus();
+            }
+          })
+          .catch((e: Error) => {
+            if (controller.signal.aborted) return;
+            setError(e.message);
+            setLoading(false);
+          })
+          .finally(() => {
+            if (inFlight.current !== pending) return;
+            inFlight.current = undefined;
+            if (pending.again && succeeded) setRetry((n) => n + 1);
+          });
+      },
+      new URLSearchParams(requestKey).get("q") ? 250 : 0,
+    );
+  }, [requestKey, revision, retry]);
   const ru = locale === "ru";
   const isReview = (p: PlanSummary) => p.status === "review";
   const otherStatuses = planStatuses.filter(
     (value) =>
       value !== "confirmed" &&
       value !== "review" &&
-      plans.some((p) => p.status === value),
+      ((page?.counts[value] ?? 0) > 0 || status === value),
   );
-  const visible = useMemo(() => {
-    const items = plans.filter(
-      (p) =>
-        (!grade || String(p.grade) === grade) &&
-        (status === "all" || p.status === status) &&
-        p.title.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()),
-    );
-    return sort === "name"
-      ? items.sort((a, b) => a.title.localeCompare(b.title, locale))
-      : items;
-  }, [plans, query, status, grade, sort, locale]);
+  const visible = page?.items ?? [];
   const tabs = [
-    ["all", ru ? "Все планы" : "Барлық жоспар", plans.length],
-    [
-      "confirmed",
-      t.confirmed,
-      plans.filter((p) => p.status === "confirmed").length,
-    ],
-    ["review", t.review, plans.filter(isReview).length],
+    ["all", ru ? "Все планы" : "Барлық жоспар", page?.total ?? 0],
+    ["confirmed", t.confirmed, page?.counts.confirmed ?? 0],
+    ["review", t.review, page?.counts.review ?? 0],
   ] as const;
   function reset() {
+    focusResults.current = false;
     setQuery("");
     setGrade("");
     setStatus("all");
+    setOffset(0);
   }
   return (
     <>
@@ -96,7 +171,19 @@ export function PlanCollection({
           {t.upload}
         </button>
       </div>
-      {plans.length > 0 ? (
+      {error && (
+        <div className="notice" role="alert">
+          {error}{" "}
+          <button
+            type="button"
+            className="text-button"
+            onClick={() => setRetry((n) => n + 1)}
+          >
+            {t.retry}
+          </button>
+        </div>
+      )}
+      {page?.total !== 0 ? (
         <>
           <div
             className="filter-chips"
@@ -107,7 +194,11 @@ export function PlanCollection({
                 key={value}
                 type="button"
                 aria-pressed={status === value}
-                onClick={() => setStatus(value)}
+                onClick={() => {
+                  focusResults.current = false;
+                  setStatus(value);
+                  setOffset(0);
+                }}
               >
                 {label}
                 <small>{count}</small>
@@ -123,15 +214,18 @@ export function PlanCollection({
                     ? status
                     : ""
                 }
-                onChange={(e) => setStatus(e.target.value || "all")}
+                onChange={(e) => {
+                  focusResults.current = false;
+                  setStatus(e.target.value || "all");
+                  setOffset(0);
+                }}
               >
                 <option value="">
                   {ru ? "Другие статусы КТП" : "КТЖ-ның басқа күйлері"}
                 </option>
                 {otherStatuses.map((value) => (
                   <option key={value} value={value}>
-                    {t[value]} ·{" "}
-                    {plans.filter((p) => p.status === value).length}
+                    {t[value]} · {page?.counts[value] ?? 0}
                   </option>
                 ))}
               </select>
@@ -143,17 +237,26 @@ export function PlanCollection({
               <Search size={17} />
               <input
                 type="search"
+                maxLength={200}
                 placeholder={
                   ru ? "Найти КТП по названию…" : "КТЖ атауы бойынша іздеу…"
                 }
                 value={query}
-                onChange={(event) => setQuery(event.target.value)}
+                onChange={(event) => {
+                  focusResults.current = false;
+                  setQuery(event.target.value);
+                  setOffset(0);
+                }}
               />
             </label>
             <select
               aria-label={ru ? "Фильтр по классу" : "Сынып бойынша сүзгі"}
               value={grade}
-              onChange={(event) => setGrade(event.target.value)}
+              onChange={(event) => {
+                focusResults.current = false;
+                setGrade(event.target.value);
+                setOffset(0);
+              }}
             >
               <option value="">{ru ? "Все классы" : "Барлық сынып"}</option>
               {Array.from({ length: 11 }, (_, i) => i + 1).map((n) => (
@@ -165,7 +268,11 @@ export function PlanCollection({
             <select
               aria-label={ru ? "Порядок планов" : "Жоспарлардың реті"}
               value={sort}
-              onChange={(event) => setSort(event.target.value)}
+              onChange={(event) => {
+                focusResults.current = false;
+                setSort(event.target.value);
+                setOffset(0);
+              }}
             >
               <option value="recent">
                 {ru ? "Сначала новые" : "Алдымен жаңалары"}
@@ -175,14 +282,29 @@ export function PlanCollection({
               </option>
             </select>
           </div>
-          <section className="card plan-list" aria-label={t.plans}>
-            <div className="collection-caption">
+          <section
+            className="card plan-list"
+            aria-label={t.plans}
+            aria-busy={loading}
+          >
+            <div className="collection-caption" ref={caption} tabIndex={-1}>
               <span>{ru ? "Учебные планы" : "Оқу жоспарлары"}</span>
               <span aria-live="polite">
-                {visible.length} / {plans.length}
+                {loading && !ready
+                  ? t.loading
+                  : error
+                    ? "—"
+                    : page?.matched
+                      ? `${page.offset + 1}–${page.offset + visible.length} / ${page.matched}`
+                      : "0"}
               </span>
             </div>
-            {visible.length ? (
+            {loading && !ready ? (
+              <div className="empty-state" role="status">
+                <span className="spinner" />
+                {t.loading}
+              </div>
+            ) : error || !ready ? null : visible.length ? (
               visible.map((plan) => (
                 <div className="resource-row" key={plan.id}>
                   <span className="file-icon">
@@ -243,6 +365,42 @@ export function PlanCollection({
               </div>
             )}
           </section>
+          {ready && !error && page && page.matched > page.limit && (
+            <nav
+              className="collection-pagination actions"
+              aria-label={
+                ru ? "Страницы списка планов" : "Жоспарлар тізімінің беттері"
+              }
+            >
+              <button
+                type="button"
+                className="button secondary"
+                disabled={page.offset === 0}
+                onClick={() => {
+                  focusResults.current = true;
+                  setOffset(Math.max(0, page.offset - page.limit));
+                }}
+              >
+                {ru ? "Назад" : "Артқа"}
+              </button>
+              <span>
+                {ru ? "Страница" : "Бет"}{" "}
+                {Math.floor(page.offset / page.limit) + 1} /{" "}
+                {Math.ceil(page.matched / page.limit)}
+              </span>
+              <button
+                type="button"
+                className="button secondary"
+                disabled={page.offset + page.limit >= page.matched}
+                onClick={() => {
+                  focusResults.current = true;
+                  setOffset(page.offset + page.limit);
+                }}
+              >
+                {ru ? "Далее" : "Келесі"}
+              </button>
+            </nav>
+          )}
           {onDemo && (
             <button
               className="text-button collection-demo"

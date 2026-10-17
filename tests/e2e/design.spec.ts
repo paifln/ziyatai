@@ -344,16 +344,26 @@ test("idle workspace does not poll business APIs and auth responses forbid share
   await page.context().addCookies((await request.storageState()).cookies);
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Менің КТЖ" })).toBeVisible();
+  await expect(page.locator(".first-plan")).toBeVisible();
   let requests = 0;
   page.on("request", (r) => {
-    if (/\/api\/(?:profile|ktp|library|jobs)(?:\?|$)/.test(r.url())) requests++;
+    if (
+      /\/api\/(?:profile|ktp(?:\/collection)?|library|jobs)(?:\?|$)/.test(
+        r.url(),
+      )
+    )
+      requests++;
   });
   await page.clock.install();
   await page.clock.fastForward(120000);
   expect(requests).toBe(0);
-  const updated = page.waitForResponse((r) => r.url().endsWith("/api/profile"));
+  const updated = page.waitForResponse(
+    (r) => new URL(r.url()).pathname === "/api/ktp/collection",
+  );
   await page.evaluate(() => window.dispatchEvent(new Event("online")));
   await updated;
+  expect(requests).toBe(3);
+  await page.clock.fastForward(120000);
   expect(requests).toBe(3);
 });
 

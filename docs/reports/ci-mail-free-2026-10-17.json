@@ -3,7 +3,8 @@
   "scope": "Keep registration smoke tests compatible with real authentication throttling without weakening the application",
   "remoteEvidence": [
     "Run 39033204623: 106 primary cases passed; the no-mail case failed at its unchecked-status sign-in assertion",
-    "Run 39036084255: 120 primary cases and the separate OTP case passed; the no-mail case failed waiting for the workspace after its one-shot registration submission"
+    "Run 39036084255: 120 primary cases and the separate OTP case passed; the no-mail case failed waiting for the workspace after its one-shot registration submission",
+    "Run 39037728559, head 0be80c1: completed successfully; 120 primary cases passed (two skipped), one OTP case passed, three no-mail cases passed; source/test job also succeeded"
   ],
   "diagnosticLimit": "Those historical assertions did not preserve HTTP status, so their exact original response codes cannot be established from the available logs",
   "changes": {
@@ -19,5 +20,5 @@
     "optionalOtp": "The real-Mailpit registration scenario passed with verification enabled",
     "runtimeRestored": "Normal local configuration restored after both temporary mode tests"
   },
-  "remainingGate": "The complete remote workflow must finish on this repair before it is described as green"
+  "remainingGate": "The registration test repair passed its complete remote workflow on 0be80c1; subsequent product commits require their own remote verification"
 }

@@ -11,7 +11,6 @@ import { planGrades, rowGrade } from "../../../../packages/domain/grades";
 export function GeneratePanel({
   t,
   locale,
-  plans,
   selected,
   aiAvailable,
   quota,
@@ -20,7 +19,6 @@ export function GeneratePanel({
 }: {
   t: Texts;
   locale: UiLocale;
-  plans: any[];
   selected: string;
   aiAvailable: boolean;
   quota: number;
@@ -28,8 +26,7 @@ export function GeneratePanel({
   onDone: (id: string) => void;
   onReview: (id: string) => void;
 }) {
-  const confirmed = plans.filter((p) => p.status === "confirmed");
-  const [planId, setPlanId] = useState(selected || confirmed[0]?.id || ""),
+  const [planId, setPlanId] = useState(selected || ""),
     [plan, setPlan] = useState<any>(),
     [rowId, setRowId] = useState(""),
     [outLocale, setOutLocale] = useState<string>(locale),

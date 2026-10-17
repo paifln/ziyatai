@@ -4,6 +4,7 @@ import { readBucket, readBudgets } from "../apps/web/lib/read-budgets";
 it("classifies full material fallback routes and expensive binary work without caller-controlled bucket keys", () => {
   for (const [path, expected] of [
     [["ktp"], "metadata"],
+    [["ktp", "collection"], "metadata"],
     [["history"], "metadata"],
     [["jobs", "id"], "metadata"],
     [["ktp", "id"], "snapshot"],

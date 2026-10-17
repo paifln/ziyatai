@@ -1,0 +1,65 @@
+{
+  "date": "2026-10-17",
+  "scope": "Owner-scoped KTP collection pages, whole-collection search, server filters/counts, slow-network recovery and account-switch isolation",
+  "beforeEvidence": {
+    "archivedPlanOutsideFirst100": "Real database row existed but main search returned zero rows",
+    "passiveRefresh": "Four requests started while one delayed response was still held instead of coalescing invalidations",
+    "supersededPage": "Typing a new search during a delayed page transition lost input focus",
+    "idleResume": "A refreshed session object triggered five metadata requests instead of one three-request workspace update",
+    "accountSwitch": "After the real session changed to another synthetic user, the old account's cached plan remained visible behind a delayed request"
+  },
+  "implementation": {
+    "endpoint": "GET /api/ktp/collection",
+    "defaultPageSize": 20,
+    "maximumPageSize": 100,
+    "singleStatementSnapshot": true,
+    "legacyArrayEndpointPreserved": true,
+    "schemaChanges": false,
+    "existingRowsRewritten": false,
+    "passiveInvalidations": "One in-flight request followed by at most one coalesced refresh; existing matching results remain visible",
+    "identityBoundary": "PlanCollection keyed by authenticated user ID; old requests are cancelled on unmount"
+  },
+  "verification": {
+    "finalWebImage": "sha256:92d5aec0f3984ab10339e5c96350f0d6977ddac3d71f530762fdf7f5cff44764",
+    "unitPassed": 119,
+    "finalChromiumPassed": 9,
+    "finalWebKitPassed": 9,
+    "browserCoverage": "126-plan fixture, KK/RU, Kazakh case-insensitive search, literal SQL wildcards, filters, stable pages, deleted last results, retry, stale-request cancellation, passive refresh and two real synthetic sessions",
+    "accessibility": "Scoped axe, no horizontal overflow, light/dark at 360/768/1440px; screenshots inspected",
+    "relatedSuite": {
+      "passed": 42,
+      "skipped": 1,
+      "skip": "Separate owner's workbook fixture not enabled",
+      "image": "sha256:53250ccf4773abdefa75a15a4e1a4085edceb2c9d143bbff2e6cdc997e516fff",
+      "finalImageDelta": "Only the PlanCollection identity key was added afterwards; final nine-case browser suites include the real account-switch regression"
+    },
+    "productionBuild": "passed",
+    "lint": "passed",
+    "typecheck": "passed",
+    "sourceCheck": "passed",
+    "npmAuditKnownVulnerabilities": 0,
+    "recognizedSecretPatternScan": "passed; not a complete secret-detection guarantee"
+  },
+  "transferMeasurement": {
+    "fixturePlans": 126,
+    "legacyItems": 100,
+    "newItems": 20,
+    "legacyUncompressedBytes": 18451,
+    "newUncompressedBytes": 3421,
+    "scope": "Local response payload only; no end-to-end or physical-device speed claim"
+  },
+  "remoteCI": {
+    "baselineCommit": "f4a41c9",
+    "baselineRun": 39038527378,
+    "baselineConclusion": "success",
+    "newFeature": "Requires its own complete remote run after push"
+  },
+  "remaining": [
+    "Audit other Workspace views when accounts change across tabs",
+    "Coalesce and cancel slow reads in history/library ResourceCollection",
+    "Grade filter uses plan metadata, not every class in a mixed-class workbook",
+    "Name ordering follows database collation",
+    "Physical Windows 7 devices remain unverified",
+    "No public deployment or paid infrastructure created"
+  ]
+}

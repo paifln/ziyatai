@@ -12,6 +12,7 @@ const routes: readonly [string, readonly string[]][] = [
   ["uploads/:id", ["GET", "HEAD"]],
   ["ktp", ["GET"]],
   ["ktp/imports", ["POST"]],
+  ["ktp/collection", ["GET"]],
   ["ktp/:id", ["GET", "DELETE"]],
   ["ktp/:id/rows", ["PATCH", "POST"]],
   ["ktp/:id/confirm", ["PATCH", "POST"]],

@@ -42,6 +42,7 @@ import { trustedScan } from "./scan-policy";
 import { sourceStatus, startSourceCheck } from "./source-checks";
 import { assertApiRoute, ApiMethodError } from "./api-routes";
 import { isEditablePlanStatus } from "../../../packages/domain/plan-status";
+import { planCollection } from "./plan-collection";
 const uid = z.string().uuid();
 async function owned(
   table: "plans" | "generations" | "exports" | "uploads" | "jobs",
@@ -231,6 +232,8 @@ export async function handle(req: Request, path: string[]) {
       .max(1000000)
       .parse(url.searchParams.get("offset") ?? "0");
     if (resource === "drafts") return await editorDrafts(req, path, owner);
+    if (resource === "ktp" && id === "collection" && method === "GET")
+      return json(await planCollection(owner, url.searchParams));
     if (resource === "account" && method === "DELETE") {
       await transaction(async (c) => {
         await c.query(

@@ -16,6 +16,16 @@
     "source_check": "passed",
     "railway_check": "offline passed"
   },
+  "remoteCI": {
+    "run": 39038527378,
+    "commit": "f4a41c9",
+    "conclusion": "success",
+    "primaryPassed": 128,
+    "primarySkipped": 3,
+    "otpPassed": 1,
+    "mailFreePassed": 3,
+    "note": "The configured-provider case is skipped without synthetic credentials; real Google/Apple identities remain untested"
+  },
   "limits": [
     "No real OAuth credentials were provided; Google/Apple sign-in is not activated",
     "No real provider code exchange or account linking was exercised",

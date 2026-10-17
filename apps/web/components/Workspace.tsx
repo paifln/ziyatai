@@ -92,7 +92,7 @@ function WorkspaceContent({
   const [view, setView] = useState<View>("plans"),
     [menu, setMenu] = useState(false),
     [profile, setProfile] = useState<any>(),
-    [plans, setPlans] = useState<any[]>([]),
+    [plansRevision, setPlansRevision] = useState(0),
     [jobs, setJobs] = useState<any[]>([]),
     [selected, setSelected] = useState(""),
     [error, setError] = useState(""),
@@ -141,6 +141,7 @@ function WorkspaceContent({
       ? "Есть несохранённые изменения. Уйти без сохранения?"
       : "Сақталмаған өзгерістер бар. Сақтамай шығу керек пе?";
   const refreshing = useRef(false);
+  const sessionUserId = session?.user.id;
   const refreshQueued = useRef(false);
   const setLocale = useCallback((l: UiLocale) => {
     setLocaleState(l);
@@ -154,7 +155,7 @@ function WorkspaceContent({
     if (cookie) setLocale(cookie);
   }, [setLocale]);
   const refresh = useCallback(async () => {
-    if (!session || passwordReset) return;
+    if (!sessionUserId || passwordReset) return;
     if (refreshing.current) {
       refreshQueued.current = true;
       return;
@@ -163,14 +164,10 @@ function WorkspaceContent({
     try {
       do {
         refreshQueued.current = false;
-        const data = await Promise.all([
-          api("profile"),
-          api("ktp?limit=100"),
-          api("jobs"),
-        ]);
+        const data = await Promise.all([api("profile"), api("jobs")]);
         setProfile(data[0]);
-        setPlans(data[1]);
-        setJobs(data[2]);
+        setPlansRevision((revision) => revision + 1);
+        setJobs(data[1]);
         setLoaded(true);
       } while (refreshQueued.current);
     } catch (e) {
@@ -178,7 +175,7 @@ function WorkspaceContent({
     } finally {
       refreshing.current = false;
     }
-  }, [session, passwordReset]);
+  }, [sessionUserId, passwordReset]);
   useEffect(() => {
     void refresh();
   }, [refresh]);
@@ -545,7 +542,8 @@ function WorkspaceContent({
                     refresh={refresh}
                   />
                   <PlanCollection
-                    plans={plans}
+                    key={sessionUserId}
+                    revision={plansRevision}
                     t={t}
                     locale={locale}
                     onUpload={() => {
@@ -595,7 +593,6 @@ function WorkspaceContent({
                 <GeneratePanel
                   t={t}
                   locale={locale}
-                  plans={plans}
                   selected={selected}
                   aiAvailable={profile.capabilities.ai}
                   quota={profile.limits.daily}
