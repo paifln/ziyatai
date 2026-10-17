@@ -218,6 +218,32 @@ try {
       "return Array.prototype.some.call(document.querySelectorAll('button'),function(b){return b.textContent==='Создать задания';})",
     ),
   );
+  const importedTitle = await execute(
+    "return document.querySelector('#content h1').textContent",
+  );
+  await click("Мои КТП");
+  await until(() =>
+    execute("return !!document.querySelector('#content form[role=search]')"),
+  );
+  await fill('#content input[aria-label="Найти по названию"]', importedTitle);
+  await click("Найти");
+  await until(() =>
+    execute(
+      "return document.querySelectorAll('#content .resource').length===1",
+    ),
+  );
+  assert.equal(
+    await execute(
+      "return document.querySelector('#content .resource strong').textContent",
+    ),
+    importedTitle,
+  );
+  await click("Открыть");
+  await until(() =>
+    execute(
+      "return !!document.querySelector('#content input[aria-label=\"Учебный год\"]')",
+    ),
+  );
   await call("/window/rect", { width: 360, height: 900 });
   if (
     await execute(
@@ -348,6 +374,7 @@ try {
     emailVerificationRequired: publicConfig.emailVerificationRequired,
     importConfirmed: true,
     generationClassAndTopicSearch: true,
+    collectionSearch: true,
     taskEdited: true,
     draftBackedUp: true,
     draftRecovered: true,

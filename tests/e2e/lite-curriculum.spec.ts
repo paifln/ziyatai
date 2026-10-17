@@ -246,10 +246,6 @@ test("Lite filters generation topics by class and search without losing the plan
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true);
-  await page.screenshot({
-    path: ".local/qa/lite-class-search.png",
-    fullPage: true,
-  });
   await submit.click();
   await expect
     .poll(() => submitted)
@@ -257,6 +253,12 @@ test("Lite filters generation topics by class and search without losing the plan
   await expect(submit).toBeEnabled();
   await expect(grade).toHaveValue("10");
   await expect(search).toHaveValue("Уравнения");
+  // Full-page capture temporarily resizes Chromium's viewport. Capture after
+  // the real click so it cannot shift focus/scroll between mouse down and up.
+  await page.screenshot({
+    path: ".local/qa/lite-class-search.png",
+    fullPage: true,
+  });
   expect(
     (await (await request.get(`/api/ktp/${plan.id}`)).json()).rows,
   ).toHaveLength(4);
