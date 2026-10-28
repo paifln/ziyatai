@@ -1,0 +1,271 @@
+{
+  "date": "2026-10-17T16:18:06.397Z",
+  "run": "5f45c5a7affa6824",
+  "requestedSeconds": 600,
+  "environment": "Owned localhost production web; synthetic users, real PostgreSQL; isolated local benchmark-IP budget",
+  "durationSeconds": 601,
+  "initial": {
+    "id": "c272aee5e4c391f224c73d1d0d6c738c7cb518c195ac61f584ceaf1a72040d14",
+    "image": "sha256:b1903eb003a51cd72166ea6a680d9f684d30955cc3984c397a5a85f2116d0c3d",
+    "restarts": 0,
+    "startedAt": "2026-10-17T15:52:18.12148322Z",
+    "status": "running"
+  },
+  "observations": [
+    {
+      "atMs": 18,
+      "state": {
+        "id": "c272aee5e4c391f224c73d1d0d6c738c7cb518c195ac61f584ceaf1a72040d14",
+        "image": "sha256:b1903eb003a51cd72166ea6a680d9f684d30955cc3984c397a5a85f2116d0c3d",
+        "restarts": 0,
+        "startedAt": "2026-10-17T15:52:18.12148322Z",
+        "status": "running"
+      }
+    },
+    {
+      "atMs": 30335,
+      "state": {
+        "id": "c272aee5e4c391f224c73d1d0d6c738c7cb518c195ac61f584ceaf1a72040d14",
+        "image": "sha256:b1903eb003a51cd72166ea6a680d9f684d30955cc3984c397a5a85f2116d0c3d",
+        "restarts": 0,
+        "startedAt": "2026-10-17T15:52:18.12148322Z",
+        "status": "running"
+      }
+    },
+    {
+      "atMs": 60150,
+      "state": {
+        "id": "c272aee5e4c391f224c73d1d0d6c738c7cb518c195ac61f584ceaf1a72040d14",
+        "image": "sha256:b1903eb003a51cd72166ea6a680d9f684d30955cc3984c397a5a85f2116d0c3d",
+        "restarts": 0,
+        "startedAt": "2026-10-17T15:52:18.12148322Z",
+        "status": "running"
+      }
+    },
+    {
+      "atMs": 90031,
+      "state": {
+        "id": "c272aee5e4c391f224c73d1d0d6c738c7cb518c195ac61f584ceaf1a72040d14",
+        "image": "sha256:b1903eb003a51cd72166ea6a680d9f684d30955cc3984c397a5a85f2116d0c3d",
+        "restarts": 0,
+        "startedAt": "2026-10-17T15:52:18.12148322Z",
+        "status": "running"
+      }
+    },
+    {
+      "atMs": 120339,
+      "state": {
+        "id": "c272aee5e4c391f224c73d1d0d6c738c7cb518c195ac61f584ceaf1a72040d14",
+        "image": "sha256:b1903eb003a51cd72166ea6a680d9f684d30955cc3984c397a5a85f2116d0c3d",
+        "restarts": 0,
+        "startedAt": "2026-10-17T15:52:18.12148322Z",
+        "status": "running"
+      }
+    },
+    {
+      "atMs": 150221,
+      "state": {
+        "id": "c272aee5e4c391f224c73d1d0d6c738c7cb518c195ac61f584ceaf1a72040d14",
+        "image": "sha256:b1903eb003a51cd72166ea6a680d9f684d30955cc3984c397a5a85f2116d0c3d",
+        "restarts": 0,
+        "startedAt": "2026-10-17T15:52:18.12148322Z",
+        "status": "running"
+      }
+    },
+    {
+      "atMs": 180120,
+      "state": {
+        "id": "c272aee5e4c391f224c73d1d0d6c738c7cb518c195ac61f584ceaf1a72040d14",
+        "image": "sha256:b1903eb003a51cd72166ea6a680d9f684d30955cc3984c397a5a85f2116d0c3d",
+        "restarts": 0,
+        "startedAt": "2026-10-17T15:52:18.12148322Z",
+        "status": "running"
+      }
+    },
+    {
+      "atMs": 210019,
+      "state": {
+        "id": "c272aee5e4c391f224c73d1d0d6c738c7cb518c195ac61f584ceaf1a72040d14",
+        "image": "sha256:b1903eb003a51cd72166ea6a680d9f684d30955cc3984c397a5a85f2116d0c3d",
+        "restarts": 0,
+        "startedAt": "2026-10-17T15:52:18.12148322Z",
+        "status": "running"
+      }
+    },
+    {
+      "atMs": 240436,
+      "state": {
+        "id": "c272aee5e4c391f224c73d1d0d6c738c7cb518c195ac61f584ceaf1a72040d14",
+        "image": "sha256:b1903eb003a51cd72166ea6a680d9f684d30955cc3984c397a5a85f2116d0c3d",
+        "restarts": 0,
+        "startedAt": "2026-10-17T15:52:18.12148322Z",
+        "status": "running"
+      }
+    },
+    {
+      "atMs": 270392,
+      "state": {
+        "id": "c272aee5e4c391f224c73d1d0d6c738c7cb518c195ac61f584ceaf1a72040d14",
+        "image": "sha256:b1903eb003a51cd72166ea6a680d9f684d30955cc3984c397a5a85f2116d0c3d",
+        "restarts": 0,
+        "startedAt": "2026-10-17T15:52:18.12148322Z",
+        "status": "running"
+      }
+    },
+    {
+      "atMs": 300383,
+      "state": {
+        "id": "c272aee5e4c391f224c73d1d0d6c738c7cb518c195ac61f584ceaf1a72040d14",
+        "image": "sha256:b1903eb003a51cd72166ea6a680d9f684d30955cc3984c397a5a85f2116d0c3d",
+        "restarts": 0,
+        "startedAt": "2026-10-17T15:52:18.12148322Z",
+        "status": "running"
+      }
+    },
+    {
+      "atMs": 330342,
+      "state": {
+        "id": "c272aee5e4c391f224c73d1d0d6c738c7cb518c195ac61f584ceaf1a72040d14",
+        "image": "sha256:b1903eb003a51cd72166ea6a680d9f684d30955cc3984c397a5a85f2116d0c3d",
+        "restarts": 0,
+        "startedAt": "2026-10-17T15:52:18.12148322Z",
+        "status": "running"
+      }
+    },
+    {
+      "atMs": 360305,
+      "state": {
+        "id": "c272aee5e4c391f224c73d1d0d6c738c7cb518c195ac61f584ceaf1a72040d14",
+        "image": "sha256:b1903eb003a51cd72166ea6a680d9f684d30955cc3984c397a5a85f2116d0c3d",
+        "restarts": 0,
+        "startedAt": "2026-10-17T15:52:18.12148322Z",
+        "status": "running"
+      }
+    },
+    {
+      "atMs": 390414,
+      "state": {
+        "id": "c272aee5e4c391f224c73d1d0d6c738c7cb518c195ac61f584ceaf1a72040d14",
+        "image": "sha256:b1903eb003a51cd72166ea6a680d9f684d30955cc3984c397a5a85f2116d0c3d",
+        "restarts": 0,
+        "startedAt": "2026-10-17T15:52:18.12148322Z",
+        "status": "running"
+      }
+    },
+    {
+      "atMs": 420472,
+      "state": {
+        "id": "c272aee5e4c391f224c73d1d0d6c738c7cb518c195ac61f584ceaf1a72040d14",
+        "image": "sha256:b1903eb003a51cd72166ea6a680d9f684d30955cc3984c397a5a85f2116d0c3d",
+        "restarts": 0,
+        "startedAt": "2026-10-17T15:52:18.12148322Z",
+        "status": "running"
+      }
+    },
+    {
+      "atMs": 450013,
+      "state": {
+        "id": "c272aee5e4c391f224c73d1d0d6c738c7cb518c195ac61f584ceaf1a72040d14",
+        "image": "sha256:b1903eb003a51cd72166ea6a680d9f684d30955cc3984c397a5a85f2116d0c3d",
+        "restarts": 0,
+        "startedAt": "2026-10-17T15:52:18.12148322Z",
+        "status": "running"
+      }
+    },
+    {
+      "atMs": 480330,
+      "state": {
+        "id": "c272aee5e4c391f224c73d1d0d6c738c7cb518c195ac61f584ceaf1a72040d14",
+        "image": "sha256:b1903eb003a51cd72166ea6a680d9f684d30955cc3984c397a5a85f2116d0c3d",
+        "restarts": 0,
+        "startedAt": "2026-10-17T15:52:18.12148322Z",
+        "status": "running"
+      }
+    },
+    {
+      "atMs": 510194,
+      "state": {
+        "id": "c272aee5e4c391f224c73d1d0d6c738c7cb518c195ac61f584ceaf1a72040d14",
+        "image": "sha256:b1903eb003a51cd72166ea6a680d9f684d30955cc3984c397a5a85f2116d0c3d",
+        "restarts": 0,
+        "startedAt": "2026-10-17T15:52:18.12148322Z",
+        "status": "running"
+      }
+    },
+    {
+      "atMs": 540032,
+      "state": {
+        "id": "c272aee5e4c391f224c73d1d0d6c738c7cb518c195ac61f584ceaf1a72040d14",
+        "image": "sha256:b1903eb003a51cd72166ea6a680d9f684d30955cc3984c397a5a85f2116d0c3d",
+        "restarts": 0,
+        "startedAt": "2026-10-17T15:52:18.12148322Z",
+        "status": "running"
+      }
+    },
+    {
+      "atMs": 570466,
+      "state": {
+        "id": "c272aee5e4c391f224c73d1d0d6c738c7cb518c195ac61f584ceaf1a72040d14",
+        "image": "sha256:b1903eb003a51cd72166ea6a680d9f684d30955cc3984c397a5a85f2116d0c3d",
+        "restarts": 0,
+        "startedAt": "2026-10-17T15:52:18.12148322Z",
+        "status": "running"
+      }
+    },
+    {
+      "atMs": 600457,
+      "state": {
+        "id": "c272aee5e4c391f224c73d1d0d6c738c7cb518c195ac61f584ceaf1a72040d14",
+        "image": "sha256:b1903eb003a51cd72166ea6a680d9f684d30955cc3984c397a5a85f2116d0c3d",
+        "restarts": 0,
+        "startedAt": "2026-10-17T15:52:18.12148322Z",
+        "status": "running"
+      }
+    },
+    {
+      "atMs": 600603,
+      "state": {
+        "id": "c272aee5e4c391f224c73d1d0d6c738c7cb518c195ac61f584ceaf1a72040d14",
+        "image": "sha256:b1903eb003a51cd72166ea6a680d9f684d30955cc3984c397a5a85f2116d0c3d",
+        "restarts": 0,
+        "startedAt": "2026-10-17T15:52:18.12148322Z",
+        "status": "running"
+      }
+    }
+  ],
+  "counters": {
+    "reads": 1077,
+    "mismatches": 107,
+    "passwordChanges": 10,
+    "revocations": 10,
+    "relogins": 5,
+    "abortedProbes": 33,
+    "completedProbes": 7
+  },
+  "statuses": {
+    "GET public-config 200": 1,
+    "POST auth/sign-up/email 200": 2,
+    "POST auth/sign-in/email 200": 7,
+    "GET auth/get-session 200": 1008,
+    "GET health/ready 200": 20,
+    "POST auth/change-password 200": 10,
+    "POST auth/revoke-other-sessions 200": 10,
+    "GET auth/get-session 409": 107,
+    "POST auth/sign-out 200": 5,
+    "GET profile 200": 71,
+    "DELETE account 200": 2,
+    "GET profile 401": 2
+  },
+  "latencyMs": {
+    "p50": 17,
+    "p95": 25,
+    "max": 213
+  },
+  "fixtureCleanup": [
+    true,
+    true
+  ],
+  "failure": null,
+  "verified": true,
+  "limits": "Bounded local mixed-auth soak, not a cloud capacity benchmark or proof that the isolated exit 139 is fixed; request cancellation probes may complete before their deadline"
+}
