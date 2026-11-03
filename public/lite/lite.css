@@ -294,7 +294,7 @@ textarea[aria-invalid="true"] {
   display: block;
   margin: 7px 0 0 auto;
   padding: 3px 0;
-  min-height: 28px;
+  min-height: 44px;
   border: 0;
   background: transparent;
   color: #245b42;

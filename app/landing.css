@@ -598,14 +598,14 @@
     display: none;
   }
   .landing-nav .icon-button {
-    width: 34px;
-    height: 34px;
-    min-width: 34px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
   }
   .landing-nav .language-switch button {
     padding: 6px;
     font-size: 9px;
-    min-width: 0;
+    min-width: 44px;
   }
   .landing-hero {
     padding-top: 44px;
