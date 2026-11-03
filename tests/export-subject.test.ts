@@ -91,6 +91,39 @@ it("exports A4 portrait and landscape with two flowing columns and generous answ
   expect(noLines).not.toContain('w:color="B8B8B8"');
 });
 
+it("omits solutions from student exports while retaining them in full exports", async () => {
+  const { document, snapshot } = syntheticDemo("ru");
+  const task = document.tasks[0];
+  task.answerBlocks[0].text = "PRIVATE_ANSWER";
+  task.explanationHow = "PRIVATE_HOW";
+  task.explanationWhy = "PRIVATE_WHY";
+  task.rubric[0].criterion = "PRIVATE_RUBRIC";
+  task.translation = {
+    contentBlocks: structuredClone(task.contentBlocks),
+    answerBlocks: [{ ...task.answerBlocks[0], text: "PRIVATE_TRANSLATED_ANSWER" }],
+    explanationHow: "PRIVATE_TRANSLATED_HOW",
+    explanationWhy: "PRIVATE_TRANSLATED_WHY",
+    rubric: [{ ...task.rubric[0], criterion: "PRIVATE_TRANSLATED_RUBRIC" }],
+  };
+  const student = documentXml(
+    await renderDocx(document, snapshot, {}, "student"),
+  );
+  const full = documentXml(await renderDocx(document, snapshot, {}, "full"));
+  for (const marker of [
+    "PRIVATE_ANSWER",
+    "PRIVATE_HOW",
+    "PRIVATE_WHY",
+    "PRIVATE_RUBRIC",
+    "PRIVATE_TRANSLATED_ANSWER",
+    "PRIVATE_TRANSLATED_HOW",
+    "PRIVATE_TRANSLATED_WHY",
+    "PRIVATE_TRANSLATED_RUBRIC",
+  ]) {
+    expect(student).not.toContain(marker);
+    expect(full).toContain(marker);
+  }
+});
+
 it("prints the snapshotted subject in both languages and keeps old unknown subjects neutral", async () => {
   for (const [locale, subject, expected] of [
     ["ru", "mathematics", "Математика • Класс 7"],

@@ -9,7 +9,7 @@ export default defineConfig({
   use: {
     ...(useWebKit ? devices["Desktop Safari"] : {}),
     browserName: useWebKit ? "webkit" : "chromium",
-    baseURL: "http://localhost:3000",
+    baseURL: process.env.QA_BASE_URL || "http://localhost:3000",
     channel: useWebKit || process.env.CI ? undefined : "chrome",
     headless: true,
     actionTimeout: 20000,

@@ -6,7 +6,14 @@ import { parse } from "acorn";
 import { mergeDrafts } from "../packages/domain/merge-drafts";
 
 it("keeps every Lite runtime script valid ES5", () => {
-  for (const file of ["lite.js", "theme.js", "drafts.js", "draft-merge.js"])
+  for (const file of [
+    "lite.js",
+    "theme.js",
+    "drafts.js",
+    "draft-merge.js",
+    "account-session.js",
+    "curriculum.js",
+  ])
     expect(
       () =>
         parse(readFileSync(`public/lite/${file}`, "utf8"), { ecmaVersion: 5 }),

@@ -1,3 +1,4 @@
+import { origin as qaOrigin } from "./helpers";
 import { test, expect } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import { parseEnv } from "node:util";
@@ -13,7 +14,7 @@ test("switching accounts in another tab cancels the old collection and never pub
   const firstOwner = (await (await request.get("/api/auth/get-session")).json())
     .user.id;
   const second = await playwright.request.newContext({
-    baseURL: "http://localhost:3000",
+    baseURL: qaOrigin,
   });
   const pool = new Pool({
     connectionString: parseEnv(await readFile(".env.local", "utf8"))
@@ -78,7 +79,7 @@ test("switching accounts in another tab cancels the old collection and never pub
     // this storage event. Real synthetic sessions/cookies are used throughout.
     await otherTab.evaluate(() =>
       localStorage.setItem(
-        "better-auth.message",
+        "ziyatai.auth",
         JSON.stringify({
           event: "session",
           data: { trigger: "signIn" },

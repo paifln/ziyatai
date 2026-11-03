@@ -4,6 +4,7 @@ export interface PlanSummary {
   id: string;
   title: string;
   grade: number | null;
+  grades?: number[];
   school_year: string;
   status: PlanStatusValue;
   created_at?: string;

@@ -6,9 +6,7 @@
   var content = document.getElementById("content");
   var datesBeforeSkip = null;
   var sourceRead = null;
-  var localMailbox = false;
-  var emailVerificationRequired = true,
-    passwordResetAvailable = false;
+  var passwordResetAvailable = true;
   var message = document.getElementById("message");
   var navigation = document.getElementById("navigation");
   if (
@@ -151,6 +149,34 @@
     var unavailable = dirty || !plan || plan.status !== "confirmed";
     if (create) create.disabled = busy || unavailable;
     if (hint) hint.hidden = !unavailable;
+    var confirm = document.getElementById("confirm-plan");
+    if (confirm && plan) {
+      var rows = plan.rows || [],
+        missing = incompletePlanRows();
+      confirm.disabled = busy || !rows.length || missing.length > 0;
+      var summary = document.getElementById("plan-readiness");
+      if (summary)
+        summary.textContent = missing.length
+          ? text("Толтырылмаған жолдар: ", "Строки с пропусками: ") +
+            missing.length +
+            " / " +
+            rows.length
+          : text(
+              "Міндетті өрістер толтырылған. Мазмұнды түпнұсқамен салыстырыңыз.",
+              "Обязательные поля заполнены. Сверьте содержание с исходником."
+            );
+      var jump = document.getElementById("first-plan-issue");
+      if (jump) jump.disabled = busy || !missing.length;
+    }
+  }
+  function incompletePlanRows() {
+    return ((plan && plan.rows) || []).filter(function (row) {
+      return (
+        !row.topic.trim() ||
+        !window.ZiyatCurriculum.hasRequiredGoals(row) ||
+        !gradeOf(row)
+      );
+    });
   }
   function invalidateReads() {
     if (sourceRead) {
@@ -183,6 +209,24 @@
   var listQueries = { ktp: "", history: "", library: "" },
     listStatus = "";
   var requestKeys = {};
+  var account = window.ZiyatLiteAccount({
+    request: request,
+    changed: function () {
+      dirty = false;
+      busy = false;
+      if (draftSession) draftSession.stop();
+      draftSession = null;
+      invalidateReads();
+      user = profile = plan = generation = activeTask = null;
+      datesBeforeSkip = null;
+      requestKeys = {};
+      navigation.textContent = content.textContent = message.textContent = "";
+      var dialogs = document.querySelectorAll("dialog");
+      for (var i = 0; i < dialogs.length; i++)
+        dialogs[i].parentNode.removeChild(dialogs[i]);
+      window.location.replace("/lite/");
+    },
+  });
   var words = {
     plans: ["Менің КТЖ", "Мои КТП"],
     upload: ["КТЖ жүктеу", "Загрузить КТП"],
@@ -316,6 +360,10 @@
     LIMIT: [
       "Лимитке жеттіңіз. Біраздан кейін қайталаңыз.",
       "Достигнут лимит. Повторите позже.",
+    ],
+    REQUEST_TIMEOUT: [
+      "Деректерді жіберу тым ұзаққа созылды. Байланысты тексеріп, әрекетті қайталаңыз.",
+      "Передача данных заняла слишком много времени. Проверьте соединение и повторите действие.",
     ],
     DRAFT_SIZE: [
       "Мәтін сақтық нобай үшін тым үлкен. Қойындыны жаппаңыз: шығар алдында маңызды өзгерістерді бөлек сақтаңыз.",
@@ -452,6 +500,7 @@
   function request(path, method, data, done) {
     var xhr = new XMLHttpRequest();
     xhr.open(method || "GET", "/api/" + path);
+    if (!account.track(xhr, path)) return xhr;
     xhr.timeout = 120000;
     var form = data instanceof FormData;
     if (!form && data !== undefined)
@@ -473,6 +522,7 @@
       );
     }
     xhr.onload = function () {
+      if (!account.finish(xhr)) return;
       var result;
       try {
         result = JSON.parse(xhr.responseText);
@@ -491,6 +541,7 @@
       }
       if (xhr.status < 200 || xhr.status >= 300) {
         var code = result.code || (result.error && result.error.code);
+        if (account.reject(path, xhr.status, code)) return;
         if (xhr.status === 429 && code !== "READ_LIMIT") code = "LIMIT";
         var reason = words[code] ? t(code) : t("error");
         if (
@@ -511,7 +562,11 @@
       done(null, result);
     };
     xhr.onerror = xhr.ontimeout = function () {
+      if (!account.finish(xhr)) return;
       done(t("error"));
+    };
+    xhr.onabort = function () {
+      account.finish(xhr);
     };
     xhr.send(data === undefined ? null : form ? data : JSON.stringify(data));
     return xhr;
@@ -606,7 +661,7 @@
   function confirmAction(value, done, destructive) {
     var dialog = el("dialog", null, "confirm-dialog");
     if (typeof dialog.showModal !== "function") {
-      if (window.confirm(value)) done();
+      if (window.confirm(value) && account.active()) done();
       return;
     }
     var trigger = document.activeElement;
@@ -623,7 +678,7 @@
       dialog.parentNode.removeChild(dialog);
       if (trigger && document.documentElement.contains(trigger))
         trigger.focus();
-      if (accepted) done();
+      if (accepted && account.active()) done();
     }
     var cancel = add(
       actions,
@@ -719,185 +774,16 @@
       }
       renderNav();
       if (user) render();
-      else if (authMode === "verify") verifyForm(verificationEmail);
       else authForm(authMode);
     });
   };
-  var verificationEmail = "";
-  function mailPreview(form) {
-    var slot = add(form, el("div"));
-    slot.id = "local-mail-preview";
-    updateMailPreview();
-  }
-  function updateMailPreview() {
-    var slot = document.getElementById("local-mail-preview");
-    if (!slot || !localMailbox) return;
-    slot.textContent = "";
-    var note = add(
-      slot,
-      el(
-        "p",
-        text(
-          "Жергілікті демода кодтар мен сілтемелер осы компьютердің сынақ поштасына түседі. ",
-          "В локальной демонстрации коды и ссылки попадают в тестовую почту этого ПК, а не во внешний ящик. "
-        ),
-        "mail-preview-note"
-      )
-    );
-    var link = add(
-      note,
-      el("a", text("Сынақ поштасын ашу", "Открыть тестовую почту"))
-    );
-    link.href = "http://localhost:8025";
-    link.target = "_blank";
-    link.rel = "noopener noreferrer";
-  }
-  function verifyForm(address) {
-    authMode = "verify";
-    verificationEmail = address;
-    clear(text("Поштаңызды растаңыз", "Подтвердите почту"));
-    var form = add(content, el("form", null, "panel auth"));
-    mailPreview(form);
-    add(
-      form,
-      el(
-        "p",
-        text(
-          "Поштадағы 6 таңбалы кодты енгізіңіз: ",
-          "Введите 6-значный код из письма: "
-        ) + address
-      )
-    );
-    var code = field(
-      form,
-      text("Растау коды", "Код подтверждения"),
-      "",
-      "text"
-    );
-    code.required = true;
-    code.pattern = "[0-9]{6}";
-    code.maxLength = 6;
-    code.autocomplete = "one-time-code";
-    code.inputMode = "numeric";
-    var submit = add(
-      form,
-      el("button", text("Растау", "Подтвердить"), "primary")
-    );
-    submit.type = "submit";
-    form.onsubmit = function (e) {
-      e.preventDefault();
-      action(
-        "auth/email-otp/verify-email",
-        { email: verificationEmail, otp: code.value },
-        function () {
-          window.location.reload();
-        }
-      );
-    };
-    add(
-      form,
-      button(text("Кодты қайта жіберу", "Отправить код ещё раз"), function () {
-        action(
-          "auth/email-otp/send-verification-otp",
-          { email: verificationEmail, type: "email-verification" },
-          function () {
-            note(
-              text(
-                "Жаңа код жіберілді. Код 10 минут жарамды.",
-                "Новый код отправлен. Код действует 10 минут."
-              )
-            );
-          }
-        );
-      })
-    );
-    add(
-      form,
-      button(t("login"), function () {
-        authForm("login");
-      })
-    );
-  }
   function authForm(mode) {
     authMode = mode;
     clear(
       text("Сабаққа дайындық — бір жерде", "Подготовка к уроку — в одном месте")
     );
     var form = add(content, el("form", null, "panel auth"));
-    if (mode === "reset") mailPreview(form);
     add(form, el("h2", t(mode)));
-    if (mode === "login" || mode === "signup") {
-      var social = add(form, el("div", null, "social-auth"));
-      ["google", "apple"].forEach(function (provider) {
-        var label = provider === "google" ? "Google" : "Apple";
-        var socialButton = add(
-          social,
-          button(text("Жалғастыру: ", "Продолжить с ") + label, function () {
-            socialButton.disabled = true;
-            request("public-config", "GET", undefined, function (err, config) {
-              if (
-                err ||
-                !config.socialProviders ||
-                !config.socialProviders[provider]
-              ) {
-                socialButton.disabled = false;
-                note(
-                  err ||
-                    text(
-                      label +
-                        " арқылы кіру әлі қосылмаған. Пошта арқылы кіріңіз.",
-                      "Вход через " +
-                        label +
-                        " пока не подключён. Войдите по почте."
-                    ),
-                  true
-                );
-                return;
-              }
-              request(
-                "auth/sign-in/social",
-                "POST",
-                {
-                  provider: provider,
-                  callbackURL: "/lite/",
-                  errorCallbackURL: "/lite/?oauthError=1",
-                  disableRedirect: true,
-                },
-                function (error, result) {
-                  socialButton.disabled = false;
-                  if (error || !result || !result.url)
-                    note(
-                      error ||
-                        text(
-                          "Кіру басталмады. Қайталап көріңіз.",
-                          "Не удалось начать вход. Попробуйте ещё раз."
-                        ),
-                      true
-                    );
-                  else window.location.assign(result.url);
-                }
-              );
-            });
-          })
-        );
-      });
-      add(
-        social,
-        el(
-          "p",
-          text("немесе электрондық пошта арқылы", "или по электронной почте"),
-          "social-auth-divider"
-        )
-      );
-      if (new URLSearchParams(window.location.search).has("oauthError"))
-        note(
-          text(
-            "Кіру аяқталмады. Бұрынғы кіру тәсілін қолданыңыз.",
-            "Вход не завершён. Попробуйте снова или используйте прежний способ входа."
-          ),
-          true
-        );
-    }
     var name, email, password, subject;
     if (mode === "signup") {
       name = field(form, t("name"), "", "text");
@@ -1012,9 +898,15 @@
             busy = false;
             unlock();
             if (err) {
-              if (result && result.code === "EMAIL_NOT_VERIFIED")
-                verifyForm(email.value);
-              else note(err, true);
+              note(
+                result && result.code === "EMAIL_NOT_VERIFIED"
+                  ? text(
+                      "Поштаны сілтемемен растаңыз немесе құпиясөзді қалпына келтіріңіз.",
+                      "Подтвердите почту по ссылке или восстановите пароль."
+                    )
+                  : err,
+                true
+              );
               return;
             }
             window.location.reload();
@@ -1031,8 +923,14 @@
             callbackURL: "/lite/",
           },
           function (result) {
-            if (result && result.token) window.location.reload();
-            else verifyForm(email.value);
+            if (result && result.success) window.location.reload();
+            else
+              note(
+                text(
+                  "Хаттағы сілтеме арқылы поштаңызды растаңыз.",
+                  "Подтвердите почту по ссылке из письма."
+                )
+              );
           }
         );
       else if (mode === "reset")
@@ -1048,8 +946,6 @@
           "auth/reset-password",
           {
             newPassword: password.value,
-            token:
-              new URLSearchParams(window.location.search).get("token") || "",
           },
           function () {
             window.history.replaceState(null, "", "/lite/");
@@ -1074,16 +970,6 @@
         }
       }
     });
-    if (mode === "login") {
-      var verifyOption = add(
-        buttons,
-        button(text("Поштаны растау", "Подтвердить почту"), function () {
-          verifyForm(email.value);
-        })
-      );
-      verifyOption.id = "auth-verify-option";
-      verifyOption.hidden = !emailVerificationRequired;
-    }
   }
   function render() {
     if (plan) {
@@ -1338,6 +1224,7 @@
       [
         ["kk", "Қазақша"],
         ["ru", "Русский"],
+        ["en", "English"],
       ],
       locale
     );
@@ -1409,6 +1296,7 @@
             note(t("loading"));
             var xhr = new XMLHttpRequest();
             xhr.open("PUT", init.url);
+            if (!account.track(xhr)) return;
             xhr.timeout = 300000;
             xhr.setRequestHeader("Content-Type", init.contentType);
             transfer = xhr;
@@ -1422,6 +1310,7 @@
                 );
             };
             function failed() {
+              if (!account.finish(xhr)) return;
               if (cancelled) return;
               busy = false;
               unlock();
@@ -1429,6 +1318,7 @@
             }
             xhr.onerror = xhr.ontimeout = failed;
             xhr.onload = function () {
+              if (!account.finish(xhr)) return;
               if (cancelled) return;
               busy = false;
               unlock();
@@ -1439,6 +1329,9 @@
                   imported
                 );
               else failed();
+            };
+            xhr.onabort = function () {
+              account.finish(xhr);
             };
             xhr.send(selected);
           }
@@ -1615,7 +1508,7 @@
     var settings = add(content, el("div", null, "fields")),
       grades = [["", text("Таңдаңыз", "Выберите")]];
     for (var i = 1; i <= 11; i++) grades.push([String(i), String(i)]);
-    select(
+    var planGrade = select(
       settings,
       t("grade"),
       grades,
@@ -1625,6 +1518,7 @@
         changed();
       }
     );
+    planGrade.id = "lite-plan-grade";
     field(settings, t("year"), plan.school_year, "text", function (v) {
       plan.school_year = v;
       changed();
@@ -1711,7 +1605,7 @@
         save(false);
       })
     );
-    add(
+    var confirmPlan = add(
       actions,
       button(
         t("confirm"),
@@ -1721,6 +1615,43 @@
         true
       )
     );
+    confirmPlan.id = "confirm-plan";
+    if (plan.rows && plan.rows.length) {
+      var readiness = add(content, el("section", null, "panel"));
+      readiness.setAttribute(
+        "aria-label",
+        text("КТЖ растауға дайындығы", "Готовность КТП к подтверждению")
+      );
+      add(readiness, el("p")).id = "plan-readiness";
+      document.getElementById("plan-readiness").setAttribute("role", "status");
+      var firstIssue = add(
+        readiness,
+        button(
+          text("Бірінші бос өріске өту", "К первому пропуску"),
+          function () {
+            var row = incompletePlanRows()[0];
+            if (!row) return;
+            classFilter = "";
+            rowPage = Math.floor(plan.rows.indexOf(row) / 10);
+            var field = !row.topic.trim()
+              ? "topic"
+              : !window.ZiyatCurriculum.hasRequiredGoals(row)
+                ? "goals"
+                : "grade";
+            renderPlan();
+            var target =
+              field === "grade"
+                ? document.getElementById("lite-plan-grade")
+                : document
+                    .getElementById("lite-row-" + row.id)
+                    .querySelector('[data-review-field="' + field + '"]');
+            if (target) target.focus();
+          }
+        )
+      );
+      firstIssue.id = "first-plan-issue";
+    }
+    updatePlanAction();
     if (plan.status === "confirmed") {
       var create = add(
         actions,
@@ -1772,6 +1703,7 @@
       .slice(rowPage * 10, rowPage * 10 + 10)
       .forEach(function (r, offset) {
         var section = add(panel, el("section", null, "row"));
+        section.id = "lite-row-" + r.id;
         add(
           section,
           el(
@@ -1786,16 +1718,12 @@
         }
         field(section, t("topic"), r.topic, "textarea", function (v) {
           update("topic", v);
-        });
+        }).setAttribute("data-review-field", "topic");
         field(section, t("goals"), r.goals, "textarea", function (v) {
           r.goalsSkipped = false;
           update("goals", v);
-        });
-        if (
-          /(^|[^А-Яа-яA-Za-z0-9])(СОР|СОЧ|БЖБ|ТЖБ)($|[^А-Яа-яA-Za-z0-9])/i.test(
-            r.topic
-          )
-        ) {
+        }).setAttribute("data-review-field", "goals");
+        if (window.ZiyatCurriculum.isAssessmentTopic(r.topic)) {
           var skipGoals = add(
             section,
             button(
@@ -2550,21 +2478,7 @@
     }
   });
   language();
-  {
-    request("public-config", "GET", undefined, function (error, config) {
-      localMailbox = !error && config && config.localMailbox === true;
-      emailVerificationRequired =
-        error || !config || config.emailVerificationRequired !== false;
-      passwordResetAvailable =
-        !error && config && config.passwordResetAvailable === true;
-      var resetOption = document.getElementById("auth-reset-option"),
-        verifyOption = document.getElementById("auth-verify-option");
-      if (resetOption) resetOption.hidden = !passwordResetAvailable;
-      if (verifyOption) verifyOption.hidden = !emailVerificationRequired;
-      updateMailPreview();
-    });
-  }
-  if (new URLSearchParams(window.location.search).has("token")) {
+  if (new URLSearchParams(window.location.search).get("auth") === "recovery") {
     authForm("newPassword");
     return;
   }
@@ -2585,7 +2499,19 @@
       return;
     }
     user = session.user;
+    account.bind(user.id);
     loadProfile();
+  });
+  function verifyAccount() {
+    if (document.visibilityState !== "hidden" && navigator.onLine !== false)
+      account.verify();
+  }
+  document.addEventListener("visibilitychange", verifyAccount);
+  window.addEventListener("focus", verifyAccount);
+  window.addEventListener("online", verifyAccount);
+  window.addEventListener("pageshow", verifyAccount);
+  window.addEventListener("storage", function (event) {
+    if (event.key && event.key === "ziyatai.auth") verifyAccount();
   });
   function loadProfile() {
     clear("ZiyatAI");

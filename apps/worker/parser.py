@@ -2,22 +2,42 @@
 import sys, os, json, re, uuid, zipfile, datetime, unicodedata, codecs
 from pathlib import Path
 from lxml import etree
+from urllib.parse import unquote, urlsplit
 
 MAX_EXPANDED = 100 * 1024 * 1024
+MAX_COLUMNS = 200
+MAX_CELLS = 100000
+MAX_GRID_CELLS = 500000
+MAX_RAW_ROWS = 10000
+
+
+class BoundedTables(list):
+ """Reject oversized extraction before retaining its cells in memory."""
+ def __init__(self):
+  super().__init__();self.cells=0;self.filled=0;self.characters=0
+ def append(self,item):
+  cells,_=item
+  if len(cells)>MAX_COLUMNS or len(self)>=MAX_RAW_ROWS:raise ValueError('FILE_SIZE')
+  lengths=[len(str(c)) if c is not None else 0 for c in cells]
+  self.cells+=len(cells);self.filled+=sum(bool(n) for n in lengths);self.characters+=sum(lengths)
+  if self.cells>MAX_GRID_CELLS or self.filled>MAX_CELLS or self.characters>2000000 or any(n>12000 for n in lengths):raise ValueError('FILE_SIZE')
+  super().append(item)
 HEADER = {
- 'topic': ['тема урока','темы урока','темы уроков','тема','сабақтың тақырыбы','сабақ тақырыбы','тақырып','тақырыбы'],
- 'goals': ['цель обучения','цели обучения','учебные цели','оқу мақсаттары','оқу мақсаты','оқыту мақсаттары'],
- 'lessonGoals': ['цели урока','сабақ мақсаттары'],
- 'dateRaw': ['сроки','дата','дата проведения','мерзімі','күні','мерзімдер'],
- 'hours': ['количество часов','кол во часов','часы','сағат саны','сағат'],
+ 'topic': ['тема урока','темы урока','темы уроков','тема','сабақтың тақырыбы','сабақ тақырыбы','тақырып','тақырыбы','theme','topic','lesson topic','lesson title'],
+ 'goals': ['цель обучения','цели обучения','учебные цели','оқу мақсаттары','оқу мақсаты','оқыту мақсаттары','learning objectives','learning objective'],
+ 'lessonGoals': ['цели урока','сабақ мақсаттары','lesson objectives','lesson objective'],
+ 'dateRaw': ['сроки','дата','дата проведения','мерзімі','күні','мерзімдер','date','dates'],
+ 'hours': ['количество часов','кол во часов','часы','сағат саны','сағат','hours','number of hours'],
  'lessonNumberRaw': ['№','No','no','no п/п','номер','номер урока','р/с','реті','n'],
- 'section': ['раздел','раздел/ сквозные темы','бөлім'], 'notes': ['примечание','примечания','ескерту'],
- 'quarter': ['четверть','тоқсан'], 'grade': ['класс','сынып']}
+ 'section': ['раздел','раздел/ сквозные темы','бөлім','unit','units','units/ changing lessons','module'], 'notes': ['примечание','примечания','ескерту','notes','note'],
+ 'quarter': ['четверть','тоқсан','term','quarter'], 'grade': ['класс','сынып','grade']}
 
 def grade_from_label(value, bare=False):
  text=clean(value)
+ if re.search(r'(?:grades?\s*\d+\s*[-–]\s*\d+|\d+\s*[-–]\s*\d+\s*grades?)',text,re.I):return None
  if re.search(r'\d\s*[-–]\s*\d{1,2}\s*(?:класс|сынып)',text,re.I):return None
  match=re.search(r'(?<![^\W_])(1[01]|[1-9])\s*[-–]?\s*(?:класс(?:а|ы)?|сынып)(?![^\W\d_])',text,re.I) or re.search(r'(?:класс|сынып)\s*[:№-]?\s*(1[01]|[1-9])(?!\d)',text,re.I)
+ if not match:match=re.search(r'\bgrade\s*[:№-]?\s*(1[01]|[1-9])(?!\d)',text,re.I) or re.search(r'\b(1[01]|[1-9])\s*(?:st|nd|rd|th)?\s*grade\b',text,re.I)
  if not match and bare:match=re.fullmatch(r'\s*(1[01]|[1-9])\s*[А-ЯӘҒҚҢӨҰҮҺІA-Z]?\s*',text,re.I)
  return int(match.group(1)) if match else None
 
@@ -27,20 +47,19 @@ def clean(value):
 def header_map(cells):
  result={}
  for i, cell in enumerate(cells):
-  text=clean(cell).lower().replace('-', ' ').replace('№','no')
+  text=clean(cell).lower().replace('-', ' ').replace('№','no').strip(' .:')
   for key, values in HEADER.items():
    if text in values or any(text.replace(' ','')==v.replace(' ','') for v in values) or any(text.startswith(v+' ') for v in values if len(v)>5):
-    result[key]=i; break
+    result.setdefault(key,i); break
  return result if 'topic' in result and ('goals' in result or 'hours' in result or 'dateRaw' in result) else {}
 
 def normalize_date(raw):
  raw=clean(raw)
  warnings=[]
  if not raw:return None,None,['missing_date']
- full=re.findall(r'(?<!\d)(\d{1,2})[./](\d{1,2})[./](\d{4})(?!\d)',raw)
- iso=re.findall(r'\b\d{4}-\d{2}-\d{2}\b',raw)
+ matches=re.findall(r'(?<!\d)(?:(\d{1,2})[./](\d{1,2})[./](\d{4})|(\d{4})-(\d{2})-(\d{2}))(?!\d)',raw)
  try:
-  dates=[datetime.date(int(y),int(m),int(d)).isoformat() for d,m,y in full] or [datetime.date.fromisoformat(v).isoformat() for v in iso]
+  dates=[datetime.date(int(y or iy),int(m or im),int(d or iday)).isoformat() for d,m,y,iy,im,iday in matches]
  except ValueError:return None,None,['invalid_date']
  if not dates:return None,None,['date_requires_year_or_review']
  if len(dates)>2:return None,None,['multiple_dates_require_review']
@@ -71,7 +90,7 @@ def normalize(tables):
   heading_grade=grade_from_label(joined) if len(nonempty)<=2 else None
   if heading_grade and (not mapping or len(nonempty)==1):
    grade=heading_grade;continue
-  if len(nonempty)==1 and re.search(r'(четверть|тоқсан)',joined,re.I):quarter=nonempty[0];continue
+  if len(nonempty)==1 and (re.search(r'(четверть|тоқсан)',joined,re.I) or re.fullmatch(r'(?:term|quarter)\s*[1-4IVX]+',nonempty[0],re.I)):quarter=nonempty[0];continue
   if len(nonempty)==1 and not re.match(r'^\d+\s',joined):section=nonempty[0];unrecognized.append(nonempty[0]);continue
   if re.match(r'^(итого|барлығы|всего)\b',joined,re.I):continue
   if not mapping:unrecognized.append(joined);continue
@@ -80,6 +99,9 @@ def normalize(tables):
    # Continuation is retained for teacher review, never silently attributed.
    unrecognized.append(joined);continue
   source['fragment']=joined[:12000]
+  if 'section' in mapping and mapping['section']<len(cells) and clean(cells[mapping['section']]):section=clean(cells[mapping['section']])
+  if 'quarter' in mapping and mapping['quarter']<len(cells) and clean(cells[mapping['quarter']]):quarter=clean(cells[mapping['quarter']])
+  if len(rows)>=2000:raise ValueError('FILE_SIZE')
   rows.append(row_from(cells,mapping,source,len(rows)+1,section,quarter))
   grade_cell=cells[mapping['grade']] if 'grade' in mapping and mapping['grade']<len(cells) else ''
   rows[-1]['grade']=grade_from_label(grade_cell,True) or grade
@@ -111,12 +133,30 @@ def inspect_pdf_catalog(document):
   elif isinstance(node,(list,tuple)):
    pending.extend((value,depth+1,False) for value in node)
 
+def inspect_relationships(root):
+ # Internal OPC relationships refer to package parts, never filesystem/network
+ # URLs. Do not rely solely on a well-formed TargetMode="External" marker.
+ for relation in root.iter():
+  mode=relation.get('TargetMode')
+  if mode is not None and mode!='Internal':raise ValueError('FILE_INVALID')
+  if not isinstance(relation.tag,str) or relation.tag.rsplit('}',1)[-1]!='Relationship':continue
+  target=relation.get('Target')
+  if target is None:raise ValueError('FILE_INVALID')
+  decoded=unquote(target)
+  if '\\' in decoded or any(ord(character)<32 for character in decoded):raise ValueError('FILE_INVALID')
+  try:location=urlsplit(decoded)
+  except ValueError:raise ValueError('FILE_INVALID') from None
+  if location.scheme or location.netloc:raise ValueError('FILE_INVALID')
+
 def inspect(path):
  ext=Path(path).suffix.lower()
  if ext in ('.docx','.xlsx'):
   with zipfile.ZipFile(path) as z:
    entries=z.infolist()
    if len(entries)>10000 or sum(i.file_size for i in entries)>MAX_EXPANDED:raise ValueError('FILE_SIZE')
+   names=[i.filename.replace('\\','/').lower() for i in entries]
+   if len(names)!=len(set(names)):raise ValueError('FILE_INVALID')
+   workbook_cells=0;workbook_merged=0;worksheet_count=0
    for entry in entries:
     parts=Path(entry.filename.replace('\\','/')).parts
     if '..' in parts or entry.filename.startswith(('/','\\')) or ':' in entry.filename:raise ValueError('FILE_INVALID')
@@ -134,7 +174,25 @@ def inspect(path):
      else:decoded=content.decode('utf-8-sig')
      if '<!DOCTYPE' in decoded or '<!ENTITY' in decoded:raise ValueError('FILE_INVALID')
      root=etree.fromstring(content,etree.XMLParser(resolve_entities=False,no_network=True,huge_tree=False))
-     if any(r.get('TargetMode')=='External' for r in root.iter()):raise ValueError('FILE_INVALID')
+     inspect_relationships(root)
+     if ext=='.docx' and entry.filename.lower()=='word/document.xml':
+      ns='http://schemas.openxmlformats.org/wordprocessingml/2006/main'
+      for span in root.iter('{'+ns+'}gridSpan'):
+       width=int(span.get('{'+ns+'}val','1'))
+       if not 1<=width<=MAX_COLUMNS:raise ValueError('FILE_SIZE')
+     if ext=='.xlsx' and re.fullmatch(r'xl/worksheets/[^/]+\.xml',entry.filename,re.I):
+      worksheet_count+=1
+      if worksheet_count>20:raise ValueError('FILE_SIZE')
+      ns='http://schemas.openxmlformats.org/spreadsheetml/2006/main'
+      workbook_cells+=sum(1 for _ in root.iter('{'+ns+'}c'))
+      if workbook_cells>MAX_CELLS:raise ValueError('FILE_SIZE')
+      # openpyxl allocates every merged cell during load, before adapter checks.
+      from openpyxl.utils.cell import range_boundaries
+      for merge in root.iter('{'+ns+'}mergeCell'):
+       left,top,right,bottom=range_boundaries(merge.get('ref',''))
+       if not all(v is not None for v in (left,top,right,bottom)) or min(left,top)<1 or right<left or bottom<top:raise ValueError('FILE_INVALID')
+       workbook_merged+=(right-left+1)*(bottom-top+1)
+       if workbook_merged>MAX_CELLS:raise ValueError('FILE_SIZE')
    required='word/document.xml' if ext=='.docx' else 'xl/workbook.xml'
    if required not in z.namelist():raise ValueError('FILE_INVALID')
  elif ext=='.pdf':
@@ -157,8 +215,16 @@ def source(page=None,sheet=None,range='',method='digital'):
 def docx_tables(path):
  with zipfile.ZipFile(path) as z:root=etree.fromstring(z.read('word/document.xml'),etree.XMLParser(resolve_entities=False,no_network=True))
  ns={'w':'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}
- tables=[];seen_paragraphs=set()
+ tables=BoundedTables();seen_paragraphs=set();logical_columns=None
  for ti,tbl in enumerate(root.xpath('//w:tbl',namespaces=ns)):
+  table_rows=tbl.xpath('./w:tr',namespaces=ns)
+  # Word may change its underlying grid between header/data or continuation
+  # tables. If the logical cells stay consistent, index those rather than the
+  # duplicated gridSpan slots (which can shift objectives into the hours column).
+  for candidate in table_rows[:10]:
+   header_cells=['\n'.join(''.join(p.xpath('.//w:t/text()',namespaces=ns)) for p in tc.xpath('./w:p',namespaces=ns)) for tc in candidate.xpath('./w:tc',namespaces=ns)]
+   if header_map(header_cells):logical_columns=len(header_cells);break
+  logical_layout=logical_columns is not None and all(len(tr.xpath('./w:tc',namespaces=ns)) in (0,1,logical_columns) for tr in table_rows)
   for paragraph in tbl.xpath('preceding-sibling::w:p',namespaces=ns):
    identity=root.getroottree().getpath(paragraph)
    if identity in seen_paragraphs:continue
@@ -166,21 +232,22 @@ def docx_tables(path):
    text=clean(' '.join(paragraph.xpath('.//w:t/text()',namespaces=ns)))
    if grade_from_label(text):tables.append(([text],source(range=f'heading:{len(seen_paragraphs)}')))
   vertical={}
-  for ri,tr in enumerate(tbl.xpath('./w:tr',namespaces=ns)):
-   cells=[];col=0
+  for ri,tr in enumerate(table_rows):
+   cells=[];logical=[];col=0
    for tc in tr.xpath('./w:tc',namespaces=ns):
     text='\n'.join(''.join(p.xpath('.//w:t/text()',namespaces=ns)) for p in tc.xpath('./w:p',namespaces=ns))
     span=tc.xpath('./w:tcPr/w:gridSpan/@w:val',namespaces=ns);width=int(span[0]) if span else 1
+    if not 1<=width<=MAX_COLUMNS or col+width>MAX_COLUMNS:raise ValueError('FILE_SIZE')
     vm=tc.xpath('./w:tcPr/w:vMerge',namespaces=ns)
     if vm and vm[0].get('{'+ns['w']+'}val')!='restart':text=vertical.get(col,text)
     elif vm:vertical[col]=text
     else:vertical.pop(col,None)
-    cells.extend([text]*width);col+=width
-   tables.append((cells,source(range=f'table:{ti+1}/row:{ri+1}')))
+    logical.append(text);cells.extend([text]*width);col+=width
+   tables.append((logical if logical_layout else cells,source(range=f'table:{ti+1}/row:{ri+1}')))
  return tables
 
 def spreadsheets(path,include_hidden=False):
- ext=Path(path).suffix.lower();tables=[];count=0
+ ext=Path(path).suffix.lower();tables=BoundedTables();count=0;merged_count=0
  if ext=='.xlsx':
   import openpyxl
   w=openpyxl.load_workbook(path,data_only=True,read_only=False,keep_links=False)
@@ -192,7 +259,8 @@ def spreadsheets(path,include_hidden=False):
    if sheet.max_row*sheet.max_column>500000:raise ValueError('FILE_SIZE')
    merged={}
    for area in sheet.merged_cells.ranges:
-    if area.size['rows']*area.size['columns']>100000:raise ValueError('FILE_SIZE')
+    merged_count+=area.size['rows']*area.size['columns']
+    if merged_count>MAX_CELLS:raise ValueError('FILE_SIZE')
     val=sheet.cell(area.min_row,area.min_col).value
     for rr in range(area.min_row,area.max_row+1):
      for cc in range(area.min_col,area.max_col+1):merged[(rr,cc)]=val
@@ -213,10 +281,13 @@ def spreadsheets(path,include_hidden=False):
   w=xlrd.open_workbook(path,formatting_info=True)
   if w.nsheets>20:raise ValueError('FILE_SIZE')
   for sh in w.sheets():
+   if sh.nrows*sh.ncols>MAX_GRID_CELLS:raise ValueError('FILE_SIZE')
    if sh.visibility and not include_hidden:
     tables.append(([f'Hidden sheet excluded: {sh.name}'],source(sheet=sh.name)));continue
    merged={}
    for rlo,rhi,clo,chi in sh.merged_cells:
+    merged_count+=(rhi-rlo)*(chi-clo)
+    if merged_count>MAX_CELLS:raise ValueError('FILE_SIZE')
     for rr in range(rlo,rhi):
      for cc in range(clo,chi):merged[(rr,cc)]=sh.cell(rlo,clo)
    for ri in range(sh.nrows):
@@ -236,7 +307,7 @@ def spreadsheets(path,include_hidden=False):
 def pdf_tables(path):
  import pdfplumber
  from pdf_adapter import render_page
- tables=[]
+ tables=BoundedTables()
  with pdfplumber.open(path) as plumber:
   for pi,page in enumerate(plumber.pages):
    text=page.extract_text() or '';letters=sum(c.isalpha() for c in text);bad=sum(c=='\ufffd' for c in text)

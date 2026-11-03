@@ -1,4 +1,5 @@
-﻿import { test, expect } from "@playwright/test";
+import { origin as qaOrigin } from "./helpers";
+import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { randomUUID } from "node:crypto";
 import { headers, verifiedUser, jobDone } from "./helpers";
@@ -246,12 +247,12 @@ test("teacher approval is required on the server and belongs only to the reviewe
     expect((await unapproved.json()).code).toBe("REVIEW_REQUIRED");
   }
   const stranger = await playwright.request.newContext({
-    baseURL: "http://localhost:3000",
+    baseURL: qaOrigin,
   });
   await verifiedUser(stranger);
   expect(
     (
-      await stranger.post(`http://localhost:3000${url}/approve`, {
+      await stranger.post(`${qaOrigin}${url}/approve`, {
         headers,
         data: { revision: initial.revision, teacherReviewed: true },
       })

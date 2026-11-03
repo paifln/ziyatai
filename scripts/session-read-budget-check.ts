@@ -106,7 +106,7 @@ try {
   locked = undefined;
 
   report = {
-    date: "2026-10-17",
+    date: new Date().toISOString(),
     policy: sessionReadPolicy,
     parallelRequests: results.length,
     accepted: allowed,

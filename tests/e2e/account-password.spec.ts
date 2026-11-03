@@ -1,3 +1,4 @@
+import { origin as qaOrigin } from "./helpers";
 import {
   test,
   expect,
@@ -61,7 +62,7 @@ test("password change verifies the current secret, rotates the session and prese
     await request.get("/api/auth/get-session")
   ).json();
   const other = await playwright.request.newContext({
-    baseURL: "http://localhost:3000",
+    baseURL: qaOrigin,
   });
   let release = () => {};
   try {

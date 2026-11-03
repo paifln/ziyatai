@@ -1,3 +1,4 @@
+import { origin as qaOrigin } from "./helpers";
 import {
   test,
   expect,
@@ -37,11 +38,14 @@ async function actor(request: APIRequestContext, pool: Pool, tag: string) {
 }
 async function enter(page: Page, request: APIRequestContext) {
   await page.context().addCookies((await request.storageState()).cookies);
-  await page
-    .context()
-    .addCookies([
-      { name: "ziyatai-locale", value: "ru", domain: "localhost", path: "/" },
-    ]);
+  await page.context().addCookies([
+    {
+      name: "ziyatai-locale",
+      value: "ru",
+      domain: new URL(qaOrigin).hostname,
+      path: "/",
+    },
+  ]);
   await page.goto("/");
   await expect(page.locator(".resource-row")).toContainText("Private one plan");
 }
@@ -64,7 +68,7 @@ async function notifySession(page: Page, status = 200) {
   );
   await otherTab.evaluate(() =>
     localStorage.setItem(
-      "better-auth.message",
+      "ziyatai.auth",
       JSON.stringify({
         event: "session",
         data: { trigger: "signIn" },
@@ -96,10 +100,10 @@ for (const action of [
         .DATABASE_URL,
     });
     const second = await playwright.request.newContext({
-      baseURL: "http://localhost:3000",
+      baseURL: qaOrigin,
     });
     const extra = await playwright.request.newContext({
-      baseURL: "http://localhost:3000",
+      baseURL: qaOrigin,
     });
     let release!: () => void;
     let started!: () => void;
@@ -400,7 +404,7 @@ test("a delayed profile save cannot change the next teacher's interface language
       .DATABASE_URL,
   });
   const second = await playwright.request.newContext({
-    baseURL: "http://localhost:3000",
+    baseURL: qaOrigin,
   });
   let release!: () => void;
   let started!: () => void;
@@ -409,6 +413,15 @@ test("a delayed profile save cannot change the next teacher's interface language
   });
   const intercepted = new Promise<void>((resolve) => {
     started = resolve;
+  });
+  let served!: () => void;
+  const delivered = new Promise<void>((resolve) => {
+    served = resolve;
+  });
+  let aborted = false;
+  page.on("requestfailed", (r) => {
+    if (new URL(r.url()).pathname === "/api/profile" && r.method() === "PATCH")
+      aborted = true;
   });
   try {
     await actor(request, pool, "one");
@@ -427,7 +440,8 @@ test("a delayed profile save cannot change the next teacher's interface language
       expect(response.status()).toBe(200);
       started();
       await gate;
-      await route.fulfill({ response });
+      await route.fulfill({ response }).catch(() => undefined);
+      served();
     });
     await page.getByRole("button", { name: "Сохранить", exact: true }).click();
     await intercepted;
@@ -435,13 +449,9 @@ test("a delayed profile save cannot change the next teacher's interface language
     await expect(page.locator(".resource-row")).toContainText(
       "Private two plan",
     );
-    const completed = page.waitForResponse(
-      (r) =>
-        new URL(r.url()).pathname === "/api/profile" &&
-        r.request().method() === "PATCH",
-    );
     release();
-    await completed;
+    await delivered;
+    await expect.poll(() => aborted).toBe(true);
     await page.evaluate(
       () =>
         new Promise((resolve) =>
@@ -478,7 +488,7 @@ test("a delayed completed account deletion cannot sign out a different teacher",
       .DATABASE_URL,
   });
   const second = await playwright.request.newContext({
-    baseURL: "http://localhost:3000",
+    baseURL: qaOrigin,
   });
   let release!: () => void;
   let started!: () => void;
@@ -487,6 +497,15 @@ test("a delayed completed account deletion cannot sign out a different teacher",
   });
   const intercepted = new Promise<void>((resolve) => {
     started = resolve;
+  });
+  let served!: () => void;
+  const delivered = new Promise<void>((resolve) => {
+    served = resolve;
+  });
+  let aborted = false;
+  page.on("requestfailed", (r) => {
+    if (new URL(r.url()).pathname === "/api/account" && r.method() === "DELETE")
+      aborted = true;
   });
   const signouts: string[] = [];
   page.on("request", (r) => {
@@ -504,7 +523,8 @@ test("a delayed completed account deletion cannot sign out a different teacher",
       expect(await response.json()).toEqual({ deleted: true });
       started();
       await gate;
-      await route.fulfill({ response });
+      await route.fulfill({ response }).catch(() => undefined);
+      served();
     });
     await page.getByText("Удаление аккаунта", { exact: true }).click();
     await page.getByRole("button", { name: "Удалить", exact: true }).click();
@@ -518,11 +538,9 @@ test("a delayed completed account deletion cannot sign out a different teacher",
     await expect(page.locator(".resource-row")).toContainText(
       "Private two plan",
     );
-    const completed = page.waitForResponse(
-      (r) => new URL(r.url()).pathname === "/api/account",
-    );
     release();
-    await completed;
+    await delivered;
+    await expect.poll(() => aborted).toBe(true);
     // A real browser task boundary lets the old promise continuation run.
     await page.evaluate(
       () =>
@@ -673,7 +691,7 @@ for (const view of [
         .DATABASE_URL,
     });
     const second = await playwright.request.newContext({
-      baseURL: "http://localhost:3000",
+      baseURL: qaOrigin,
     });
     let release!: () => void;
     let started!: () => void;
@@ -693,9 +711,9 @@ for (const view of [
     const laterMutations: string[] = [];
     const heldPath =
       view === "history"
-        ? "/api/history"
+        ? "/api/history/collection"
         : view === "library"
-          ? "/api/library"
+          ? "/api/library/collection"
           : view === "delayed profile"
             ? "/api/profile"
             : "";

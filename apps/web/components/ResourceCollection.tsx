@@ -1,6 +1,6 @@
 "use client";
 import { useConfirm } from "./ui/ConfirmProvider";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Download,
   FileText,
@@ -12,20 +12,13 @@ import {
 } from "lucide-react";
 import { useAccountApi } from "../lib/account-client";
 import { usePolling, useResume } from "../lib/use-polling";
+import { useCollectionRead } from "../lib/use-collection-read";
 import type { Texts, UiLocale } from "../lib/i18n";
-
-interface Material {
-  generation_id?: string;
-  id: string;
-  title: string;
-  status: string;
-  created_at: string;
-  revision: number;
-  demo?: boolean;
-  format?: string;
-  audience?: string;
-  teacher_reviewed?: boolean;
-}
+import {
+  materialStatuses,
+  type MaterialSummary,
+  type MaterialCollectionPage,
+} from "../../../packages/contracts/material-collection";
 export default function ResourceCollection({
   kind,
   t,
@@ -44,69 +37,59 @@ export default function ResourceCollection({
   const api = useAccountApi();
   const confirm = useConfirm();
   const [query, setQuery] = useState("");
-  const [search, setSearch] = useState("");
+  const search = query.trim();
   const [offset, setOffset] = useState(0);
-  const [revision, setRevision] = useState(0);
-  const [items, setItems] = useState<Material[]>([]);
-  const [more, setMore] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [status, setStatus] = useState("");
+  const [sort, setSort] = useState("recent");
+  const [format, setFormat] = useState("");
+  const [audience, setAudience] = useState("");
+  const [mutationError, setMutationError] = useState("");
   const [removing, setRemoving] = useState("");
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setSearch(query.trim());
-      setOffset(0);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [query]);
-  useEffect(() => {
-    const controller = new AbortController();
-    setLoading(true);
-    api(
-      `${kind}?q=${encodeURIComponent(search)}&limit=21&offset=${offset}`,
-      "GET",
-      undefined,
-      undefined,
-      controller.signal,
-    )
-      .then((data: Material[]) => {
-        if (controller.signal.aborted) return;
-        setItems(data.slice(0, 20));
-        setMore(data.length > 20);
-        setError("");
-      })
-      .catch((e: Error) => {
-        if (!controller.signal.aborted) setError(e.message);
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
-      });
-    return () => {
-      controller.abort();
-    };
-  }, [kind, search, offset, revision, api]);
-  const reload = async () => {
-    setRevision((v) => v + 1);
-  };
+  const params = new URLSearchParams({
+    q: search,
+    limit: "20",
+    offset: String(offset),
+    sort,
+  });
+  if (status) params.set("status", status);
+  if (kind === "library" && format) params.set("format", format);
+  if (kind === "library" && audience) params.set("audience", audience);
+  const collection = useCollectionRead<MaterialCollectionPage>(
+    `${kind}/collection?${params}`,
+    0,
+    search ? 300 : 0,
+  );
+  const page = collection.data;
+  const items = page?.items ?? [];
+  const more = !!page && page.offset + page.limit < page.matched;
+  const { loading, reload } = collection;
+  const error = mutationError || collection.error;
+  function resetFilters() {
+    setQuery("");
+    setStatus("");
+    setFormat("");
+    setAudience("");
+    setOffset(0);
+  }
   usePolling(
     reload,
     items.some((i) => ["queued", "running"].includes(i.status)),
     5000,
   );
   useResume(reload);
-  async function remove(item: Material) {
+  async function remove(item: MaterialSummary) {
     if (!(await confirm(t.deleteConfirm, { destructive: true }))) return;
     setRemoving(item.id);
+    setMutationError("");
     try {
       await api(
         `${kind === "history" ? "generations" : "exports"}/${item.id}`,
         "DELETE",
       );
-      if (items.length === 1 && offset > 0) setOffset(Math.max(0, offset - 20));
-      else setRevision((v) => v + 1);
+      await reload();
       await refresh();
     } catch (e) {
-      setError((e as Error).message);
+      setMutationError((e as Error).message);
     } finally {
       setRemoving("");
     }
@@ -148,48 +131,151 @@ export default function ResourceCollection({
             maxLength={200}
             value={query}
             placeholder={t.search}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setOffset(0);
+            }}
           />
         </label>
+        <select
+          aria-label={
+            locale === "ru" ? "Статус материалов" : "Материалдар күйі"
+          }
+          value={status}
+          onChange={(event) => {
+            setStatus(event.target.value);
+            setOffset(0);
+          }}
+        >
+          <option value="">
+            {locale === "ru" ? "Все статусы" : "Барлық күйлер"}
+          </option>
+          {materialStatuses
+            .filter(
+              (value) => (page?.counts[value] ?? 0) > 0 || status === value,
+            )
+            .map((value) => (
+              <option key={value} value={value}>
+                {value === "needs_review"
+                  ? t.review
+                  : ((t as unknown as Record<string, string>)[value] ??
+                    value)}{" "}
+                · {page?.counts[value] ?? 0}
+              </option>
+            ))}
+        </select>
+        {kind === "library" && (
+          <>
+            <select
+              aria-label={locale === "ru" ? "Формат файлов" : "Файл пішімі"}
+              value={format}
+              onChange={(event) => {
+                setFormat(event.target.value);
+                setOffset(0);
+              }}
+            >
+              <option value="">
+                {locale === "ru" ? "Все форматы" : "Барлық пішімдер"}
+              </option>
+              <option value="docx">DOCX</option>
+              <option value="pdf">PDF</option>
+            </select>
+            <select
+              aria-label={
+                locale === "ru" ? "Аудитория листов" : "Парақтар аудиториясы"
+              }
+              value={audience}
+              onChange={(event) => {
+                setAudience(event.target.value);
+                setOffset(0);
+              }}
+            >
+              <option value="">
+                {locale === "ru" ? "Все листы" : "Барлық парақтар"}
+              </option>
+              <option value="student">{t.student}</option>
+              <option value="full">{t.full}</option>
+            </select>
+          </>
+        )}
+        <select
+          aria-label={
+            locale === "ru" ? "Порядок материалов" : "Материалдар реті"
+          }
+          value={sort}
+          onChange={(event) => {
+            setSort(event.target.value);
+            setOffset(0);
+          }}
+        >
+          <option value="recent">
+            {locale === "ru" ? "Сначала новые" : "Алдымен жаңалары"}
+          </option>
+          <option value="name">
+            {locale === "ru" ? "По названию" : "Атауы бойынша"}
+          </option>
+        </select>
+        {(query || status || format || audience) && (
+          <button type="button" className="text-button" onClick={resetFilters}>
+            {locale === "ru" ? "Сбросить фильтры" : "Сүзгілерді тазалау"}
+          </button>
+        )}
       </div>
       {error && (
         <div className="notice error" role="alert">
           {error}
           <button
             className="text-button"
-            onClick={() => setRevision((v) => v + 1)}
+            onClick={() => {
+              setMutationError("");
+              void reload();
+            }}
           >
             {t.retry}
           </button>
         </div>
       )}
       <section className="card" aria-busy={loading}>
+        <div className="collection-caption" role="status" aria-live="polite">
+          <span>{t[kind]}</span>
+          <span>
+            {!collection.ready
+              ? loading
+                ? t.loading
+                : "—"
+              : page?.matched
+                ? `${page.offset + 1}–${page.offset + items.length} / ${page.matched}`
+                : "0"}
+          </span>
+        </div>
         {loading && !items.length ? (
           <div className="inline-loading" role="status">
             {t.loading}
           </div>
         ) : (
           <>
-            {!items.length && (
+            {!items.length && collection.ready && !collection.error && (
               <div className="empty-state">
                 <FileText size={32} />
                 <h2>
-                  {search
+                  {search || status || format || audience
                     ? locale === "ru"
                       ? "Ничего не найдено"
                       : "Ештеңе табылмады"
                     : t.empty}
                 </h2>
                 <p>
-                  {search
+                  {search || status || format || audience
                     ? locale === "ru"
                       ? "Попробуйте другое название или очистите поиск."
                       : "Басқа атауды енгізіңіз немесе іздеуді тазалаңыз."
                     : t.createSub}
                 </p>
-                {search && (
-                  <button className="button" onClick={() => setQuery("")}>
-                    {locale === "ru" ? "Очистить поиск" : "Іздеуді тазалау"}
+                {(search || status || format || audience) && (
+                  <button className="button" onClick={resetFilters}>
+                    {locale === "ru"
+                      ? "Сбросить фильтры"
+                      : "Сүзгілерді тазалау"}
                   </button>
                 )}
               </div>
@@ -262,7 +348,7 @@ export default function ResourceCollection({
                 <button
                   className="icon-button"
                   onClick={() => void remove(item)}
-                  disabled={!!removing}
+                  disabled={!!removing || !collection.ready}
                   aria-label={`${t.remove}: ${item.title}`}
                 >
                   <Trash2 size={16} />
@@ -281,30 +367,36 @@ export default function ResourceCollection({
           </>
         )}
       </section>
-      {(offset > 0 || more) && (
-        <nav
-          className="pagination"
-          aria-label={
-            locale === "ru" ? "Страницы материалов" : "Материалдар беттері"
-          }
-        >
-          <button
-            className="button secondary"
-            disabled={offset === 0 || loading}
-            onClick={() => setOffset(Math.max(0, offset - 20))}
+      {page &&
+        collection.ready &&
+        !collection.error &&
+        (page.offset > 0 || more) && (
+          <nav
+            className="pagination"
+            aria-label={
+              locale === "ru" ? "Страницы материалов" : "Материалдар беттері"
+            }
           >
-            {t.back}
-          </button>
-          <span>{Math.floor(offset / 20) + 1}</span>
-          <button
-            className="button secondary"
-            disabled={!more || loading}
-            onClick={() => setOffset(offset + 20)}
-          >
-            {locale === "ru" ? "Далее" : "Келесі"}
-          </button>
-        </nav>
-      )}
+            <button
+              className="button secondary"
+              disabled={page.offset === 0 || loading}
+              onClick={() => setOffset(Math.max(0, page.offset - page.limit))}
+            >
+              {t.back}
+            </button>
+            <span>
+              {Math.floor(page.offset / page.limit) + 1} /{" "}
+              {Math.ceil(page.matched / page.limit)}
+            </span>
+            <button
+              className="button secondary"
+              disabled={!more || loading}
+              onClick={() => setOffset(page.offset + page.limit)}
+            >
+              {locale === "ru" ? "Далее" : "Келесі"}
+            </button>
+          </nav>
+        )}
     </>
   );
 }

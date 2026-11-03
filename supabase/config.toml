@@ -1,0 +1,22 @@
+project_id = "ziyatai-dev"
+
+[api]
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+
+[db]
+port = 54322
+major_version = 17
+
+[auth]
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000/api/auth/callback"]
+minimum_password_length = 12
+
+[auth.email]
+enable_confirmations = true
+max_frequency = "1s"
+
+[analytics]
+enabled = false

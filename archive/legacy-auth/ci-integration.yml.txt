@@ -1,0 +1,54 @@
+  integration:
+    runs-on: ubuntu-latest
+    env:
+      APP_ENV: local
+      POSTGRES_IMAGE: ziyatai-postgres:ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "24.22.0", cache: npm }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.13.8" }
+      - run: npm ci
+      - run: pip install -r apps/worker/requirements.lock.txt -r tests/requirements.txt
+      - run: docker build -f infra/Dockerfile.postgres -t ziyatai-postgres:ci .
+      - run: npm run fixtures && npm run local:setup && npm run infra:up
+      - run: npx tsx scripts/enable-local-renderer.ts
+      - run: npx tsx scripts/prepare-local-containers.ts
+      - run: docker compose -f infra/compose.tools-local.yml --env-file .env.local up -d --build
+      - run: npm run migrate
+      - run: npx tsx --env-file=.env.local scripts/db-resilience-check.ts
+      - run: npx tsx --env-file=.env.local scripts/queue-idempotency-check.ts
+      - run: npx tsx --env-file=.env.local scripts/delete-snapshot-check.ts
+      - run: npx tsx --env-file=.env.local scripts/session-read-budget-check.ts
+      - run: npx tsx --env-file=.env.local scripts/configure-storage.ts
+      - run: npx tsx --env-file=.env.local scripts/export-lease-isolation-check.ts
+      - run: npm run worker > /tmp/ziyatai-worker.log 2>&1 &
+      - run: npx tsx --env-file=.env.local scripts/queue-check.ts && npx tsx --env-file=.env.local scripts/restore-check.ts
+      - run: npx tsx --env-file=.env.local scripts/lease-recovery-check.ts
+      - run: npx tsx --env-file=.env.local scripts/upload-cleanup-check.ts
+      - run: npx tsx --env-file=.env.local scripts/quarantine-sweep-check.ts
+      - run: npx tsx --env-file=.env.local scripts/auth-reset-check.ts
+      - run: npx tsx --env-file=.env.local scripts/check-renderer-boundary.ts
+      - run: npm run build
+      - run: |
+          mkdir -p .local/qa-runtime
+          HOSTNAME=127.0.0.1 EMAIL_VERIFICATION_REQUIRED=false node scripts/qa-web-runtime.mjs start main > .local/qa-runtime/main.control.log 2>&1 &
+      - run: npx playwright install --with-deps chromium
+      # The full PDF/TNR suite needs licensed fonts and runs on the local/staging host.
+      - run: npx playwright test tests/e2e/design.spec.ts tests/e2e/direct-upload.spec.ts tests/e2e/ui.spec.ts tests/e2e/security.spec.ts tests/e2e/revision.spec.ts tests/e2e/usability.spec.ts tests/e2e/release-review.spec.ts tests/e2e/themes.spec.ts tests/e2e/approval-state.spec.ts tests/e2e/print-and-assessment.spec.ts tests/e2e/class-filter.spec.ts tests/e2e/plan-navigation.spec.ts tests/e2e/draft-recovery.spec.ts tests/e2e/lite-curriculum.spec.ts tests/e2e/account-password.spec.ts tests/e2e/save-recovery.spec.ts tests/e2e/storage-resilience.spec.ts tests/e2e/revision-conflict.spec.ts tests/e2e/server-drafts.spec.ts tests/e2e/draft-race.spec.ts tests/e2e/draft-class-recovery.spec.ts tests/e2e/session-resilience.spec.ts tests/e2e/draft-print.spec.ts tests/e2e/lite-drafts.spec.ts tests/e2e/lite-print.spec.ts tests/e2e/lite-collection.spec.ts tests/e2e/draft-payload.spec.ts tests/e2e/recovery-cancel.spec.ts tests/e2e/read-budgets.spec.ts tests/e2e/stream-download.spec.ts tests/e2e/health.spec.ts tests/e2e/legacy-scan.spec.ts tests/e2e/source-check.spec.ts tests/e2e/api-routing.spec.ts tests/e2e/plan-status.spec.ts tests/e2e/email-auth.spec.ts tests/e2e/plan-collection.spec.ts tests/e2e/collection-session.spec.ts tests/e2e/workspace-session.spec.ts tests/e2e/session-read-budget.spec.ts tests/e2e/account-intent.spec.ts --grep-invert "registration verifies a one-time email code"
+      - run: npx playwright test tests/e2e/lite-session.spec.ts tests/e2e/resource-refresh.spec.ts tests/e2e/plan-readiness.spec.ts tests/e2e/material-collection.spec.ts tests/e2e/plan-grade-metadata.spec.ts tests/e2e/table-paste-save.spec.ts tests/e2e/plan-tools.spec.ts
+      - name: Check optional email verification with the real local mailbox
+        run: |
+          node scripts/qa-web-runtime.mjs stop main
+          HOSTNAME=127.0.0.1 EMAIL_VERIFICATION_REQUIRED=true node scripts/qa-web-runtime.mjs start otp > .local/qa-runtime/otp.control.log 2>&1 &
+          QA_REQUIRE_OTP=1 npx playwright test tests/e2e/revision.spec.ts --grep "registration verifies a one-time email code" --output=test-results-otp
+      - name: Check registration with no SMTP or verification requirement
+        run: |
+          node scripts/qa-web-runtime.mjs stop otp
+          HOSTNAME=127.0.0.1 EMAIL_VERIFICATION_REQUIRED=false SMTP_HOST= node scripts/qa-web-runtime.mjs start no-mail > .local/qa-runtime/no-mail.control.log 2>&1 &
+          QA_REQUIRE_NO_MAIL=1 npx playwright test tests/e2e/no-mail-signup.spec.ts --output=test-results-no-mail
+      - run: docker compose -f infra/compose.local.yml --env-file .env.local logs --tail=10
+      - name: Stop owned QA web processes and retain safe termination evidence
+        if: always()
+        run: node scripts/qa-web-runtime.mjs finish

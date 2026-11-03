@@ -6,6 +6,7 @@ export default defineConfig([
   globalIgnores([
     ".next/**",
     ".local/**",
+    "archive/**",
     ".netlify/**",
     "node_modules/**",
     "next-env.d.ts",
@@ -19,6 +20,17 @@ export default defineConfig([
       "@typescript-eslint/no-explicit-any": "off",
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "warn",
+    },
+  },
+  {
+    // Checked against its TypeScript source by build:lite --check.
+    files: ["public/lite/curriculum.js"],
+    rules: {
+      "@typescript-eslint/no-unused-expressions": "off",
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { caughtErrorsIgnorePattern: "^_" },
+      ],
     },
   },
 ]);

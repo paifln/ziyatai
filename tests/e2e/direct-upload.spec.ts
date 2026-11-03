@@ -1,3 +1,4 @@
+import { origin as qaOrigin } from "./helpers";
 import { test, expect } from "@playwright/test";
 import { readFile, writeFile } from "node:fs/promises";
 import { verifiedUser, headers, jobDone } from "./helpers";
@@ -112,7 +113,7 @@ test("signed uploads bind size and owner, quarantine untrusted bytes and publish
   });
   expect(stored.ok(), await stored.text()).toBe(true);
   const other = await playwright.request.newContext({
-    baseURL: "http://localhost:3000",
+    baseURL: qaOrigin,
   });
   await verifiedUser(other);
   expect(

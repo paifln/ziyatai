@@ -1,6 +1,7 @@
 import { Pool } from "pg";
 import { env } from "./env";
 import { storageReady } from "./storage";
+import { databaseConnection } from "./database-connection";
 
 // One promise and one short-lived result per process, regardless of callers.
 export function createReadinessProbe(
@@ -31,7 +32,8 @@ const globalHealth = globalThis as unknown as { ziyataiHealthPool?: Pool };
 function healthPool() {
   if (!globalHealth.ziyataiHealthPool) {
     const pool = new Pool({
-      connectionString: env().DATABASE_URL,
+      ...databaseConnection(env()),
+      options: `-c search_path=${env().DATABASE_SCHEMA},public`,
       application_name: "ziyatai-readiness",
       max: 1,
       connectionTimeoutMillis: 2000,

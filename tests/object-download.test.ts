@@ -11,10 +11,11 @@ vi.mock("../apps/web/lib/env", () => ({
     STORAGE_ACCESS_KEY: "fixture-access",
     STORAGE_SECRET_KEY: "fixture-secret",
     STORAGE_BUCKET: "fixture",
+    MAX_UPLOAD_MB: 25,
   }),
 }));
 import { objectDownload } from "../apps/web/lib/object-download";
-import { openObject } from "../apps/web/lib/storage";
+import { getObject, openObject } from "../apps/web/lib/storage";
 
 const bytes = Buffer.from("0123456789abcdefghijklmnopqrstuvwxyz");
 const calls: { method: string; range?: string }[] = [];
@@ -29,10 +30,11 @@ const server = createServer(async (req, res) => {
     res.end();
     return;
   }
-  if (req.url!.includes("/stream")) {
+  if (req.url!.includes("/stream") || req.url!.includes("/unbounded")) {
     const total = 32 * 1024 * 1024,
       chunk = Buffer.alloc(65536, 7);
-    res.setHeader("Content-Length", total);
+    if (!req.url!.includes("/unbounded"))
+      res.setHeader("Content-Length", total);
     res.on("close", () => {
       if (!res.writableFinished) cancelled++;
     });
@@ -203,4 +205,31 @@ it("propagates request cancellation and bounds a stalled upstream transfer", asy
   await rejected;
   const timed = await openObject("stall", { maximumDurationMs: 500 });
   await expect(timed.body.getReader().read()).rejects.toThrow();
+});
+
+it("bounds internal buffered reads by declared and streamed bytes", async () => {
+  expect(await getObject("normal", { maximumBytes: bytes.length })).toEqual(
+    bytes,
+  );
+  await expect(
+    getObject("normal", { maximumBytes: bytes.length - 1 }),
+  ).rejects.toMatchObject({ code: "FILE_SIZE", status: 413 });
+  produced = 0;
+  const closedBefore = cancelled;
+  await expect(
+    getObject("unbounded", { maximumBytes: 1024 }),
+  ).rejects.toMatchObject({ code: "FILE_SIZE", status: 413 });
+  await vi.waitFor(() => expect(cancelled).toBeGreaterThan(closedBefore));
+  expect(produced).toBeLessThan(32 * 1024 * 1024);
+});
+
+it("cancels a buffered storage read on abort or total timeout", async () => {
+  const abort = new AbortController();
+  const pending = getObject("stall", { signal: abort.signal });
+  const rejected = expect(pending).rejects.toThrow();
+  abort.abort();
+  await rejected;
+  await expect(
+    getObject("stall", { maximumDurationMs: 100 }),
+  ).rejects.toThrow();
 });

@@ -65,5 +65,9 @@ export function trustedGatewayRequest(req: Request) {
         siteId: e.NETLIFY_SITE_ID,
         production: e.APP_ENV === "production",
       })
-    : req;
+    : (() => {
+        const headers = new Headers(req.headers);
+        headers.delete("x-ziyatai-client-ip");
+        return new Request(req, { headers });
+      })();
 }

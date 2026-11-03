@@ -40,12 +40,12 @@ export async function planCollection(
   const result = await db().query<PlanCollectionPage>(
     `
     WITH owned AS MATERIALIZED (
-      SELECT id,title,grade,school_year,status,created_at FROM plans
+      SELECT id,title,grade,COALESCE(NULLIF(grades,'{}'::int[]),array_remove(ARRAY[grade],NULL)) AS grades,school_year,status,created_at FROM plans
       WHERE owner_id=$1 AND deleted_at IS NULL
     ), filtered AS MATERIALIZED (
       SELECT * FROM owned WHERE title ILIKE $2
       AND ($5::text IS NULL OR status=$5)
-      AND ($6::int IS NULL OR grade=$6)
+      AND ($6::int IS NULL OR $6=ANY(grades))
     ), bounds AS (
       SELECT count(*)::int AS matched FROM filtered
     ), position AS (

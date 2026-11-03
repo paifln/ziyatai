@@ -1,7 +1,6 @@
 import { expect, it, vi } from "vitest";
 import {
   assertAuthAccountIntent,
-  authAccountIntent,
 } from "../apps/web/lib/auth-account-intent";
 import { accountIntentHeader } from "../packages/contracts/account-intent";
 
@@ -12,12 +11,11 @@ function request(path: string, owner?: string, method = "POST") {
   });
 }
 
-it("does not introduce a session dependency for unhinted login, OTP or canonical reads", async () => {
+it("does not introduce a session dependency for unhinted login or canonical reads", async () => {
   const read = vi.fn(async () => null);
   for (const path of [
     "sign-in/email",
     "sign-up/email",
-    "email-otp/verify-email",
     "get-session",
   ])
     await assertAuthAccountIntent(request(path), read);
@@ -69,37 +67,4 @@ it("never admits a native action when canonical session lookup fails", async () 
       throw new Error("Synthetic database failure");
     }),
   ).rejects.toThrow("Synthetic database failure");
-});
-
-it("the SDK plugin returns a private conflict without cookie changes", async () => {
-  const plugin = authAccountIntent(async () => ({ user: { id: "teacher-b" } }));
-  const result = await plugin.onRequest!(
-    request("sign-out", "teacher-a"),
-    {} as never,
-  );
-  expect(result && "response" in result).toBe(true);
-  if (!result || !("response" in result))
-    throw new Error("Missing conflict response");
-  expect(result.response.status).toBe(409);
-  expect((await result.response.json()).code).toBe("SESSION_CHANGED");
-  expect(result.response.headers.get("cache-control")).toBe(
-    "private, no-store",
-  );
-  expect(result.response.headers.get("vary")).toBe("Cookie");
-  expect(result.response.headers.has("set-cookie")).toBe(false);
-});
-
-it("the SDK plugin fails closed when session storage is unavailable", async () => {
-  const plugin = authAccountIntent(async () => {
-    throw new Error("Synthetic storage failure");
-  });
-  const result = await plugin.onRequest!(
-    request("change-password", "teacher-a"),
-    {} as never,
-  );
-  if (!result || !("response" in result))
-    throw new Error("Missing unavailable response");
-  expect(result.response.status).toBe(503);
-  expect((await result.response.json()).code).toBe("AUTH_UNAVAILABLE");
-  expect(result.response.headers.has("set-cookie")).toBe(false);
 });

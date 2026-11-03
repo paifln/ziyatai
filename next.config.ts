@@ -14,7 +14,7 @@ const config: NextConfig = {
   },
   output: "standalone",
   outputFileTracingRoot: process.cwd(),
-  serverExternalPackages: ["pg", "nodemailer"],
+  serverExternalPackages: ["pg"],
   async rewrites() {
     return [
       { source: "/lite", destination: "/lite/index.html" },

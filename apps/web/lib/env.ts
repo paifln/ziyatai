@@ -4,6 +4,16 @@ const schema = z.object({
     .enum(["local", "staging", "production"])
     .default(process.env.NODE_ENV === "production" ? "production" : "local"),
   DATABASE_URL: z.string().min(1),
+  DATABASE_SSL_CA: z.string().default(""),
+  DATABASE_SCHEMA: z
+    .string()
+    .regex(/^[a-z][a-z0-9_]{0,62}$/)
+    .default("ziyatai"),
+  DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(20).default(10),
+  AUTH_PROVIDER: z.literal("supabase").default("supabase"),
+  SUPABASE_URL: z.string().default(""),
+  SUPABASE_PUBLISHABLE_KEY: z.string().default(""),
+  SUPABASE_SECRET_KEY: z.string().default(""),
   AUTH_SECRET: z.string().min(32),
   API_GATEWAY: z.enum(["direct", "netlify"]).default("direct"),
   NETLIFY_PROXY_SECRET: z.string().default(""),
@@ -30,11 +40,6 @@ const schema = z.object({
   STORAGE_BUCKET: z.string().min(1),
   STORAGE_ACCESS_KEY: z.string().min(1),
   STORAGE_SECRET_KEY: z.string().min(1),
-  EMAIL_VERIFICATION_REQUIRED: z.enum(["true", "false"]).default("true"),
-  GOOGLE_CLIENT_ID: z.string().trim().default(""),
-  GOOGLE_CLIENT_SECRET: z.string().trim().default(""),
-  APPLE_CLIENT_ID: z.string().trim().default(""),
-  APPLE_CLIENT_SECRET: z.string().trim().default(""),
   DEFAULT_EXPORT_FONT: z
     .enum([
       "Times New Roman",
@@ -45,11 +50,6 @@ const schema = z.object({
       "Carlito",
     ])
     .default("Times New Roman"),
-  SMTP_HOST: z.string().default(""),
-  SMTP_PORT: z.coerce.number().default(587),
-  SMTP_USER: z.string().default(""),
-  SMTP_PASSWORD: z.string().default(""),
-  SMTP_FROM: z.string().default(""),
   OPENAI_API_KEY: z.string().default(""),
   OPENAI_MODEL: z.string().default(""),
   PYTHON_PATH: z.string().default("python"),
@@ -61,11 +61,36 @@ const schema = z.object({
   SCAN_REQUIRED: z.enum(["true", "false"]).default("true"),
   MAX_UPLOAD_MB: z.coerce.number().int().min(1).max(25).default(25),
   DIRECT_UPLOADS: z.enum(["true", "false"]).default("false"),
-  DAILY_AI_LIMIT: z.coerce.number().default(20),
-  GLOBAL_DAILY_AI_LIMIT: z.coerce.number().default(200),
-  DAILY_AI_TOKEN_LIMIT: z.coerce.number().default(200000),
-  GLOBAL_DAILY_AI_TOKEN_LIMIT: z.coerce.number().default(2000000),
-  MAX_AI_TOKENS: z.coerce.number().default(16000),
+  DAILY_AI_LIMIT: z.coerce
+    .number()
+    .int()
+    .nonnegative()
+    .max(Number.MAX_SAFE_INTEGER)
+    .default(20),
+  GLOBAL_DAILY_AI_LIMIT: z.coerce
+    .number()
+    .int()
+    .nonnegative()
+    .max(Number.MAX_SAFE_INTEGER)
+    .default(200),
+  DAILY_AI_TOKEN_LIMIT: z.coerce
+    .number()
+    .int()
+    .nonnegative()
+    .max(Number.MAX_SAFE_INTEGER)
+    .default(200000),
+  GLOBAL_DAILY_AI_TOKEN_LIMIT: z.coerce
+    .number()
+    .int()
+    .nonnegative()
+    .max(Number.MAX_SAFE_INTEGER)
+    .default(2000000),
+  MAX_AI_TOKENS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .max(Number.MAX_SAFE_INTEGER)
+    .default(16000),
   WORKER_POLL_MS: z.coerce.number().int().min(250).max(60000).default(1000),
   JOB_LEASE_SECONDS: z.coerce.number().int().min(60).max(3600).default(180),
   ALLOW_DEMO: z.enum(["true", "false"]).default("false"),
@@ -87,11 +112,30 @@ export function env() {
       RENDER_CONTAINER_IMAGE: process.env.RENDER_CONTAINER_IMAGE ?? "",
       FONT_DIRECTORY: process.env.FONT_DIRECTORY ?? "",
     };
-    if (
-      parsed.EMAIL_VERIFICATION_REQUIRED === "true" &&
-      (!parsed.SMTP_HOST || !parsed.SMTP_FROM)
-    )
-      throw new Error("Email verification requires a configured mail sender");
+    if (parsed.AUTH_PROVIDER === "supabase") {
+      if (parsed.DATABASE_SCHEMA === "public")
+        throw new Error("Supabase requires a private DATABASE_SCHEMA");
+      const url = z.url().safeParse(parsed.SUPABASE_URL);
+      if (
+        !url.success ||
+        new URL(url.data).pathname !== "/" ||
+        new URL(url.data).username ||
+        new URL(url.data).password ||
+        new URL(url.data).search ||
+        new URL(url.data).hash ||
+        !["http:", "https:"].includes(new URL(url.data).protocol) ||
+        (parsed.APP_ENV !== "local" &&
+          new URL(url.data).protocol !== "https:") ||
+        !parsed.SUPABASE_PUBLISHABLE_KEY ||
+        !parsed.SUPABASE_SECRET_KEY ||
+        /YOUR_|REPLACE_|CHANGE_ME/i.test(
+          parsed.SUPABASE_PUBLISHABLE_KEY + parsed.SUPABASE_SECRET_KEY,
+        )
+      )
+        throw new Error(
+          "Supabase requires its URL, publishable key and server secret key",
+        );
+    }
     if (
       parsed.APP_ENV === "production" &&
       (parsed.SCAN_REQUIRED !== "true" ||
@@ -122,7 +166,6 @@ export function env() {
         parsed.STORAGE_ACCESS_KEY,
         parsed.STORAGE_SECRET_KEY,
         parsed.OPENAI_API_KEY,
-        parsed.SMTP_PASSWORD,
       ].some((value) => /YOUR_|REPLACE_|CHANGE_ME/i.test(value))
     )
       throw new Error(

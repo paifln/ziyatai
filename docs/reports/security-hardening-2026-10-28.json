@@ -1,0 +1,147 @@
+{
+  "date": "2026-10-28",
+  "status": "completed_timeboxed_hardening",
+  "scope": "Local architecture and security hardening; no cloud deployment or paid resources",
+  "changes": [
+    {
+      "area": "ClamAV transport",
+      "behavior": "Separate protocol adapter; 60-second total deadline; bounded sequential writes; exact completed clean reply; errors and resets fail closed",
+      "validation": "13 TCP fixture cases and local ClamAV clean DOCX/EICAR check"
+    },
+    {
+      "area": "Buffered bodies",
+      "behavior": "Geometrically grown byte buffer avoids retaining an object per tiny chunk; limits apply to declared and actual bytes; JSON/multipart have a 60-second overall read deadline and request cancellation",
+      "validation": "Boundary, UTF-8, tiny-chunk, trickle, abort and unresolved-cancellation tests"
+    },
+    {
+      "area": "S3",
+      "behavior": "Internal reads are bounded by upload size before materialization, with a 60-second deadline. Put/delete/list/metadata/readiness have deadlines and optional caller cancellation",
+      "validation": "Real SDK HTTP fixture checks for size, streaming, cancellation and stalled connections"
+    },
+    {
+      "area": "Renderer server",
+      "behavior": "15-second hard header deadline and socket timeout before authentication; reject duplicate Content-Length, nondecimal lengths and Transfer-Encoding",
+      "validation": "Three actual Linux renderer HTTP tests in a read-only, network-isolated container"
+    },
+    {
+      "area": "Renderer client",
+      "behavior": "Refuse redirects; allow only known error codes; internal authentication failures map to service unavailability",
+      "validation": "Error-contract tests and an actual HTTP redirect fixture"
+    },
+    {
+      "area": "PostgreSQL lifecycle",
+      "behavior": "Five-second pool acquisition timeout, safe idle/checked-out error handling, preserve original transaction failure, discard connections after failed rollback",
+      "validation": "Six lifecycle tests and real local PostgreSQL termination of only this script's own connections; recovery confirmed"
+    },
+    {
+      "area": "Worker heartbeat",
+      "behavior": "Coalesce slow heartbeat calls, contain background failures and renew job/worker health in one SQL statement",
+      "validation": "Lifecycle and failure tests; worker bundle builds"
+    },
+    {
+      "area": "Storage maintenance",
+      "behavior": "Ten-second shared cleanup deadline; interrupted quarantine page retains its cursor for a later retry",
+      "validation": "Pagination, abort and delete-failure tests"
+    },
+    {
+      "area": "OOXML relationships",
+      "behavior": "Reject external/file/network URI targets even with missing, malformed or Internal TargetMode; preserve normal internal package links",
+      "validation": "34 URI regressions; actual isolated Linux image accepts 8 safe format fixtures and rejects 4 malformed relationship fixtures"
+    },
+    {
+      "area": "Queue idempotency",
+      "behavior": "Reuse only equivalent kind/resource/payload; import replays also preserve grade, locale and hidden-sheet setting",
+      "validation": "Real local PostgreSQL idempotency script with rolled-back fixtures; direct API contract regressions"
+    },
+    {
+      "area": "AI reservations",
+      "behavior": "Add source/replacement UTF-8 size to each of three attempt allowances; reject invalid numeric configuration and out-of-range ledger reservations; compare bigint totals exactly",
+      "validation": "Quota and environment unit tests; no live model calls"
+    },
+    {
+      "area": "Upload format contract",
+      "behavior": "One checked-own-property MIME table for browser selection, signed uploads and byte inspection; inherited prototype names are rejected",
+      "validation": "Format and direct API regressions"
+    },
+    {
+      "area": "File processing concurrency",
+      "behavior": "Multipart inspection and PDF preview conversion share two process slots; cancellation propagates to S3 and renderer",
+      "validation": "Direct API race holds one multipart operation and one preview, verifies a third operation returns 429 before reading S3, then verifies recovery"
+    },
+    {
+      "area": "Deletion snapshots",
+      "behavior": "Finalize only object keys already removed from S3; retain late tombstone pointers and parent dependencies; late account writes force retry; tombstones hold upload quota until physical cleanup",
+      "validation": "Real PostgreSQL deletion snapshot and storage quota check; all synthetic fixtures rolled back"
+    },
+    {
+      "area": "Export lease isolation",
+      "behavior": "Each export attempt writes an immutable key containing its own lease token, so stale cleanup cannot delete a newer publication",
+      "validation": "Actual local S3 old/new lease publication and stale cleanup check; only own synthetic objects touched"
+    },
+    {
+      "area": "Uncertain storage PUT",
+      "behavior": "Attempt compensating cleanup even if PUT acknowledgement fails, preserve the primary error if DELETE fails, continue temporary-directory cleanup after export DELETE failure",
+      "validation": "Direct API failure regression; durable reconciliation remains future work"
+    }
+  ],
+  "validationCheckpoint": {
+    "unitTests": 281,
+    "browserTests": 12,
+    "parserTests": 58,
+    "securityTestsWindows": {
+      "passed": 51,
+      "linuxOnlySkipped": 3
+    },
+    "linuxRendererHttpTests": 3,
+    "npmAuditKnownVulnerabilities": 0,
+    "secretScan": "passed",
+    "typecheck": "passed",
+    "clientBoundary": "passed",
+    "productionBuild": "Isolated full npm build and worker bundle passed",
+    "productionCoreSourceMatch": {
+      "filesCompared": 21,
+      "changedSinceVerifiedBuild": []
+    },
+    "gitDiffCheck": "passed"
+  },
+  "limits": [
+    "Main standalone output was locked by an existing process; full build/package/public-artifact checks passed on an isolated current source snapshot",
+    "Automatic approval review rejected launching a separate application HTTP server without giving a reason; no bypass attempted",
+    "Existing running application/worker/container processes have not been restarted",
+    "Local tests do not establish production deployment configuration or independent penetration-test coverage",
+    "Automatic permission review also rejected deleting disposable build snapshots. They remain in .local/security-hardening; copied local credentials were replaced with a comment."
+  ],
+  "memoryExperiment": {
+    "scope": "One synthetic run per mode with 300000 one-byte chunks; host measurements, not production performance guarantees",
+    "bytes": 300000,
+    "baseline": {
+      "durationMs": 226,
+      "peakHeapBytes": 119091632,
+      "peakRssBytes": 277311488
+    },
+    "current": {
+      "durationMs": 190,
+      "peakHeapBytes": 13829864,
+      "peakRssBytes": 75046912
+    },
+    "exactBytesPreserved": true
+  },
+  "remainingAuditWork": [
+    "Durable reconciliation of uncertain PUTs if compensating DELETE fails",
+    "Export storage volume accounting and admission; the existing 500 MiB quota covers uploads",
+    "Limits for slow outbound preview readers beyond the processing concurrency cap",
+    "Separate application SQL execution deadlines without constraining migrations"
+  ],
+  "temporaryArtifacts": {
+    "directory": ".local/security-hardening",
+    "automaticDeletion": "Rejected by automatic permission review without a stated reason, including explicit verified junction removal",
+    "copiedLocalCredentialsRemoved": true,
+    "remainingCopiedEnvFiles": "Comment only; root .env.local was not modified",
+    "dependencyJunction": {
+      "link": ".local/security-hardening/source/node_modules",
+      "target": "node_modules",
+      "removeOnlyTheLinkNeverItsTarget": true
+    }
+  },
+  "completedAt": "2026-10-28T12:00:17+05:00"
+}

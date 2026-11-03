@@ -1,6 +1,5 @@
 import { createHmac } from "node:crypto";
-import { getIP } from "better-auth/api";
-import type { BetterAuthOptions, BetterAuthPlugin } from "better-auth";
+import ipaddr from "ipaddr.js";
 import type { PoolClient } from "pg";
 import { db } from "./db";
 
@@ -24,10 +23,22 @@ export function sessionReadPath(requestUrl: string, baseUrl: string) {
 
 export function sessionReadKey(
   request: Request,
-  options: BetterAuthOptions,
+  options: { advanced?: { ipAddress?: { ipAddressHeaders?: string[] } } },
   secret: string,
 ) {
-  const ip = getIP(request, options) ?? "no-trusted-ip";
+  const raw = (
+    options.advanced?.ipAddress?.ipAddressHeaders ?? ["x-ziyatai-client-ip"]
+  )
+    .map((name) => request.headers.get(name))
+    .find(Boolean);
+  let ip = "no-trusted-ip";
+  if (raw && ipaddr.isValid(raw)) {
+    const address = ipaddr.process(raw);
+    ip =
+      address.kind() === "ipv6"
+        ? address.toByteArray().slice(0, 8).join(":")
+        : address.toString();
+  }
   return createHmac("sha256", secret)
     .update(`auth-session-v1\0${ip}`)
     .digest("hex");
@@ -66,34 +77,4 @@ export async function consumeSessionRead(
     [key, tolerance],
   );
   return { allowed: false, retryAfter: remaining.rows[0]?.seconds ?? 1 };
-}
-
-export function sessionReadBudget(secret: string): BetterAuthPlugin {
-  return {
-    id: "session-read-budget",
-    async onRequest(request, context) {
-      if (!sessionReadPath(request.url, context.baseURL)) return;
-      const result = await consumeSessionRead(
-        sessionReadKey(request, context.options, secret),
-      );
-      if (!result.allowed)
-        return {
-          response: Response.json(
-            {
-              code: "READ_LIMIT",
-              message: "Too many session reads. Retry shortly.",
-            },
-            {
-              status: 429,
-              headers: {
-                "Retry-After": String(result.retryAfter),
-                "X-Retry-After": String(result.retryAfter),
-                "Cache-Control": "private, no-store",
-                Vary: "Cookie",
-              },
-            },
-          ),
-        };
-    },
-  };
 }

@@ -1,3 +1,4 @@
+import { origin as qaOrigin } from "./helpers";
 import { test, expect, type APIRequestContext } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import { parseEnv } from "node:util";
@@ -29,7 +30,7 @@ test("legacy unscanned source is private until a fresh scan publishes an immutab
   const data = await source(request, "ru-digital.pdf");
   const pool = await database();
   const other = await playwright.request.newContext({
-    baseURL: "http://localhost:3000",
+    baseURL: qaOrigin,
   });
   try {
     const previous = (

@@ -1,35 +1,36 @@
 import { boundedRequest } from "../../../../apps/web/lib/request-body";
-import { auth } from "../../../../apps/web/lib/auth";
 import { trustedGatewayRequest } from "../../../../apps/web/lib/netlify-gateway";
 import { AppError, messages } from "../../../../packages/domain/errors";
-import { env } from "../../../../apps/web/lib/env";
+import { handleSupabaseAuth } from "../../../../apps/web/lib/auth/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 async function handle(req: Request) {
   try {
     const trusted = trustedGatewayRequest(req);
-    if (
-      !env().SMTP_HOST &&
-      /\/(?:request-password-reset|forget-password|send-verification-email|email-otp\/send-verification-otp)$/.test(
-        new URL(req.url).pathname,
-      )
-    )
-      return Response.json(
-        {
-          code: "EMAIL_UNAVAILABLE",
-          message: "Email delivery is not configured",
-        },
-        { status: 503, headers: { "Cache-Control": "private, no-store" } },
-      );
     const bounded =
       req.method === "POST"
         ? await boundedRequest(trusted, 64 * 1024)
         : trusted;
-    const response = await auth().handler(bounded);
+    const handled = await handleSupabaseAuth(bounded);
+    // Fetch redirect responses have immutable headers; clone before adding privacy headers.
+    const response = new Response(handled.body, {
+      status: handled.status,
+      statusText: handled.statusText,
+      headers: handled.headers,
+    });
     response.headers.set("Cache-Control", "private, no-store");
     response.headers.append("Vary", "Cookie");
+    response.headers.set("Referrer-Policy", "no-referrer");
     return response;
   } catch (error) {
+    if (error instanceof Error && error.name === "ZodError")
+      return Response.json(
+        { code: "INVALID_INPUT" },
+        {
+          status: 400,
+          headers: { "Cache-Control": "private, no-store", Vary: "Cookie" },
+        },
+      );
     if (error instanceof AppError)
       return Response.json(
         {

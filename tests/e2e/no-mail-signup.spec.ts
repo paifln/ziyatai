@@ -1,3 +1,4 @@
+import { origin as qaOrigin } from "./helpers";
 import { test, expect } from "@playwright/test";
 import { randomBytes } from "node:crypto";
 import { headers, authRequest, verifiedUser, submitSignup } from "./helpers";
@@ -126,7 +127,7 @@ test("registration without email verification creates a working session without 
   if (!config.passwordResetAvailable) {
     const reset = await page.request.post("/api/auth/request-password-reset", {
       headers,
-      data: { email, redirectTo: "http://localhost:3000/" },
+      data: { email, redirectTo: qaOrigin + "/" },
     });
     expect(reset.status()).toBe(503);
   }

@@ -1,9 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { syntheticDemo } from "../packages/domain/demo";
-import {
-  validateDocument,
-  studentDocument,
-} from "../packages/domain/validation";
+import { validateDocument } from "../packages/domain/validation";
 import { sniffFile } from "../apps/web/lib/files";
 import { renderDocx } from "../packages/document-renderer";
 import { normalizeDate } from "../packages/domain/dates";
@@ -54,15 +51,6 @@ describe("generation contract", () => {
     expect(validateDocument(document, snapshot).issues).toContain(
       "TRANSLATION_MISSING",
     );
-  });
-  it("removes all solution fields in student projection", () => {
-    const { document } = syntheticDemo("ru");
-    const student = studentDocument(document);
-    for (const task of student.tasks) {
-      expect(task.answerBlocks).toEqual([]);
-      expect(task.explanationHow).toBe("");
-      expect(task.rubric).toEqual([]);
-    }
   });
 });
 describe("file allowlist", () => {

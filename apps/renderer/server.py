@@ -10,6 +10,17 @@ if len(token)<32:raise RuntimeError('Renderer token must contain at least 32 cha
 def deadline(signum,frame):raise ValueError('OCR_UNAVAILABLE')
 signal.signal(signal.SIGALRM,deadline)
 class Handler(BaseHTTPRequestHandler):
+ header_timeout=15
+ def setup(self):
+  super().setup()
+  self.connection.settimeout(self.header_timeout)
+ def handle_one_request(self):
+  # The serial service must also bound unauthenticated header reads. Socket
+  # inactivity alone does not stop a peer trickling one byte at a time.
+  signal.alarm(self.header_timeout)
+  try:super().handle_one_request()
+  except (TimeoutError,ValueError):self.close_connection=True
+  finally:signal.alarm(0)
  def log_message(self,*args):pass
  def do_GET(self):
   if self.path=='/health':self.send_response(200);self.end_headers();self.wfile.write(b'{"status":"ok"}')
@@ -17,7 +28,9 @@ class Handler(BaseHTTPRequestHandler):
  def do_POST(self):
   if not hmac.compare_digest(self.headers.get('Authorization','').encode('utf-8'),('Bearer '+token).encode('utf-8')):self.send_response(401);self.end_headers();return
   if self.path not in ('/inspect','/parse','/preview','/render'):self.send_response(404);self.end_headers();return
-  try:size=int(self.headers.get('Content-Length','0'))
+  lengths=self.headers.get_all('Content-Length',[])
+  if self.headers.get_all('Transfer-Encoding') or len(lengths)!=1 or not lengths[0].isascii() or not lengths[0].isdigit():self.send_response(400);self.end_headers();return
+  try:size=int(lengths[0])
   except ValueError:self.send_response(400);self.end_headers();return
   if not 0<size<=MAX_BYTES:self.send_response(413);self.end_headers();return
   ext=self.headers.get('X-Format','');font=self.headers.get('X-Font','Times New Roman')
@@ -63,4 +76,5 @@ class RendererServer(HTTPServer):
   if self.address_family==socket.AF_INET6 and socket.has_dualstack_ipv6():
    self.socket.setsockopt(socket.IPPROTO_IPV6,socket.IPV6_V6ONLY,0)
   super().server_bind()
-RendererServer((host,int(os.environ.get('PORT','8090'))),Handler).serve_forever()
+if __name__=='__main__':
+ RendererServer((host,int(os.environ.get('PORT','8090'))),Handler).serve_forever()

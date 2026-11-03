@@ -30,21 +30,12 @@ import {
 import { validationMessage } from "../../../packages/domain/validation-messages";
 import { Jobs } from "./Jobs";
 import { usePolling } from "../lib/use-polling";
-import TableEditor from "./TableEditor";
+import { BlocksEditor } from "./generations/BlocksEditor";
 import { DisplayBlocks } from "./generations/DisplayBlocks";
 import { TaskReview } from "./generations/TaskReview";
 import { RevisionConflict, type RevisionSnapshot } from "./RevisionConflict";
 import { useServerDraft } from "../lib/use-server-draft";
 import { DraftRecovery } from "./DraftRecovery";
-type Block = TaskDocument["contentBlocks"][number];
-const blank = (type: Block["type"] = "paragraph"): Block => ({
-  type,
-  text: "",
-  items: [],
-  columns: [],
-  rows: [],
-  language: "",
-});
 export default function GenerationEditor({
   id,
   t,
@@ -567,6 +558,7 @@ export default function GenerationEditor({
           {mode === "review" ? (
             <TaskReview
               document={document}
+              minutes={generation.source_snapshot?.minutes}
               t={t}
               locale={locale}
               onEditTask={editTask}
@@ -1248,94 +1240,6 @@ export default function GenerationEditor({
         </aside>
       </div>
     </>
-  );
-}
-function BlocksEditor({
-  blocks,
-  onChange,
-  t,
-}: {
-  blocks: Block[];
-  onChange: (b: Block[]) => void;
-  t: Texts;
-}) {
-  function update(index: number, change: Partial<Block>) {
-    onChange(blocks.map((b, i) => (i === index ? { ...b, ...change } : b)));
-  }
-  return (
-    <div className="blocks">
-      {blocks.map((b, i) => (
-        <div className="block-editor" key={i}>
-          <div className="block-top">
-            <select
-              aria-label={t.format}
-              value={b.type}
-              onChange={(e) => {
-                const type = e.target.value as Block["type"];
-                update(i, {
-                  ...blank(type),
-                  text: b.text,
-                  ...(type === "table"
-                    ? { columns: ["", ""], rows: [["", ""]] }
-                    : type === "list"
-                      ? { items: [b.text] }
-                      : {}),
-                });
-              }}
-            >
-              {["paragraph", "list", "table", "code"].map((type) => (
-                <option key={type} value={type}>
-                  {(t as any)[type]}
-                </option>
-              ))}
-            </select>
-            {b.type === "code" && (
-              <input
-                aria-label={t.language}
-                placeholder="Python 3.13"
-                value={b.language}
-                onChange={(e) => update(i, { language: e.target.value })}
-              />
-            )}
-            <button
-              className="icon-button"
-              aria-label={t.remove}
-              onClick={() => onChange(blocks.filter((_, j) => j !== i))}
-            >
-              <Trash2 size={13} />
-            </button>
-          </div>
-          {b.type === "list" ? (
-            <textarea
-              aria-label={t.list}
-              value={b.items.join("\n")}
-              onChange={(e) => update(i, { items: e.target.value.split("\n") })}
-            />
-          ) : b.type === "table" ? (
-            <TableEditor
-              block={b}
-              onChange={(value) => update(i, value)}
-              t={t}
-            />
-          ) : (
-            <textarea
-              className={b.type === "code" ? "code-input" : ""}
-              aria-label={t[b.type]}
-              value={b.text}
-              onChange={(e) => update(i, { text: e.target.value })}
-              maxLength={20000}
-            />
-          )}
-        </div>
-      ))}
-      <button
-        className="text-button"
-        onClick={() => onChange([...blocks, blank()])}
-      >
-        <Plus size={13} />
-        {t.addBlock}
-      </button>
-    </div>
   );
 }
 function Preview({

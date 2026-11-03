@@ -1,0 +1,39 @@
+name: ziyatai-laptop
+services:
+  renderer:
+    image: ziyatai-renderer:laptop
+    restart: unless-stopped
+    env_file: ../.local/renderer.env
+    ports: ["127.0.0.1:18091:8090"]
+    volumes: ["${FONT_DIRECTORY:?Set path to licensed fonts}:/usr/local/share/fonts/licensed:ro"]
+    read_only: true
+    tmpfs: ["/tmp:size=512m,mode=1777"]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 1g
+    cpus: 1.0
+    pids_limit: 128
+  web:
+    image: ziyatai-web:laptop
+    restart: unless-stopped
+    env_file: ../.local/hosting/laptop-backend.env
+    environment:
+      HOSTNAME: 0.0.0.0
+      PORT: 3000
+    ports: ["127.0.0.1:3001:3000"]
+    read_only: true
+    tmpfs: ["/tmp:size=512m,mode=1777"]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 1g
+    pids_limit: 128
+  worker:
+    image: ziyatai-worker:laptop
+    restart: unless-stopped
+    env_file: ../.local/hosting/laptop-backend.env
+    read_only: true
+    tmpfs: ["/tmp:size=512m,mode=1777"]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 1g
+    pids_limit: 128

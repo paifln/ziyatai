@@ -3,6 +3,7 @@ node_modules/
 next-env.d.ts
 .env*
 !.env.example
+!.env.supabase.example
 .local/
 __pycache__/
 .pytest_cache/
@@ -20,3 +21,7 @@ public/_redirects
 public/_headers
 public/licenses.txt
 .netlify/
+!apps/web/lib/auth/
+!apps/web/lib/auth/*.ts
+supabase/.temp/
+supabase/.branches/

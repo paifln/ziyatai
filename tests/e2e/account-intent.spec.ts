@@ -1,3 +1,4 @@
+import { origin as qaOrigin } from "./helpers";
 import { test, expect } from "@playwright/test";
 import { verifiedUser, headers, authRequest } from "./helpers";
 import { randomInt } from "node:crypto";
@@ -14,10 +15,10 @@ test("account intent fences business reads and writes without becoming an authen
   const first = (await (await request.get("/api/auth/get-session")).json()).user
     .id;
   const second = await playwright.request.newContext({
-    baseURL: "http://localhost:3000",
+    baseURL: qaOrigin,
   });
   const anonymous = await playwright.request.newContext({
-    baseURL: "http://localhost:3000",
+    baseURL: qaOrigin,
   });
   try {
     await verifiedUser(second);
@@ -89,10 +90,10 @@ test("native auth intent refuses another owner and allows matching or already-in
   const first = (await (await request.get("/api/auth/get-session")).json()).user
     .id;
   const second = await playwright.request.newContext({
-    baseURL: "http://localhost:3000",
+    baseURL: qaOrigin,
   });
   const anonymous = await playwright.request.newContext({
-    baseURL: "http://localhost:3000",
+    baseURL: qaOrigin,
   });
   try {
     await verifiedUser(second);
@@ -240,7 +241,7 @@ test("parallel native session checks isolate matching and mismatching account in
   const first = (await (await request.get("/api/auth/get-session")).json()).user
     .id;
   const second = await playwright.request.newContext({
-    baseURL: "http://localhost:3000",
+    baseURL: qaOrigin,
   });
   try {
     await verifiedUser(second);

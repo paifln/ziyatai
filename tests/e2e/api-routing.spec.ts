@@ -1,3 +1,4 @@
+import { origin as qaOrigin } from "./helpers";
 import { test, expect } from "@playwright/test";
 import { randomUUID } from "node:crypto";
 import { headers, verifiedUser, approveGeneration } from "./helpers";
@@ -110,7 +111,7 @@ test("canonical editing and ownership guards survive route admission", async ({
   ).json();
   const before = await (await request.get(`/api/ktp/${demo.planId}`)).json();
   const other = await playwright.request.newContext({
-    baseURL: "http://localhost:3000",
+    baseURL: qaOrigin,
   });
   try {
     await verifiedUser(other);

@@ -1,208 +1,81 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { ThemeToggle } from "./ui/ThemeToggle";
 import { Form } from "./ui/Form";
 import { PasswordField } from "./ui/PasswordField";
 import { LessonPreview } from "./auth/LessonPreview";
 import { subjects } from "../../../packages/domain/subjects";
-import { api, authClient } from "../lib/client";
+import { authClient } from "../lib/client";
 import type { Texts, UiLocale } from "../lib/i18n";
+
+type AuthPanelProps = {
+  t: Texts;
+  locale: UiLocale;
+  setLocale: (locale: UiLocale) => void;
+  initialMode?: "login" | "signup";
+};
 export default function AuthPanel({
   t,
   locale,
   setLocale,
   initialMode,
-}: {
-  t: Texts;
-  locale: UiLocale;
-  setLocale: (l: UiLocale) => void;
-  initialMode?: "login" | "signup";
-}) {
-  const [mode, setMode] = useState<
-    "login" | "signup" | "reset" | "new" | "verify"
-  >(() =>
+}: AuthPanelProps) {
+  const [mode, setMode] = useState<"login" | "signup" | "reset" | "new">(() =>
     typeof window !== "undefined" &&
-    new URLSearchParams(window.location.search).has("token")
+    new URLSearchParams(window.location.search).get("auth") === "recovery"
       ? "new"
       : (initialMode ?? "login"),
   );
-  const [email, setEmail] = useState(""),
-    [password, setPassword] = useState(""),
-    [name, setName] = useState(""),
-    [busy, setBusy] = useState(false),
-    [message, setMessage] = useState(""),
-    [error, setError] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
   const [subject, setSubject] = useState("");
-  const [socialProviders, setSocialProviders] = useState({
-    google: false,
-    apple: false,
-  });
   const [customSubject, setCustomSubject] = useState("");
-  const [otp, setOtp] = useState("");
-  const [cooldown, setCooldown] = useState(0);
-  const [localMailbox, setLocalMailbox] = useState(false);
-  const [passwordResetAvailable, setPasswordResetAvailable] = useState(false);
-  const [emailVerificationRequired, setEmailVerificationRequired] =
-    useState(true);
-  useEffect(() => {
-    let active = true;
-    void api("public-config")
-      .then((config) => {
-        if (active) {
-          setSocialProviders({
-            google: config.socialProviders?.google === true,
-            apple: config.socialProviders?.apple === true,
-          });
-          if (new URLSearchParams(window.location.search).has("oauthError"))
-            setError(
-              locale === "ru"
-                ? "Вход не завершён. Попробуйте снова или войдите по почте. Если аккаунт уже существует, используйте прежний способ входа."
-                : "Кіру аяқталмады. Қайталап көріңіз немесе бұрынғы кіру тәсілін қолданыңыз.",
-            );
-          setLocalMailbox(
-            config.localMailbox === true &&
-              ["localhost", "127.0.0.1", "[::1]"].includes(
-                window.location.hostname,
-              ),
-          );
-          setPasswordResetAvailable(config.passwordResetAvailable === true);
-          setEmailVerificationRequired(
-            config.emailVerificationRequired !== false,
-          );
-        }
-      })
-      .catch(() => {
-        /* Optional demo hint must not block sign-in. */
-      });
-    return () => {
-      active = false;
-    };
-  }, [locale]);
-  useEffect(() => {
-    if (!cooldown) return;
-    const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [cooldown]);
-  async function resend() {
-    setBusy(true);
-    setError("");
-    try {
-      const result = await authClient.emailOtp.sendVerificationOtp({
-        email,
-        type: "email-verification",
-      });
-      if (result.error) throw new Error();
-      setCooldown(60);
-      setMessage(
-        locale === "ru"
-          ? "Новый код отправлен. Используйте последнее письмо."
-          : "Жаңа код жіберілді. Соңғы хаттағы кодты енгізіңіз.",
-      );
-    } catch {
-      setError(
-        locale === "ru"
-          ? "Не удалось отправить код. Повторите позже."
-          : "Код жіберілмеді. Кейінірек қайталаңыз.",
-      );
-    } finally {
-      setBusy(false);
-    }
-  }
-  async function socialSignIn(provider: "google" | "apple") {
-    setError("");
-    if (!socialProviders[provider]) {
-      setError(
-        locale === "ru"
-          ? `Вход через ${provider === "google" ? "Google" : "Apple"} пока не подключён. Войдите по почте.`
-          : `${provider === "google" ? "Google" : "Apple"} арқылы кіру әлі қосылмаған. Пошта арқылы кіріңіз.`,
-      );
-      return;
-    }
-    setBusy(true);
-    try {
-      const result = await authClient.signIn.social({
-        provider,
-        callbackURL: "/",
-        errorCallbackURL: "/login?oauthError=1",
-      });
-      if (result.error) throw new Error();
-    } catch {
-      setError(
-        locale === "ru"
-          ? "Не удалось начать вход. Попробуйте ещё раз."
-          : "Кіру басталмады. Қайталап көріңіз.",
-      );
-    } finally {
-      setBusy(false);
-    }
-  }
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
     setBusy(true);
     setError("");
     setMessage("");
     try {
-      let result;
-      if (mode === "signup") {
-        result = await authClient.signUp.email({
-          email,
-          password,
-          name,
-          teachingSubject: subject === "other" ? customSubject.trim() : subject,
-          callbackURL: "/",
-        });
-        if (!result.error) {
-          if (result.data?.token) {
-            window.location.assign("/");
-            return;
-          }
-          setMode("verify");
-          setPassword("");
-          setCooldown(60);
-        }
-      } else if (mode === "verify") {
-        result = await authClient.emailOtp.verifyEmail({ email, otp });
-        if (!result.error) window.location.assign("/");
-      } else if (mode === "reset") {
-        result = await authClient.requestPasswordReset({
-          email,
-          redirectTo: window.location.origin + "/",
-        });
-        if (!result.error) setMessage(t.resetSent);
-      } else if (mode === "new") {
-        result = await authClient.resetPassword({
-          newPassword: password,
-          token: new URLSearchParams(window.location.search).get("token") ?? "",
-        });
-        if (!result.error) {
-          window.history.replaceState(null, "", window.location.pathname);
-          setPassword("");
-          setMessage(t.passwordChanged);
-          setMode("login");
-        }
-      } else {
-        result = await authClient.signIn.email({ email, password });
-        if (!result.error) window.location.assign("/");
-        else if (result.error.code === "EMAIL_NOT_VERIFIED") {
-          setMode("verify");
-          setPassword("");
-          await resend();
-          return;
-        }
-      }
-      if (result.error)
+      const result =
+        mode === "signup"
+          ? await authClient.signUp.email({
+              email,
+              password,
+              name,
+              teachingSubject:
+                subject === "other" ? customSubject.trim() : subject,
+            })
+          : mode === "reset"
+            ? await authClient.requestPasswordReset({ email })
+            : mode === "new"
+              ? await authClient.resetPassword({ newPassword: password })
+              : await authClient.signIn.email({ email, password });
+      if (result.error) {
         setError(
           result.error.status === 429
             ? t.tooManyAttempts
-            : mode === "verify"
+            : result.error.code === "EMAIL_NOT_VERIFIED"
               ? locale === "ru"
-                ? "Код неверный или истёк. Проверьте последнее письмо или запросите новый."
-                : "Код қате немесе мерзімі өткен. Соңғы хатты тексеріңіз немесе жаңа код сұраңыз."
+                ? "Подтвердите почту по ссылке. Для прежнего аккаунта сначала восстановите пароль."
+                : "Поштаңызды сілтеме арқылы растаңыз. Бұрынғы аккаунт үшін алдымен құпиясөзді қалпына келтіріңіз."
               : locale === "ru"
-                ? "Не удалось выполнить действие. Проверьте введённые данные."
-                : "Әрекет орындалмады. Енгізілген деректерді тексеріңіз.",
+                ? "Не удалось выполнить действие. Проверьте email и пароль."
+                : "Әрекет орындалмады. Email мен құпиясөзді тексеріңіз.",
         );
+      } else if (mode === "reset") setMessage(t.resetSent);
+      else if (result.data?.needsEmailConfirmation) {
+        setPassword("");
+        setMessage(
+          locale === "ru"
+            ? "Откройте письмо и подтвердите почту по ссылке. Затем войдите с паролем."
+            : "Хаттағы сілтеме арқылы поштаңызды растаңыз. Содан кейін құпиясөзбен кіріңіз.",
+        );
+      } else window.location.assign("/");
     } catch {
       setError(
         locale === "ru"
@@ -274,96 +147,24 @@ export default function AuthPanel({
         <div className="auth-form-card">
           <span className="small-label">ZiyatAI</span>
           <h2>
-            {mode === "verify"
-              ? locale === "ru"
-                ? "Проверьте почту"
-                : "Поштаңызды тексеріңіз"
-              : mode === "signup"
-                ? t.signUp
-                : mode === "reset"
-                  ? t.reset
-                  : mode === "new"
-                    ? t.resetNew
-                    : t.signIn}
+            {mode === "signup"
+              ? t.signUp
+              : mode === "reset"
+                ? t.reset
+                : mode === "new"
+                  ? t.resetNew
+                  : t.signIn}
           </h2>
           <p className="auth-caption">
-            {mode === "verify"
-              ? locale === "ru"
-                ? `Введите 6-значный код из письма на ${email}. Код действует 10 минут.`
-                : `${email} поштасына жіберілген 6 таңбалы кодты енгізіңіз. Код 10 минут жарамды.`
-              : locale === "ru"
-                ? "Ваши планы, задания и готовые материалы — в одном месте."
-                : "Жоспарларыңыз, тапсырмалар мен дайын материалдар — бір жерде."}
+            {locale === "ru"
+              ? "Ваши планы, задания и готовые материалы — в одном месте."
+              : "Жоспарлар, тапсырмалар және дайын материалдар — бір жерде."}
           </p>
-          {localMailbox && ["verify", "reset"].includes(mode) && (
-            <p className="mail-preview-note">
-              {locale === "ru"
-                ? "В локальной демонстрации коды и ссылки попадают в тестовую почту этого ПК, а не во внешний ящик. "
-                : "Жергілікті демода кодтар мен сілтемелер сыртқы поштаға емес, осы компьютердің сынақ поштасына түседі. "}
-              <a
-                href="http://localhost:8025"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {locale === "ru"
-                  ? "Открыть тестовую почту"
-                  : "Сынақ поштасын ашу"}
-              </a>
-            </p>
-          )}
-          {(mode === "login" || mode === "signup") && (
-            <div
-              className="social-auth"
-              aria-label={
-                locale === "ru"
-                  ? "Другие способы входа"
-                  : "Басқа кіру тәсілдері"
-              }
-            >
-              {(["google", "apple"] as const).map((provider) => (
-                <button
-                  key={provider}
-                  type="button"
-                  disabled={busy}
-                  onClick={() => void socialSignIn(provider)}
-                >
-                  <span aria-hidden="true" className="social-auth-mark">
-                    {provider === "google" ? (
-                      "G"
-                    ) : (
-                      <svg
-                        viewBox="0 0 24 24"
-                        width="20"
-                        height="20"
-                        fill="currentColor"
-                      >
-                        <path d="M17.1 12.5c0-2 1.6-3 1.7-3.1-1-1.5-2.5-1.7-3.1-1.7-1.3-.1-2.6.8-3.3.8s-1.7-.8-2.8-.7C8.2 7.8 7 8.5 6.3 9.7c-1.5 2.6-.4 6.5 1 8.6.7 1 1.5 2.1 2.6 2 1-.1 1.4-.7 2.7-.7 1.2 0 1.6.7 2.7.7s1.8-1 2.5-2c.8-1.2 1.1-2.4 1.1-2.4s-1.8-.7-1.8-3.4ZM15 6.3c.6-.8 1.1-1.9 1-3-.9 0-2 .6-2.7 1.4-.6.7-1.1 1.8-1 2.8 1 .1 2.1-.5 2.7-1.2Z" />
-                      </svg>
-                    )}
-                  </span>
-                  {locale === "ru" ? "Продолжить с " : "Жалғастыру: "}
-                  {provider === "google" ? "Google" : "Apple"}
-                </button>
-              ))}
-              <p className="social-auth-divider">
-                {locale === "ru"
-                  ? "или по электронной почте"
-                  : "немесе электрондық пошта арқылы"}
-              </p>
-            </div>
-          )}
           <Form key={mode} locale={locale} onSubmit={submit}>
             <fieldset className="editor-fields auth-fields" disabled={busy}>
               <legend className="sr-only">
                 {mode === "signup" ? t.signUp : t.signIn}
               </legend>
-              {mode === "signup" && !emailVerificationRequired && (
-                <p className="notice">
-                  {locale === "ru"
-                    ? "Подтверждение почты не требуется. Сохраните пароль для следующего входа."
-                    : "Поштаны растау қажет емес. Келесі кіру үшін құпиясөзді сақтаңыз."}
-                </p>
-              )}
               {mode === "signup" && (
                 <label>
                   {t.name}
@@ -413,26 +214,7 @@ export default function AuthPanel({
                   )}
                 </>
               )}
-              {mode === "verify" && (
-                <label>
-                  {locale === "ru" ? "Код из письма" : "Хаттағы код"}
-                  <input
-                    className="otp-input"
-                    value={otp}
-                    onChange={(e) =>
-                      setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
-                    }
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    pattern="[0-9]{6}"
-                    minLength={6}
-                    maxLength={6}
-                    required
-                    autoFocus
-                  />
-                </label>
-              )}
-              {mode !== "new" && mode !== "verify" && (
+              {mode !== "new" && (
                 <label>
                   {t.email}
                   <input
@@ -447,7 +229,7 @@ export default function AuthPanel({
                   />
                 </label>
               )}
-              {mode !== "reset" && mode !== "verify" && (
+              {mode !== "reset" && (
                 <PasswordField
                   label={t.password}
                   locale={locale}
@@ -463,7 +245,7 @@ export default function AuthPanel({
                   onChange={(e) => setPassword(e.target.value)}
                 />
               )}
-              {mode === "login" && passwordResetAvailable && (
+              {mode === "login" && (
                 <button
                   className="text-button forgot"
                   type="button"
@@ -513,32 +295,17 @@ export default function AuthPanel({
               >
                 {busy
                   ? t.loading
-                  : mode === "verify"
-                    ? locale === "ru"
-                      ? "Подтвердить почту"
-                      : "Поштаны растау"
-                    : mode === "signup"
-                      ? t.signUp
-                      : mode === "reset"
-                        ? t.reset
-                        : mode === "new"
-                          ? t.save
-                          : t.signIn}
+                  : mode === "signup"
+                    ? t.signUp
+                    : mode === "reset"
+                      ? t.reset
+                      : mode === "new"
+                        ? t.save
+                        : t.signIn}
                 <ArrowRight size={17} />
               </button>
             </fieldset>
           </Form>
-          {mode === "verify" && (
-            <button
-              type="button"
-              className="text-button resend-code"
-              disabled={busy || cooldown > 0}
-              onClick={resend}
-            >
-              {locale === "ru" ? "Отправить код ещё раз" : "Кодты қайта жіберу"}
-              {cooldown > 0 ? ` · ${cooldown} с` : ""}
-            </button>
-          )}
           <p className="auth-toggle">
             {mode === "login" ? t.noAccount : t.haveAccount}{" "}
             <button

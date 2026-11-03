@@ -544,7 +544,7 @@ input[type="checkbox"] {
   width: 260px;
   max-width: calc(100vw - 32px);
   padding: 18px 8px 8px;
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 16px;
   box-shadow: 0 16px 50px #182b201a;
@@ -569,7 +569,7 @@ input[type="checkbox"] {
   padding: 12px;
   border: 0;
   border-radius: 9px;
-  background: #fff;
+  background: var(--surface);
   color: var(--ink);
   text-align: left;
   font-size: 13px;
@@ -1633,7 +1633,7 @@ progress::-webkit-progress-value {
 .code-input {
   font-family: Consolas, monospace;
 }
-.table-grid input {
+.table-grid :is(input, textarea) {
   min-width: 95px;
   border-radius: 0;
   padding: 6px;
@@ -1822,6 +1822,13 @@ progress::-webkit-progress-value {
   display: flex;
   align-items: center;
   gap: 16px;
+}
+.loading-screen img {
+  box-sizing: content-box;
+  padding: 8px;
+  background: #f4f6ed;
+  border: 1px solid #d5dfce;
+  border-radius: 14px;
 }
 .session-retry {
   padding: 20px;
@@ -2159,15 +2166,6 @@ progress::-webkit-progress-value {
 }
 .form-errors button:hover {
   text-decoration: underline;
-}
-.auth-form-card .otp-input {
-  font-size: 28px;
-  letter-spacing: 10px;
-  text-align: center;
-  font-weight: 600;
-}
-.resend-code {
-  margin-top: 20px;
 }
 .confirm-dialog {
   width: min(440px, calc(100vw - 32px));
@@ -2596,6 +2594,42 @@ progress::-webkit-progress-value {
   }
   .confirm-dialog {
     padding: 26px 22px;
+  }
+}
+@media (max-width: 850px) {
+  .auth-story {
+    padding-top: 88px;
+  }
+  .auth-story .brand {
+    position: absolute;
+    top: 22px;
+    left: 22px;
+  }
+  .auth-form-area > .auth-language {
+    position: absolute;
+    top: 22px;
+    right: 72px;
+    margin-right: 0;
+  }
+  .auth-theme {
+    top: 22px;
+    right: 22px;
+  }
+  .auth-story-content {
+    padding-top: 12px;
+  }
+  .auth-form-area {
+    min-width: 0;
+  }
+}
+@media (max-width: 380px) {
+  .auth-story {
+    padding-top: 138px;
+  }
+  .auth-form-area > .auth-language {
+    top: 80px;
+    left: 22px;
+    right: auto;
   }
 }
 @media (prefers-reduced-motion: reduce) {

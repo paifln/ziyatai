@@ -38,6 +38,8 @@ test("a method mismatch never falls back to another operation", () => {
     [["uploads", "init"], "GET", "POST"],
     [["ktp", "imports"], "GET", "POST"],
     [["ktp", "collection"], "DELETE", "GET"],
+    [["history", "collection"], "POST", "GET"],
+    [["library", "collection"], "DELETE", "GET"],
     [["exports", "id", "download"], "PATCH", "GET, HEAD"],
   ] as const) {
     try {

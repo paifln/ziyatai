@@ -1,6 +1,7 @@
 import { chromium } from "@playwright/test";
-import { mkdir, writeFile } from "node:fs/promises";
-const base = process.env.QA_ORIGIN || "http://localhost:3000";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+const base =
+  process.env.QA_BASE_URL || process.env.QA_ORIGIN || "http://localhost:3000";
 const browser = await chromium.launch({
   channel: process.env.CI ? undefined : "chrome",
   headless: true,
@@ -49,9 +50,13 @@ try {
       const errors: string[] = [];
       page.on("pageerror", (e) => errors.push(e.message));
       await page.goto(base + path);
-      await page
-        .getByLabel("Email", { exact: true })
-        .waitFor({ timeout: 30000 });
+      if (path === "/") {
+        await page.locator(".landing-hero h1").waitFor({ timeout: 30000 });
+        await page.locator('.hero-actions a[href="/signup"]').waitFor();
+      } else
+        await page
+          .getByLabel("Email", { exact: true })
+          .waitFor({ timeout: 30000 });
       await page.waitForLoadState("load");
       await page.waitForTimeout(1200);
       const metrics = await page.evaluate(() => {
@@ -95,12 +100,12 @@ try {
         };
       });
       await page.screenshot({
-        path: `.local/qa/production-${path === "/" ? "auth" : "lite"}-${width}.png`,
+        path: `.local/qa/production-${path === "/" ? "landing" : "lite"}-${width}.png`,
         fullPage: true,
         animations: "disabled",
       });
       results.push({
-        interface: path === "/" ? "full" : "lite",
+        interface: path === "/" ? "landing" : "lite",
         width,
         ...metrics,
         errors,
@@ -114,11 +119,14 @@ try {
 const report = {
   date: new Date().toISOString().slice(0, 10),
   browser: browserVersion,
+  buildId: await readFile(".next/BUILD_ID", "utf8")
+    .then((value) => value.trim())
+    .catch(() => null),
   environment:
     "Local compiled production bundle; simulated 6x CPU slowdown and 1.6Mbps down/750Kbps up/150ms latency. Not a physical Windows 7 test or public hosting measurement.",
   results,
 };
 await writeFile(
-  "docs/reports/browser-performance.json",
+  `docs/reports/browser-performance-${report.date}.json`,
   JSON.stringify(report, null, 2),
 );

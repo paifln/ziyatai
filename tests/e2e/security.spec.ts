@@ -1,7 +1,13 @@
 import { test, expect } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
-import { verifiedUser, jobDone, headers, approveGeneration } from "./helpers";
+import {
+  verifiedUser,
+  jobDone,
+  headers,
+  approveGeneration,
+  origin,
+} from "./helpers";
 import { request as httpRequest } from "node:http";
 
 test("chunked JSON is bounded and teacher review cannot bypass invalid scoring", async ({
@@ -13,10 +19,8 @@ test("chunked JSON is bounded and teacher review cannot bypass invalid scoring",
     .join("; ");
   const status = await new Promise<number>((resolve, reject) => {
     const outgoing = httpRequest(
+      new URL("/api/exports", origin),
       {
-        hostname: "127.0.0.1",
-        port: 3000,
-        path: "/api/exports",
         method: "POST",
         headers: {
           ...headers,

@@ -2,7 +2,26 @@ import { expect, it } from "vitest";
 import {
   DEFAULT_UPLOAD_BYTES,
   uploadSelectionError,
+  uploadFormat,
 } from "../packages/domain/uploads";
+it.each([
+  "plan.constructor",
+  "plan.__proto__",
+  "plan.toString",
+  "plan.hasOwnProperty",
+])("rejects object-prototype names as upload formats: %s", (name) => {
+  expect(uploadFormat(name)).toBeNull();
+  expect(uploadSelectionError({ name, size: 1 })).toBe("FILE_TYPE");
+});
+it("uses one MIME contract for upload initialization and byte inspection", () => {
+  expect(uploadFormat("Қазақ.PDF")).toEqual({
+    ext: "pdf",
+    mime: "application/pdf",
+  });
+  expect(uploadFormat("plan.docx")?.mime).toBe(
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  );
+});
 it("accepts the supported formats case-insensitively and rejects disguised extensions", () => {
   for (const name of ["КТЖ.XLS", "plan.xlsx", "plan.PDF", "plan.docx"])
     expect(uploadSelectionError({ name, size: 1 })).toBeNull();

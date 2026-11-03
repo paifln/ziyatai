@@ -1,5 +1,5 @@
 export type DraftChoice = "local" | "remote";
-export type DraftConflict = {
+type DraftConflict = {
   key: string;
   path: string[];
   local: unknown;

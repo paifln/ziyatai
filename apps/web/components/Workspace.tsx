@@ -30,6 +30,7 @@ import { subjectLabel } from "../../../packages/domain/subjects";
 import { Jobs } from "./Jobs";
 import { PlanCollection } from "./plans/PlanCollection";
 import { usePolling, useResume } from "../lib/use-polling";
+import { ConnectionNotice } from "./ui/ConnectionNotice";
 const ResourceCollection = dynamic(() => import("./ResourceCollection"));
 const PlanReview = dynamic(() => import("./PlanReview"));
 const GenerationEditor = dynamic(() => import("./GenerationEditor"));
@@ -153,7 +154,7 @@ function WorkspaceContent({
   const openedLink = useRef(false);
   const [passwordReset, setPasswordReset] = useState(false);
   useEffect(() => {
-    setPasswordReset(new URLSearchParams(window.location.search).has("token"));
+    setPasswordReset(new URLSearchParams(window.location.search).get("auth") === "recovery");
   }, []);
   const sidebar = useRef<HTMLElement>(null);
   const discardPrompt =
@@ -560,6 +561,7 @@ function WorkspaceContent({
           </div>
         </header>
         <main className="main-content" id="workspace-main" tabIndex={-1}>
+          <ConnectionNotice locale={locale} />
           {error && (
             <div className="notice error global-error" role="alert">
               {error}

@@ -15,9 +15,9 @@ await writeFile(".env.local", text, { mode: 0o600 });
 // must stay exactly as supplied by the operator.
 const container = text
   .replace(
-    /^(DATABASE_URL|STORAGE_ENDPOINT|SMTP_HOST|CLAMAV_HOST|RENDERER_URL)=(.*)$/gm,
+    /^(DATABASE_URL|STORAGE_ENDPOINT|CLAMAV_HOST|RENDERER_URL)=(.*)$/gm,
     (line, key: string, value: string) => {
-      if (["SMTP_HOST", "CLAMAV_HOST"].includes(key))
+      if (key === "CLAMAV_HOST")
         return ["127.0.0.1", "localhost"].includes(value.trim())
           ? `${key}=host.docker.internal`
           : line;

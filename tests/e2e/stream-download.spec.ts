@@ -1,3 +1,4 @@
+import { origin as qaOrigin } from "./helpers";
 import { test, expect } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import { parseEnv } from "node:util";
@@ -67,7 +68,7 @@ test("HEAD and range requests cannot bypass ownership, quarantine or completion 
   const data = await source(request),
     url = `/api/uploads/${data.id}`;
   const other = await playwright.request.newContext({
-    baseURL: "http://localhost:3000",
+    baseURL: qaOrigin,
   });
   const settings = parseEnv(await readFile(".env.local", "utf8"));
   const pool = new Pool({ connectionString: settings.DATABASE_URL });
@@ -149,7 +150,7 @@ test("reviewed exports stream exact bytes and HEAD cannot bypass teacher approva
   expect(part.status()).toBe(206);
   expect(await part.body()).toEqual(bytes.subarray(0, 128));
   const other = await playwright.request.newContext({
-    baseURL: "http://localhost:3000",
+    baseURL: qaOrigin,
   });
   const settings = parseEnv(await readFile(".env.local", "utf8"));
   const pool = new Pool({ connectionString: settings.DATABASE_URL });

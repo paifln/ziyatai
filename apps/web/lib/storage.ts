@@ -10,6 +10,7 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { env } from "./env";
 import { Readable } from "node:stream";
+import { readBoundedBody } from "./request-body";
 let instance: S3Client;
 function storage() {
   const e = env();
@@ -24,7 +25,16 @@ function storage() {
     },
   }));
 }
-export async function putObject(key: string, body: Uint8Array, type: string) {
+function storageDeadline(signal?: AbortSignal, milliseconds = 30000) {
+  const deadline = AbortSignal.timeout(milliseconds);
+  return signal ? AbortSignal.any([signal, deadline]) : deadline;
+}
+export async function putObject(
+  key: string,
+  body: Uint8Array,
+  type: string,
+  signal?: AbortSignal,
+) {
   await storage().send(
     new PutObjectCommand({
       Bucket: env().STORAGE_BUCKET,
@@ -32,13 +42,31 @@ export async function putObject(key: string, body: Uint8Array, type: string) {
       Body: body,
       ContentType: type,
     }),
+    { abortSignal: storageDeadline(signal, 60000) },
   );
 }
-export async function getObject(key: string) {
-  const r = await storage().send(
-    new GetObjectCommand({ Bucket: env().STORAGE_BUCKET, Key: key }),
+export async function getObject(
+  key: string,
+  options: {
+    maximumBytes?: number;
+    signal?: AbortSignal;
+    maximumDurationMs?: number;
+  } = {},
+) {
+  const object = await openObject(key, {
+    ...options,
+    maximumDurationMs: options.maximumDurationMs ?? 60000,
+  });
+  const headers = new Headers();
+  if (object.length !== undefined)
+    headers.set("content-length", String(object.length));
+  // Bound both declared and actual bytes before materializing an internal upload.
+  // Downloads for the browser use openObject directly and remain streamed.
+  const bytes = await readBoundedBody(
+    { headers, body: object.body },
+    options.maximumBytes ?? env().MAX_UPLOAD_MB * 1024 * 1024,
   );
-  return Buffer.from(await r.Body!.transformToByteArray());
+  return Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
 }
 /** Public downloads use a byte-bounded bridge, never a whole-object collector.
  * SDK transforms may wrap the HTTP body; abort the request on early close too.
@@ -120,17 +148,24 @@ export async function openObject(
     throw error;
   }
 }
-export async function deleteObject(key: string) {
+export async function deleteObject(key: string, signal?: AbortSignal) {
   await storage().send(
     new DeleteObjectCommand({ Bucket: env().STORAGE_BUCKET, Key: key }),
+    { abortSignal: storageDeadline(signal) },
   );
 }
 export async function storageReady(signal?: AbortSignal) {
-  await storage().send(new HeadBucketCommand({ Bucket: env().STORAGE_BUCKET }), {
-    abortSignal: signal,
-  });
+  await storage().send(
+    new HeadBucketCommand({ Bucket: env().STORAGE_BUCKET }),
+    {
+      abortSignal: storageDeadline(signal, 5000),
+    },
+  );
 }
-export async function listQuarantinePage(cursor?: string) {
+export async function listQuarantinePage(
+  cursor?: string,
+  signal?: AbortSignal,
+) {
   const page = await storage().send(
     new ListObjectsV2Command({
       Bucket: env().STORAGE_BUCKET,
@@ -138,6 +173,7 @@ export async function listQuarantinePage(cursor?: string) {
       MaxKeys: 1000,
       ContinuationToken: cursor,
     }),
+    { abortSignal: storageDeadline(signal) },
   );
   return {
     objects: page.Contents ?? [],
@@ -184,6 +220,6 @@ export async function signedUpload(key: string, bytes: number, type: string) {
 export async function objectMetadata(key: string, signal?: AbortSignal) {
   return storage().send(
     new HeadObjectCommand({ Bucket: env().STORAGE_BUCKET, Key: key }),
-    { abortSignal: signal },
+    { abortSignal: storageDeadline(signal) },
   );
 }

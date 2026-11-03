@@ -18,6 +18,11 @@ const backend = {
   RENDERER_TOKEN: "renderer-fixture-only-32-characters-long",
   OPENAI_API_KEY: "fixture-not-a-real-api-key",
   OPENAI_MODEL: "evaluated-model",
+  SUPABASE_URL: "https://project.supabase.co",
+  SUPABASE_PUBLISHABLE_KEY: "synthetic-publishable-key-for-tests",
+  SUPABASE_SECRET_KEY: "synthetic-server-secret-for-tests",
+  DATABASE_SCHEMA: "ziyatai",
+  STORAGE_LIFECYCLE_MODE: "worker",
   SMTP_HOST: "smtp.example.net",
   SMTP_PORT: "587",
   SMTP_FROM: "ZiyatAI <mail@example.net>",
@@ -39,20 +44,13 @@ const blocked = async (values: Record<string, string | undefined>) =>
     .map((check) => check.id);
 
 describe("deployment preflight", () => {
-  it("allows an explicitly mail-free launch while still rejecting missing mail in verification mode", async () => {
-    const noMail = {
-      ...backend,
-      SMTP_HOST: "",
-      SMTP_USER: "",
-      SMTP_PASSWORD: "",
-      SMTP_FROM: "",
-    };
+  it("requires Supabase credentials but leaves SMTP inside Supabase", async () => {
     expect(
-      await blocked({ ...noMail, EMAIL_VERIFICATION_REQUIRED: "false" }),
+      await blocked({ ...backend, SMTP_HOST: "", SMTP_PASSWORD: "" }),
     ).toEqual([]);
-    expect(
-      await blocked({ ...noMail, EMAIL_VERIFICATION_REQUIRED: "true" }),
-    ).toContain("smtp");
+    expect(await blocked({ ...backend, SUPABASE_SECRET_KEY: "" })).toContain(
+      "supabase-auth",
+    );
   });
   it("accepts the backend shape while keeping external acceptance explicitly manual", async () => {
     const checks = await deploymentChecks(backend, "backend");
@@ -144,7 +142,7 @@ describe("deployment preflight", () => {
       await blocked({
         ...backend,
         OPENAI_API_KEY: "YOUR_SERVER_KEY",
-        SMTP_PASSWORD: "",
+        SUPABASE_SECRET_KEY: "",
         RENDERER_TOKEN: "short",
         DAILY_AI_LIMIT: "-1",
         LEGAL_CONTACT_EMAIL: "",
@@ -152,7 +150,7 @@ describe("deployment preflight", () => {
     ).toEqual(
       expect.arrayContaining([
         "ai",
-        "smtp-auth",
+        "supabase-auth",
         "renderer",
         "ai-budgets",
         "legal-contact",
@@ -173,11 +171,7 @@ describe("deployment preflight", () => {
         (check) => check.status === "blocked",
       ),
     ).toEqual([]);
-    for (const key of [
-      "OPENAI_API_KEY",
-      "GOOGLE_CLIENT_SECRET",
-      "APPLE_CLIENT_SECRET",
-    ])
+    for (const key of ["OPENAI_API_KEY"])
       expect(
         (
           await deploymentChecks(

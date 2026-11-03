@@ -1,0 +1,116 @@
+{
+  "date": "2026-10-28",
+  "timezone": "Asia/Qyzylorda",
+  "deadlineLocal": "2026-10-28T12:00:00+05:00",
+  "updatedAtUtc": "2026-10-28T07:01:58.085923+00:00",
+  "status": "local_verified_with_optional_check_blocked",
+  "features": [
+    "Сводка времени и баллов по уровням, фильтр сложности и просмотр ученика RU/KK",
+    "Классы многоклассного КТП в метаданных импорта/сохранения и фильтре коллекции",
+    "Серверные страницы истории/библиотеки, счётчики, сортировка, статус, формат и аудитория",
+    "Вставка TSV из Excel/Sheets, дублирование строк и отмена структурных правок таблицы",
+    "Смена типа блока без обнуления содержимого, отмена преобразования и отказ без потери данных при превышении лимитов",
+    "Ближайшие уроки по календарному дню Казахстана с переходом к строке за первой страницей",
+    "CSV всех текущих строк, включая скрытые и несохранённые, с UTF-8 BOM и нейтрализацией формул",
+    "Индикатор потери сети, сохранность открытой формы и синхронизация КТП после потерянного ответа записи",
+    "Читаемые печатные стили тёмной темы и обновлённая двуязычная справка"
+  ],
+  "migration": {
+    "file": "015_plan_grades.sql",
+    "appliedLocally": true,
+    "runBeforeApiAndWorkerUpgrade": "npm run migrate"
+  },
+  "builds": {
+    "fullSuiteBuildId": "jl2iC5j4Uq0i6R2FNZ0U3",
+    "finalBuildId": "IP489j9-mFdC_VbPz9BZh",
+    "web": "passed",
+    "worker": "passed",
+    "resourceTargetedBuildId": "7YJHnHQyccbzWk9rWs6mW"
+  },
+  "checks": {
+    "unit": {
+      "files": 57,
+      "passed": 281
+    },
+    "parser": {
+      "passed": 58
+    },
+    "pythonSecurityWindows": {
+      "passed": 51,
+      "skipped": 3,
+      "skipReason": "Linux SIGALRM required"
+    },
+    "rendererHttpLinuxContainer": {
+      "passed": 3,
+      "network": "none",
+      "filesystem": "read-only with temporary /tmp"
+    },
+    "chromiumFull": {
+      "passed": 186,
+      "skipped": 4,
+      "failed": 0,
+      "durationMinutes": 20.1,
+      "skipReasons": [
+        "Two cases require the private owner XLS workbook",
+        "One Google flow requires synthetic provider configuration",
+        "OTP case requires email-verification mode"
+      ]
+    },
+    "finalBuildTargeted": {
+      "passed": 21,
+      "failed": 0,
+      "durationMinutes": 2.5
+    },
+    "isolatedBrowserChromium": {
+      "passed": 12
+    },
+    "isolatedBrowserWebKit": {
+      "passed": 12
+    },
+    "firefox115": {
+      "passed": true,
+      "report": "legacy-browser-2026-10-28.json"
+    },
+    "typecheck": "passed",
+    "eslint": "passed",
+    "sourceBoundary": "passed",
+    "clientBoundary": "passed",
+    "npmAudit": {
+      "knownVulnerabilities": 0
+    },
+    "recognizedCredentialScan": "passed",
+    "publicArtifactScan": {
+      "passed": true,
+      "artifacts": 50
+    },
+    "finalBuildWebKit": {
+      "passed": 7,
+      "failed": 0,
+      "durationSeconds": 47.3
+    },
+    "multilineCellRegression": {
+      "isolatedChromiumPassed": 1,
+      "productionTargetedPassed": 2,
+      "productionDurationSeconds": 12.5
+    }
+  },
+  "performanceReports": [
+    "browser-performance-2026-10-28.json",
+    "schedule-performance-2026-10-28.json"
+  ],
+  "blockedCheck": {
+    "name": "Optional OTP mode verification",
+    "action": "Start a separate local server with APP_URL and EMAIL_VERIFICATION_REQUIRED overrides",
+    "reason": "Automatic approval review rejected the command: blocked by policy. No further reason was provided.",
+    "configurationChanged": false
+  },
+  "boundaries": [
+    "Local verification; no public deployment or paid services activated",
+    "Synthetic demo scenarios do not establish pedagogical quality or real AI acceptance",
+    "CPU/network simulations are not physical school hardware tests",
+    "Existing parallel working-tree edits were preserved",
+    "The final multiline cell control patch has separate targeted verification; full-suite and prior targeted build IDs are retained above"
+  ],
+  "implementationClosedAtLocal": "2026-10-28T12:00:00+05:00",
+  "verificationCompletedAtUtc": "2026-10-28T07:01:58.085923+00:00"
+}

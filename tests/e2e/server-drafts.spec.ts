@@ -1,3 +1,4 @@
+import { origin as qaOrigin } from "./helpers";
 import {
   test,
   expect,
@@ -89,7 +90,7 @@ test("server drafts enforce ownership, CSRF, monotonic updates and discard tombs
     data.current.revision,
   );
   const other = await playwright.request.newContext({
-    baseURL: "http://localhost:3000",
+    baseURL: qaOrigin,
   });
   try {
     expect((await other.get(`/api/drafts/${id}`)).status()).toBe(401);

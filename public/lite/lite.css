@@ -644,16 +644,3 @@ footer {
     break-inside: avoid;
   }
 }
-.social-auth {
-  margin: 16px 0;
-}
-.social-auth button {
-  display: block;
-  width: 100%;
-  min-height: 48px;
-  margin-bottom: 10px;
-}
-.social-auth-divider {
-  text-align: center;
-  font-size: 13px;
-}

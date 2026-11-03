@@ -5,6 +5,11 @@ sys.path.insert(0, str(Path('apps/worker').resolve()))
 spec=importlib.util.spec_from_file_location('ktp_parser','apps/worker/parser.py');parser=importlib.util.module_from_spec(spec);spec.loader.exec_module(parser)
 manifest=json.loads(Path('tests/fixtures/manifest.json').read_text(encoding='utf-8'))
 
+
+@pytest.mark.parametrize('case', json.loads(Path('tests/fixtures/date-cases.json').read_text(encoding='utf-8')))
+def test_date_contract_shared_with_editor(case):
+ assert parser.normalize_date(case['raw']) == (case['start'],case['end'],case['warnings'])
+
 def test_class_context_changes_inside_one_sheet_and_grade_column_wins():
  def src():return parser.source(sheet='Общий план')
  result=parser.normalize([

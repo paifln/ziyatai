@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { db, transaction } from "../web/lib/db";
 import { env } from "../web/lib/env";
+import { deleteSupabaseIdentity } from "../web/lib/auth/admin";
 import { getObject, putObject, deleteObject } from "../web/lib/storage";
 import { processRun, inspectFile } from "../web/lib/files";
 import { ImportResult } from "../../packages/contracts";
@@ -20,6 +21,9 @@ import { AppError } from "../../packages/domain/errors";
 import { renderDocx } from "../../packages/document-renderer";
 import { generate } from "./ai";
 import { recoverExpiredJobs } from "./recover-jobs";
+import { startHeartbeat } from "./heartbeat";
+import { finalizeDeletedObjects } from "./delete-resources";
+import { exportObjectKey } from "./object-keys";
 import { trustedScan } from "../web/lib/scan-policy";
 import { isolatedRequest } from "../web/lib/renderer";
 import {
@@ -96,7 +100,9 @@ async function importPlan(job: Job) {
   const dir = await mkdtemp(join(tmpdir(), "ziyatai-parse-"));
   try {
     const path = join(dir, `source.${ext}`);
-    const sourceBytes = await getObject(f.object_key);
+    const sourceBytes = await getObject(f.object_key, {
+      maximumBytes: Math.min(Number(f.bytes), env().MAX_UPLOAD_MB * 1024 * 1024),
+    });
     if (sourceBytes.length !== Number(f.bytes))
       throw new AppError("FILE_INVALID", 422);
     const legacyRescan =
@@ -131,8 +137,8 @@ async function importPlan(job: Job) {
       // never the key an untrusted client can overwrite after its successful scan.
       const cleanKey = `${job.owner_id}/uploads/${randomUUID()}.${type.ext}`;
       let published = false;
-      await putObject(cleanKey, sourceBytes, type.mime);
       try {
+        await putObject(cleanKey, sourceBytes, type.mime);
         await transaction(async (c) => {
           await check(c, job);
           await active("plans", job, c);
@@ -155,7 +161,9 @@ async function importPlan(job: Job) {
         });
         published = true;
       } finally {
-        if (!published) await deleteObject(cleanKey);
+        if (!published) await deleteObject(cleanKey).catch(() => {
+          console.error(JSON.stringify({ event: "unpublished_source_cleanup_failed" }));
+        });
       }
       await deleteObject(f.object_key);
     } else if (!trustedScan(f.scan_status, env()))
@@ -236,10 +244,14 @@ async function importPlan(job: Job) {
           importedGrade,
         ],
       );
-      await c.query("UPDATE plans SET status='review',grade=$2 WHERE id=$1", [
-        job.resource_id,
-        importedGrade,
-      ]);
+      await c.query(
+        "UPDATE plans SET status='review',grade=$2,grades=$3 WHERE id=$1",
+        [
+          job.resource_id,
+          importedGrade,
+          planGrades(result.rows, importedGrade),
+        ],
+      );
       await done(c, job, {
         planId: job.resource_id,
         rows: result.rows.length,
@@ -441,7 +453,7 @@ async function exportDocument(job: Job) {
         await processRun(e.PYTHON_PATH, ["apps/worker/renderer-check.py", pdf]);
     }
     await stage(job, "publishing");
-    key = `${job.owner_id}/exports/${ex.id}.${ex.format}`;
+    key = exportObjectKey(job.owner_id, ex.id, job.lease_token, ex.format);
     await putObject(
       key,
       bytes,
@@ -470,47 +482,25 @@ async function exportDocument(job: Job) {
     });
     published = true;
   } finally {
-    if (key && !published) await deleteObject(key);
+    if (key && !published) await deleteObject(key).catch(() => {
+      console.error(JSON.stringify({ event: "unpublished_export_cleanup_failed" }));
+    });
     await rm(dir, { recursive: true, force: true });
   }
 }
 async function deleteResources(job: Job) {
   await stage(job, "deleting");
   const keys = await db().query(
-    "SELECT object_key FROM uploads WHERE owner_id=$1 AND deleted_at IS NOT NULL UNION SELECT object_key FROM exports WHERE owner_id=$1 AND deleted_at IS NOT NULL AND object_key IS NOT NULL",
-    [job.owner_id],
+    "SELECT object_key FROM uploads WHERE owner_id=$1 AND ($2::boolean OR deleted_at IS NOT NULL) UNION SELECT object_key FROM exports WHERE owner_id=$1 AND ($2::boolean OR deleted_at IS NOT NULL) AND object_key IS NOT NULL",
+    [job.owner_id, job.payload.scope === "account"],
   );
   for (const { object_key } of keys.rows) await deleteObject(object_key);
+  if (job.payload.scope === "account") await deleteSupabaseIdentity(job.owner_id);
   await transaction(async (c) => {
     await check(c, job);
-    await c.query(
-      "UPDATE exports SET object_key=NULL WHERE owner_id=$1 AND deleted_at IS NOT NULL",
-      [job.owner_id],
-    );
+    await finalizeDeletedObjects(c, job.owner_id, keys.rows.map((row) => row.object_key), job.payload.scope === "account");
     await done(c, job, { deletedObjects: keys.rowCount });
-    await c.query(
-      "DELETE FROM exports WHERE owner_id=$1 AND deleted_at IS NOT NULL",
-      [job.owner_id],
-    );
-    await c.query(
-      "DELETE FROM generations WHERE owner_id=$1 AND deleted_at IS NOT NULL",
-      [job.owner_id],
-    );
-    await c.query(
-      "DELETE FROM plans WHERE owner_id=$1 AND deleted_at IS NOT NULL",
-      [job.owner_id],
-    );
-    await c.query(
-      "DELETE FROM uploads WHERE owner_id=$1 AND deleted_at IS NOT NULL",
-      [job.owner_id],
-    );
     if (job.payload.scope === "account") {
-      await c.query("DELETE FROM exports WHERE owner_id=$1", [job.owner_id]);
-      await c.query("DELETE FROM generations WHERE owner_id=$1", [
-        job.owner_id,
-      ]);
-      await c.query("DELETE FROM plans WHERE owner_id=$1", [job.owner_id]);
-      await c.query("DELETE FROM uploads WHERE owner_id=$1", [job.owner_id]);
       await c.query("DELETE FROM usage_ledger WHERE owner_id=$1", [
         job.owner_id,
       ]);
@@ -658,15 +648,10 @@ while (!stopping) {
       continue;
     }
     const started = Date.now();
-    const beat = setInterval(() => {
-      void db().query(
-        "UPDATE jobs SET heartbeat=now(),lease_until=now()+$3*interval '1 second' WHERE id=$1 AND lease_token=$2 AND status='running'",
-        [job.id, job.lease_token, env().JOB_LEASE_SECONDS],
-      );
-      void db().query("UPDATE worker_health SET heartbeat=now() WHERE id=$1", [
-        workerId,
-      ]);
-    }, 10000);
+    const stopHeartbeat = startHeartbeat(() => db().query(
+      "WITH renewed AS (UPDATE jobs SET heartbeat=now(),lease_until=now()+$3*interval '1 second' WHERE id=$1 AND lease_token=$2 AND status='running' RETURNING id) UPDATE worker_health SET heartbeat=now() WHERE id=$4",
+      [job.id, job.lease_token, env().JOB_LEASE_SECONDS, workerId],
+    ));
     try {
       if (job.kind === "import" || job.kind === "scan") await importPlan(job);
       else if (["generate", "regenerate"].includes(job.kind))
@@ -684,7 +669,7 @@ while (!stopping) {
     } catch (e) {
       await fail(job, e);
     } finally {
-      clearInterval(beat);
+      stopHeartbeat();
     }
   } catch {
     console.error(

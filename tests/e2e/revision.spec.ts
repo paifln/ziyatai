@@ -15,6 +15,13 @@ test("registration verifies a one-time email code and stores the selected subjec
   request,
 }) => {
   test.setTimeout(180000);
+  const configuration = await (await request.get("/api/public-config")).json();
+  if (process.env.QA_REQUIRE_OTP === "1")
+    expect(configuration.emailVerificationRequired).toBe(true);
+  test.skip(
+    configuration.emailVerificationRequired !== true,
+    "Requires email verification mode; mail-free registration has separate coverage",
+  );
   async function submitCode(expected: number) {
     await expect
       .poll(
@@ -64,7 +71,6 @@ test("registration verifies a one-time email code and stores the selected subjec
     localMailbox: true,
     emailVerificationRequired: true,
     passwordResetAvailable: true,
-    socialProviders: { google: false, apple: false },
   });
   const otp = await emailCode(request, email);
   const wrong = String((Number(otp) + 1) % 1000000).padStart(6, "0");

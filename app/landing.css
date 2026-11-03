@@ -541,6 +541,29 @@
     gap: 36px;
   }
 }
+@media (max-width: 1024px) {
+  .landing-nav > nav {
+    display: none;
+  }
+  .landing-hero {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 36px;
+  }
+  .hero-desk {
+    width: 100%;
+    max-width: 520px;
+    justify-self: center;
+  }
+  .desk-sheet {
+    padding-bottom: 64px;
+  }
+  .hero-copy > p {
+    max-width: 620px;
+  }
+  .process-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 @media (max-width: 800px) {
   .landing-nav > nav {
     display: none;
@@ -696,5 +719,93 @@
   }
   .approval-step {
     font-size: 10px;
+  }
+}
+@media (max-width: 600px) {
+  .landing {
+    padding-inline: 20px;
+  }
+  .landing-nav {
+    flex-wrap: wrap;
+    padding-block: 16px;
+    gap: 12px;
+  }
+  .landing-nav-actions {
+    margin-left: auto;
+  }
+  .hero-copy h1 {
+    font-size: clamp(30px, 8.3vw, 44px);
+    letter-spacing: -1.2px;
+    line-height: 1.16;
+  }
+  .hero-actions {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .hero-example-link {
+    justify-content: center;
+    text-align: center;
+  }
+  .hero-desk {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 20px 16px;
+    border-radius: 20px;
+  }
+  .desk-note,
+  .desk-stamp {
+    position: static;
+    transform: none;
+    padding: 14px;
+    border-radius: 12px;
+    box-shadow: none;
+  }
+  .desk-sheet {
+    transform: none;
+    padding: 24px 18px;
+    box-shadow: 0 5px 0 #cdd6be;
+  }
+  .desk-sheet h2 {
+    font-size: 22px;
+    line-height: 1.3;
+  }
+  .desk-task p,
+  .process-steps p {
+    font-size: 14px;
+  }
+  .sheet-bottom {
+    align-items: flex-start;
+    font-size: 11px;
+  }
+  .sheet-bottom svg,
+  .hero-footnote svg {
+    flex-shrink: 0;
+  }
+  .process-steps {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+  }
+  .process-steps h3 {
+    font-size: 18px;
+  }
+  .landing-process,
+  .landing-faq {
+    padding-block: 40px;
+  }
+  .landing-faq summary {
+    line-height: 1.5;
+  }
+  .landing-cta {
+    padding: 28px 20px;
+    gap: 24px;
+  }
+  .landing-cta .button {
+    width: 100%;
+    white-space: normal;
+  }
+  .landing-footer nav a {
+    padding-block: 8px;
   }
 }

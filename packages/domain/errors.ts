@@ -8,6 +8,8 @@ export class AppError extends Error {
   }
 }
 export const messages: Record<string, string> = {
+  REQUEST_TIMEOUT:
+    "Передача данных заняла слишком много времени. Проверьте соединение и повторите действие.",
   SESSION_CHANGED:
     "Аккаунт изменился в другой вкладке. Действие не выполнено. Дождитесь загрузки нового кабинета.",
   METHOD_NOT_ALLOWED: "Этот способ запроса не поддерживается.",
@@ -50,6 +52,8 @@ export const messages: Record<string, string> = {
   CSRF: "Обновите страницу и повторите действие.",
 };
 export const kazakhMessages: Record<string, string> = {
+  REQUEST_TIMEOUT:
+    "Деректерді жіберу тым ұзаққа созылды. Байланысты тексеріп, әрекетті қайталаңыз.",
   SESSION_CHANGED:
     "Аккаунт басқа қойындыда өзгерді. Әрекет орындалмады. Жаңа кабинеттің жүктелуін күтіңіз.",
   METHOD_NOT_ALLOWED: "Бұл сұрау тәсіліне қолдау жоқ.",

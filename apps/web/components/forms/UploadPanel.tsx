@@ -13,6 +13,7 @@ import type { Texts, UiLocale } from "../../lib/i18n";
 import { uploadSelectionError } from "../../../../packages/domain/uploads";
 import { Form } from "../ui/Form";
 import { Workflow } from "../ui/Workflow";
+import type { SourceLocale } from "../../../../packages/contracts";
 
 export function UploadPanel({
   directUploads,
@@ -31,7 +32,7 @@ export function UploadPanel({
 }) {
   const { api, uploadFile } = useAccountClient();
   const [file, setFile] = useState<File>();
-  const [sourceLocale, setSourceLocale] = useState(locale);
+  const [sourceLocale, setSourceLocale] = useState<SourceLocale>(locale);
   const [hidden, setHidden] = useState(false);
   const [grade, setGrade] = useState("");
   const [busy, setBusy] = useState(false);
@@ -208,11 +209,12 @@ export function UploadPanel({
                 <select
                   value={sourceLocale}
                   onChange={(event) =>
-                    setSourceLocale(event.target.value as UiLocale)
+                    setSourceLocale(event.target.value as SourceLocale)
                   }
                 >
                   <option value="kk">Қазақша</option>
                   <option value="ru">Русский</option>
+                  <option value="en">English</option>
                 </select>
                 <small>
                   {ru

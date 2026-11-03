@@ -1,4 +1,5 @@
-﻿import { test, expect, type Page, type Locator } from "@playwright/test";
+import { origin as qaOrigin } from "./helpers";
+import { test, expect, type Page, type Locator } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { randomUUID, randomBytes } from "node:crypto";
 import { writeFile } from "node:fs/promises";
@@ -215,7 +216,9 @@ test("large plans and assignment tables keep a bounded DOM and preserve edits ac
     .getByRole("button", { name: "Редактировать", exact: true })
     .click();
   const table = page.locator(".task-card").first();
-  await expect(table.locator(".table-grid input")).toHaveCount(220);
+  await expect(table.locator(".table-grid :is(input, textarea)")).toHaveCount(
+    220,
+  );
   await expect(
     table.getByRole("button", { name: "Добавить строку", exact: true }),
   ).toBeDisabled();
@@ -327,7 +330,7 @@ test("older-browser user agents reach Lite before depending on React", async ({
   const page = await context.newPage();
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto("http://localhost:3000/");
+  await page.goto(qaOrigin + "/");
   await expect(page).toHaveURL(/\/lite\/?$/);
   await expect(page.getByLabel("Email", { exact: true })).toBeVisible();
   expect(errors).toEqual([]);

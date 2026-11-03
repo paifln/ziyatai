@@ -1,3 +1,4 @@
+import { origin as qaOrigin } from "./helpers";
 import { test, expect, type APIRequestContext } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import { parseEnv } from "node:util";
@@ -42,7 +43,7 @@ test("terminal KTP states are valid API filters and generation states cannot ent
 }) => {
   const f = await fixture(request);
   const other = await playwright.request.newContext({
-    baseURL: "http://localhost:3000",
+    baseURL: qaOrigin,
   });
   try {
     for (const status of states) {
@@ -131,7 +132,7 @@ for (const lite of [false, true])
         {
           name: "ziyatai-locale",
           value: "ru",
-          domain: "localhost",
+          domain: new URL(qaOrigin).hostname,
           path: "/",
         },
       ]);
@@ -160,11 +161,9 @@ for (const lite of [false, true])
               () => document.documentElement.scrollWidth <= innerWidth,
             ),
           ).toBe(true);
-          await page
-            .locator(selector)
-            .screenshot({
-              path: test.info().outputPath("plan-status-light.png"),
-            });
+          await page.locator(selector).screenshot({
+            path: test.info().outputPath("plan-status-light.png"),
+          });
           if (lite) await page.locator("#theme-toggle").click();
           else
             await page
@@ -177,11 +176,9 @@ for (const lite of [false, true])
             (await new AxeBuilder({ page }).include(selector).analyze())
               .violations,
           ).toEqual([]);
-          await page
-            .locator(selector)
-            .screenshot({
-              path: test.info().outputPath("plan-status-dark.png"),
-            });
+          await page.locator(selector).screenshot({
+            path: test.info().outputPath("plan-status-dark.png"),
+          });
         }
       }
       if (lite) {

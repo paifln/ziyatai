@@ -1,3 +1,4 @@
+import { origin as qaOrigin } from "./helpers";
 import {
   test,
   expect,
@@ -130,9 +131,7 @@ async function enterLite(page: Page, request: APIRequestContext) {
   await page.context().addCookies((await request.storageState()).cookies);
   await page
     .context()
-    .addCookies([
-      { name: "ziyatai-locale", value: "ru", url: "http://localhost:3000" },
-    ]);
+    .addCookies([{ name: "ziyatai-locale", value: "ru", url: qaOrigin }]);
   await page.goto("/lite/");
   await expect(
     page

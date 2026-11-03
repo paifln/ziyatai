@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-28T06:27:05.277Z",
+  "browser": "156.0.8078.73",
+  "environment": "Offline synthetic domain calculation, 2000 dated rows; not physical school hardware or end-to-end typing latency",
+  "results": [
+    {
+      "cpuRate": 1,
+      "rows": 2000,
+      "samples": 24,
+      "p50ms": 3.5,
+      "p95ms": 5.2
+    },
+    {
+      "cpuRate": 6,
+      "rows": 2000,
+      "samples": 24,
+      "p50ms": 25.4,
+      "p95ms": 31.1
+    }
+  ]
+}

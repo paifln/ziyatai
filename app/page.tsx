@@ -5,7 +5,9 @@ export default async function Page() {
   const guest = !store
     .getAll()
     .some(({ name }) =>
-      /^(?:__Secure-)?better-auth\.session_token$/.test(name),
+      /^ziyatai-auth(?:\.\d+)?$/.test(
+        name,
+      ),
     );
   const locale = store.get("ziyatai-locale")?.value === "ru" ? "ru" : "kk";
   return <Workspace initialGuest={guest} initialLocale={locale} />;

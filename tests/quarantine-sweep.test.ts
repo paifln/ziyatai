@@ -40,3 +40,49 @@ it("continues after a failed delete and preserves pagination", async () => {
   );
   expect(result.failed).toBe(1);
 });
+
+it("keeps the current page cursor when its shared cleanup budget expires", async () => {
+  const abort = new AbortController();
+  const removed: string[] = [];
+  const result = await cleanupQuarantinePage(
+    "current-page",
+    async (_cursor, signal) => {
+      expect(signal).toBe(abort.signal);
+      return {
+        objects: ["one", "two", "three"].map((name) => ({
+          Key: `quarantine/${name}`,
+          LastModified: new Date(0),
+        })),
+        nextCursor: "next-page",
+      };
+    },
+    async (key, signal) => {
+      expect(signal).toBe(abort.signal);
+      removed.push(key);
+      if (removed.length === 2) abort.abort();
+    },
+    Date.now(),
+    abort.signal,
+  );
+  expect(removed).toEqual(["quarantine/one", "quarantine/two"]);
+  expect(result).toEqual({ removed: 2, failed: 0, nextCursor: "current-page" });
+});
+
+it("stops after a timed-out delete and leaves the page available for retry", async () => {
+  const result = await cleanupQuarantinePage(
+    "current-page",
+    async () => ({
+      objects: [{ Key: "quarantine/old", LastModified: new Date(0) }],
+      nextCursor: "next-page",
+    }),
+    async (_key, signal) =>
+      new Promise((_resolve, reject) => {
+        signal!.addEventListener("abort", () => reject(signal!.reason), {
+          once: true,
+        });
+      }),
+    Date.now(),
+    AbortSignal.timeout(25),
+  );
+  expect(result).toEqual({ removed: 0, failed: 1, nextCursor: "current-page" });
+});

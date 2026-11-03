@@ -127,6 +127,12 @@ export async function renderDocx(
       ? subjectLabel(snapshot.subject, ru ? "ru" : "kk")
       : "";
   children.push(
+    p(
+      ru
+        ? "ФИО ученика: _______________ Класс: ___________"
+        : "Оқушының аты-жөні: _______________ Сыныбы: ___________",
+      { keepNext: true },
+    ),
     p(doc.title, { heading: HeadingLevel.TITLE }),
     p(
       `${subject ? `${subject} • ` : ""}${ru ? "Класс" : "Сынып"} ${doc.grade}`,

@@ -1,10 +1,10 @@
 import { AppError } from "../../../packages/domain/errors";
 
-// Direct S3 uploads bypass web memory. The demonstration's multipart fallback
-// must still stay within the web container's memory budget under concurrency.
+// Multipart validation and PDF preview conversion both buffer source files.
+// Share one process budget instead of letting preview bursts bypass uploads' cap.
 let active = 0;
 const maximum = 2;
-export async function withUploadCapacity<T>(
+export async function withFileBufferCapacity<T>(
   operation: () => Promise<T>,
 ): Promise<T> {
   if (active >= maximum) throw new AppError("LIMIT", 429);

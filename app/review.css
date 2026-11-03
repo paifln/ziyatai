@@ -1,27 +1,71 @@
-.social-auth {
-  display: grid;
-  gap: 10px;
-  margin: 22px 0 16px;
+.plan-readiness {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 20px;
+  margin-top: 20px;
+  border-top: 1px solid var(--line);
 }
-.social-auth button {
+.table-grid textarea {
+  min-height: 0;
+  resize: vertical;
+}
+.plan-schedule > summary {
   display: flex;
   align-items: center;
-  justify-content: center;
+  flex-wrap: wrap;
   gap: 10px;
+  cursor: pointer;
+  min-height: 32px;
+}
+.plan-schedule > summary > span {
+  margin-left: auto;
+  color: var(--muted);
+}
+.plan-schedule > p {
+  font-size: 12px;
+  line-height: 1.7;
+}
+.plan-schedule-list {
+  list-style: none;
+  margin: 16px 0;
+  padding: 0;
+}
+.plan-schedule-list li + li {
+  border-top: 1px solid var(--line);
+}
+.plan-schedule-list button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   width: 100%;
-  min-height: 48px;
-  font-weight: 600;
+  text-align: left;
+  padding: 12px 0;
 }
-.social-auth-mark {
-  display: inline-flex;
-  font-size: 21px;
-  line-height: 1;
+.plan-schedule-list button > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
-.social-auth-divider {
-  text-align: center;
+.plan-schedule-list button > svg {
+  flex-shrink: 0;
+}
+.plan-schedule-list small {
+  display: block;
+  color: var(--muted);
+  margin-top: 4px;
+  font-weight: 400;
+}
+.plan-readiness > div:first-child {
+  flex: 1 1 280px;
+}
+.plan-readiness p {
+  margin: 6px 0 0;
+  color: var(--muted);
   font-size: 13px;
-  color: var(--ink);
-  margin: 8px 0 0;
+  line-height: 1.6;
 }
 @media (max-width: 600px) {
   .plan-toolbar .search-field {
@@ -47,7 +91,13 @@
   margin: 0 0 10px;
 }
 @media print {
-  .source-access {
+  .source-access,
+  .plan-schedule,
+  .connection-notice,
+  .task-review-controls,
+  .task-workload,
+  .review-task-actions,
+  .editor-view-switch {
     display: none !important;
   }
 }
@@ -86,6 +136,56 @@
   font-size: 12px;
   line-height: 1.8;
   margin: 0 0 2px;
+}
+.task-workload {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+}
+.task-workload > p {
+  margin: 0 0 14px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.task-workload-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+}
+.task-workload-grid > div {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+}
+.task-workload-grid span {
+  color: var(--muted);
+}
+.task-workload-grid .task-time-over {
+  color: var(--gold);
+  font-weight: 600;
+}
+.task-review-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.task-review-controls label {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 13px;
+}
+.task-review-controls [role="status"] {
+  color: var(--muted);
+  font-size: 12px;
+}
+.task-review-controls button[aria-pressed="true"] {
+  background: var(--green-soft);
+  color: var(--green);
 }
 .task-review-card {
   min-width: 0;
@@ -255,6 +355,19 @@ html:root[data-theme="dark"] .review-level.medium {
 html:root[data-theme="dark"] .review-level.advanced {
   background: #493129;
   color: #edb29c;
+}
+@media print {
+  html:root[data-theme="dark"] .preview-block pre {
+    color: #243c30;
+    background: white;
+    border-color: #dce5da;
+  }
+  html:root[data-theme="dark"]
+    :is(.review-level, .review-level.medium, .review-level.advanced) {
+    color: #202923;
+    background: white;
+    border: 1px solid #dce5da;
+  }
 }
 @media (max-width: 480px) {
   .task-review-card {

@@ -43,6 +43,7 @@ export function ConfirmedPlanPicker({
         });
         api(`ktp?${params}`, "GET", undefined, undefined, controller.signal)
           .then((result: PlanChoice[]) => {
+            if (controller.signal.aborted) return;
             setChoices(result.slice(0, 20));
             setMore(result.length > 20);
           })

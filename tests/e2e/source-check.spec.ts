@@ -1,3 +1,4 @@
+import { origin as qaOrigin } from "./helpers";
 import { test, expect, type APIRequestContext } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import { parseEnv } from "node:util";
@@ -49,7 +50,7 @@ test("parallel source checks are idempotent and preserve KTP revisions and teach
   await verifiedUser(request);
   const database = await pool();
   const other = await playwright.request.newContext({
-    baseURL: "http://localhost:3000",
+    baseURL: qaOrigin,
   });
   try {
     const f = await fixture(request, database);
@@ -159,7 +160,7 @@ for (const lite of [false, true])
         {
           name: "ziyatai-locale",
           value: "ru",
-          domain: "localhost",
+          domain: new URL(qaOrigin).hostname,
           path: "/",
         },
       ]);

@@ -29,6 +29,21 @@ function origin(value: string | undefined) {
     return undefined;
   }
 }
+function storageOrigin(value: string | undefined) {
+  try {
+    const url = new URL(value ?? "");
+    if (
+      !["/", "/storage/v1/s3", "/storage/v1/s3/"].includes(url.pathname) ||
+      url.search ||
+      url.hash
+    )
+      return undefined;
+    url.pathname = "/";
+    return origin(url.toString());
+  } catch {
+    return undefined;
+  }
+}
 
 export async function deploymentChecks(
   values: Values,
@@ -79,8 +94,7 @@ export async function deploymentChecks(
         "STORAGE_ACCESS_KEY",
         "STORAGE_SECRET_KEY",
         "SMTP_PASSWORD",
-        "GOOGLE_CLIENT_SECRET",
-        "APPLE_CLIENT_SECRET",
+        "SUPABASE_SECRET_KEY",
         "OPENAI_API_KEY",
         "RENDERER_TOKEN",
       ].every((name) => !values[name]),
@@ -162,28 +176,35 @@ export async function deploymentChecks(
       "OPENAI_API_KEY и проверенный OPENAI_MODEL настроены на backend.",
     );
     check(
-      "smtp",
-      (values.EMAIL_VERIFICATION_REQUIRED === "false" && !values.SMTP_HOST) ||
-        (supplied(values.SMTP_HOST) &&
-          [465, 587].includes(Number(values.SMTP_PORT ?? 587)) &&
-          supplied(values.SMTP_FROM) &&
-          /@/.test(values.SMTP_FROM ?? "")),
-      "Внешний SMTP с TLS: порт 465/587 и адрес отправителя.",
+      "supabase-auth",
+      Boolean(origin(values.SUPABASE_URL)) &&
+        secret("SUPABASE_PUBLISHABLE_KEY") &&
+        secret("SUPABASE_SECRET_KEY"),
+      "Supabase Auth: HTTPS URL, publishable key и серверный secret key.",
     );
     check(
-      "smtp-auth",
-      (values.EMAIL_VERIFICATION_REQUIRED === "false" && !values.SMTP_HOST) ||
-        (secret("SMTP_USER") && secret("SMTP_PASSWORD")),
-      "Аутентификация внешнего SMTP задана.",
+      "supabase-schema",
+      /^[a-z][a-z0-9_]{0,62}$/.test(values.DATABASE_SCHEMA ?? "") &&
+        values.DATABASE_SCHEMA !== "public",
+      "Отдельная приватная DATABASE_SCHEMA.",
+    );
+    check(
+      "supabase-cleanup",
+      values.STORAGE_LIFECYCLE_MODE === "worker",
+      "Очистка quarantine выполняется worker.",
+    );
+    manual(
+      "supabase-mail",
+      "В Supabase Auth проверить Site URL, callback URL, подтверждение почты и восстановление пароля по ссылкам. Для публичной доставки нужен SMTP в Supabase.",
     );
     const storage =
       supplied(values.STORAGE_BUCKET) &&
       supplied(values.STORAGE_REGION) &&
       secret("STORAGE_ACCESS_KEY") &&
       secret("STORAGE_SECRET_KEY") &&
-      Boolean(origin(values.STORAGE_ENDPOINT)) &&
+      Boolean(storageOrigin(values.STORAGE_ENDPOINT)) &&
       (!values.STORAGE_PUBLIC_ENDPOINT ||
-        Boolean(origin(values.STORAGE_PUBLIC_ENDPOINT))) &&
+        Boolean(storageOrigin(values.STORAGE_PUBLIC_ENDPOINT))) &&
       ["true", "false"].includes(values.STORAGE_FORCE_PATH_STYLE ?? "true");
     check(
       "storage",
@@ -256,9 +277,7 @@ export async function deploymentChecks(
     );
     manual(
       "real-mail-ai",
-      values.EMAIL_VERIFICATION_REQUIRED === "false" && !values.SMTP_HOST
-        ? "Проверить регистрацию и повторный вход без кода; восстановление почтой должно быть скрыто. Проверить генерацию AI, одобрение и сброс одобрения после правки."
-        : "Проверить доставку кода и reset в реальный ящик, генерацию AI, одобрение и сброс одобрения после правки.",
+      "Проверить регистрацию, вход email + пароль, подтверждение и восстановление по ссылке, смену пароля и отзыв сеансов. Проверить AI и экспорт.",
     );
     manual(
       "backups",

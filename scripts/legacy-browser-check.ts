@@ -26,7 +26,8 @@ const driver = spawn(
   { windowsHide: true, stdio: ["ignore", "ignore", "ignore"] },
 );
 const driverOrigin = `http://127.0.0.1:${port}`;
-const base = "http://localhost:3000";
+const base =
+  process.env.QA_BASE_URL || process.env.QA_ORIGIN || "http://localhost:3000";
 const api = await request.newContext({ baseURL: base });
 let session = "";
 async function wd(path: string, body?: unknown, method?: string) {
@@ -398,7 +399,7 @@ try {
     ],
   };
   await writeFile(
-    "docs/reports/legacy-browser.json",
+    `docs/reports/legacy-browser-${report.date.slice(0, 10)}.json`,
     JSON.stringify(report, null, 2),
   );
   console.log(JSON.stringify(report));

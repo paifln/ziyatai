@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import {
   Search,
   Plus,
@@ -11,7 +11,7 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 import type { Texts, UiLocale } from "../../lib/i18n";
-import { useAccountApi } from "../../lib/account-client";
+import { useCollectionRead } from "../../lib/use-collection-read";
 import type {
   PlanCollectionPage,
   PlanSummary,
@@ -39,23 +39,13 @@ export function PlanCollection({
   onDemo?: () => void;
   busy: boolean;
 }) {
-  const api = useAccountApi();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("all");
   const [grade, setGrade] = useState("");
   const [sort, setSort] = useState("recent");
   const [offset, setOffset] = useState(0);
-  const [page, setPage] = useState<PlanCollectionPage>();
-  const [pageKey, setPageKey] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [retry, setRetry] = useState(0);
   const caption = useRef<HTMLDivElement>(null);
   const focusResults = useRef(false);
-  const inFlight = useRef<
-    | { key: string; started: boolean; again: boolean; cancel: () => void }
-    | undefined
-  >(undefined);
   const requestKey = new URLSearchParams({
     q: query,
     sort,
@@ -64,76 +54,24 @@ export function PlanCollection({
     ...(grade ? { grade } : {}),
     ...(status !== "all" ? { status } : {}),
   }).toString();
-  const ready = pageKey === requestKey;
-  useEffect(
-    () => () => {
-      inFlight.current?.cancel();
-      inFlight.current = undefined;
+  const {
+    data: page,
+    loading,
+    error,
+    ready,
+    reload,
+  } = useCollectionRead<PlanCollectionPage>(
+    `ktp/collection?${requestKey}`,
+    revision,
+    query ? 250 : 0,
+    (result) => {
+      if (result.offset !== offset) setOffset(result.offset);
+      if (focusResults.current) {
+        focusResults.current = false;
+        caption.current?.focus();
+      }
     },
-    [],
   );
-  useEffect(() => {
-    // Polling/resume invalidations queue one refresh instead of starving a slow
-    // request. A changed filter or page still cancels obsolete work immediately.
-    if (inFlight.current?.key === requestKey) {
-      if (inFlight.current.started) inFlight.current.again = true;
-      return;
-    }
-    inFlight.current?.cancel();
-    const controller = new AbortController();
-    const pending = {
-      key: requestKey,
-      started: false,
-      again: false,
-      cancel: () => {
-        clearTimeout(timer);
-        controller.abort();
-      },
-    };
-    inFlight.current = pending;
-    setLoading(true);
-    setError("");
-    const timer = setTimeout(
-      () => {
-        pending.started = true;
-        let succeeded = false;
-        void api(
-          `ktp/collection?${requestKey}`,
-          "GET",
-          undefined,
-          undefined,
-          controller.signal,
-        )
-          .then((result: PlanCollectionPage) => {
-            if (controller.signal.aborted) return;
-            succeeded = true;
-            setPage(result);
-            setPageKey(requestKey);
-            if (
-              result.offset !==
-              Number(new URLSearchParams(requestKey).get("offset"))
-            )
-              setOffset(result.offset);
-            setLoading(false);
-            if (focusResults.current) {
-              focusResults.current = false;
-              caption.current?.focus();
-            }
-          })
-          .catch((e: Error) => {
-            if (controller.signal.aborted) return;
-            setError(e.message);
-            setLoading(false);
-          })
-          .finally(() => {
-            if (inFlight.current !== pending) return;
-            inFlight.current = undefined;
-            if (pending.again && succeeded) setRetry((n) => n + 1);
-          });
-      },
-      new URLSearchParams(requestKey).get("q") ? 250 : 0,
-    );
-  }, [requestKey, revision, retry, api]);
   const ru = locale === "ru";
   const isReview = (p: PlanSummary) => p.status === "review";
   const otherStatuses = planStatuses.filter(
@@ -178,7 +116,7 @@ export function PlanCollection({
           <button
             type="button"
             className="text-button"
-            onClick={() => setRetry((n) => n + 1)}
+            onClick={() => void reload()}
           >
             {t.retry}
           </button>
@@ -317,8 +255,8 @@ export function PlanCollection({
                   >
                     <strong>{plan.title}</strong>
                     <small>
-                      {plan.grade
-                        ? `${plan.grade} ${t.grade.toLowerCase()} · `
+                      {plan.grades?.length || plan.grade
+                        ? `${plan.grades?.length ? plan.grades.join(", ") : plan.grade} ${t.grade.toLowerCase()} · `
                         : ""}
                       {plan.school_year ||
                         (ru

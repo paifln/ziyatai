@@ -53,10 +53,12 @@ test("class filtering preserves every lesson and generation class follows the se
     name: "Класс",
     exact: true,
   });
+  // Wait for the lazy generation panel, not the previous plan editor's class control.
+  await expect(page.locator("#generation-topic")).toBeVisible();
   await classChoice.selectOption("10");
   const topics = page.locator("#generation-topic option");
   await expect(topics).toHaveCount(2);
-  expect(await topics.allTextContents()).toEqual([
+  await expect(topics).toHaveText([
     "2. 10 класс · Урок 2",
     "4. 10 класс · Урок 4",
   ]);

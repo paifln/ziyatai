@@ -7,7 +7,7 @@
   "parallelRequests": 160,
   "accepted": 120,
   "rejected": 40,
-  "elapsedMs": 228,
+  "elapsedMs": 312,
   "separateNetworkAvailable": true,
   "refusedReadsPreserveSchedule": true,
   "prunedExpiredRows": 32,

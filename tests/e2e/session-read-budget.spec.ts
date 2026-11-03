@@ -1,3 +1,4 @@
+import { origin as qaOrigin } from "./helpers";
 import { test, expect } from "@playwright/test";
 import { randomInt } from "node:crypto";
 import { sessionReadPolicy } from "../../apps/web/lib/session-read-budget";
@@ -7,7 +8,7 @@ test("session reads below four per second remain available beyond a minute witho
 }) => {
   test.setTimeout(120000);
   const context = await playwright.request.newContext({
-    baseURL: "http://localhost:3000",
+    baseURL: qaOrigin,
     extraHTTPHeaders: { "x-forwarded-for": `192.0.2.${randomInt(1, 255)}` },
   });
   const began = performance.now();
@@ -33,11 +34,11 @@ test("session bursts are bounded across query/cookie variants and refill without
   playwright,
 }) => {
   const context = await playwright.request.newContext({
-    baseURL: "http://localhost:3000",
+    baseURL: qaOrigin,
     extraHTTPHeaders: { "x-forwarded-for": `198.51.100.${randomInt(1, 255)}` },
   });
   const separate = await playwright.request.newContext({
-    baseURL: "http://localhost:3000",
+    baseURL: qaOrigin,
     extraHTTPHeaders: { "x-forwarded-for": `203.0.113.${randomInt(1, 255)}` },
   });
   try {

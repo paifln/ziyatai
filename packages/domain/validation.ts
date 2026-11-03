@@ -201,25 +201,3 @@ export function displayPoints(points: number, locale: string) {
         : "баллов";
   return `${points} ${word}`;
 }
-export function studentDocument(doc: GenerationDocument) {
-  return {
-    ...doc,
-    tasks: doc.tasks.map((t) => ({
-      ...t,
-      answerBlocks: [],
-      explanationHow: "",
-      explanationWhy: "",
-      rubric: [],
-      verificationCases: [],
-      translation: t.translation
-        ? {
-            ...t.translation,
-            answerBlocks: [],
-            explanationHow: "",
-            explanationWhy: "",
-            rubric: [],
-          }
-        : null,
-    })),
-  };
-}

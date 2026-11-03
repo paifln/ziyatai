@@ -5,7 +5,7 @@ import {
   type Locator,
 } from "@playwright/test";
 import { randomBytes } from "node:crypto";
-export const origin = "http://localhost:3000";
+export const origin = process.env.QA_BASE_URL || "http://localhost:3000";
 export const headers = { Origin: origin };
 export async function approveGeneration(
   request: APIRequestContext,

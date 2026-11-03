@@ -1,3 +1,4 @@
+import { origin as qaOrigin } from "./helpers";
 import {
   test,
   expect,
@@ -35,7 +36,12 @@ async function enter(page: Page, request: APIRequestContext) {
   await page
     .context()
     .addCookies([
-      { name: "ziyatai-locale", value: "ru", domain: "localhost", path: "/" },
+      {
+        name: "ziyatai-locale",
+        value: "ru",
+        domain: new URL(qaOrigin).hostname,
+        path: "/",
+      },
     ]);
   await page.goto("/");
 }
@@ -101,7 +107,7 @@ test("collection API returns complete bounded pages, global counts and owner-onl
 }) => {
   const f = await fixture(request);
   const other = await playwright.request.newContext({
-    baseURL: "http://localhost:3000",
+    baseURL: qaOrigin,
   });
   try {
     const ids: string[] = [];
@@ -123,11 +129,13 @@ test("collection API returns complete bounded pages, global counts and owner-onl
         expect(Object.keys(item).sort()).toEqual([
           "created_at",
           "grade",
+          "grades",
           "id",
           "school_year",
           "status",
           "title",
         ]);
+        expect(item.grades).toEqual([item.grade]);
         ids.push(item.id);
       }
     }

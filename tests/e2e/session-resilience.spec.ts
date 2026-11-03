@@ -1,3 +1,4 @@
+import { origin as qaOrigin } from "./helpers";
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { verifiedUser } from "./helpers";
@@ -26,7 +27,12 @@ for (const status of [429, 503]) {
     await page
       .context()
       .addCookies([
-        { name: "ziyatai-locale", value: "ru", domain: "localhost", path: "/" },
+        {
+          name: "ziyatai-locale",
+          value: "ru",
+          domain: new URL(qaOrigin).hostname,
+          path: "/",
+        },
       ]);
     await page.route(
       "**/api/auth/get-session",

@@ -16,21 +16,35 @@ export async function enqueue(
     [id, owner, kind, resource, payload, key],
   );
   if (result.rowCount) return id;
-  return (
-    await c.query(
-      "SELECT id FROM jobs WHERE owner_id=$1 AND idempotency_key=$2",
-      [owner, key],
-    )
-  ).rows[0].id as string;
+  const existing = await c.query(
+    // Account cleanup is scoped to owner_id; its resource UUID is only a marker.
+    "SELECT id FROM jobs WHERE owner_id=$1 AND idempotency_key=$2 AND kind=$3 AND (resource_id=$4 OR (kind='delete' AND payload->>'scope'='account')) AND payload=$5::jsonb",
+    [owner, key, kind, resource, payload],
+  );
+  if (!existing.rowCount) throw new AppError("CONFLICT", 409);
+  return existing.rows[0].id as string;
 }
 export async function reserveQuota(
   c: PoolClient,
   owner: string,
   jobId: string,
+  input?: unknown,
 ) {
-  await c.query("SELECT pg_advisory_xact_lock(843002)");
   const e = env();
-  const reservation = (e.MAX_AI_TOKENS + 10000) * 3;
+  // Reserve for source/replacement size too. A fixed allowance alone lets a
+  // very large edited task consume substantially more input than was admitted.
+  // UTF-8 bytes are a conservative input allowance, not exact token counting;
+  // the existing 10k covers instructions/schema/repair overhead per attempt.
+  const inputBytes =
+    input === undefined ? 0 : Buffer.byteLength(JSON.stringify(input), "utf8");
+  const reservation = (e.MAX_AI_TOKENS + 10000 + inputBytes) * 3;
+  if (
+    !Number.isSafeInteger(reservation) ||
+    reservation <= 0 ||
+    reservation > 2147483647
+  )
+    throw new AppError("LIMIT", 429);
+  await c.query("SELECT pg_advisory_xact_lock(843002)");
   const counts = await c.query(
     "SELECT count(*) FILTER(WHERE owner_id=$1)::int AS personal,count(*)::int AS global,count(*) FILTER(WHERE owner_id=$1 AND state='reserved')::int AS concurrent FROM usage_ledger WHERE created_at>=date_trunc('day',now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC' AND state!='released'",
     [owner],
@@ -46,8 +60,10 @@ export async function reserveQuota(
     [owner],
   );
   if (
-    Number(budgets.rows[0].personal) + reservation > e.DAILY_AI_TOKEN_LIMIT ||
-    Number(budgets.rows[0].global) + reservation > e.GLOBAL_DAILY_AI_TOKEN_LIMIT
+    BigInt(budgets.rows[0].personal) + BigInt(reservation) >
+      BigInt(e.DAILY_AI_TOKEN_LIMIT) ||
+    BigInt(budgets.rows[0].global) + BigInt(reservation) >
+      BigInt(e.GLOBAL_DAILY_AI_TOKEN_LIMIT)
   )
     throw new AppError("LIMIT", 429);
   await c.query(

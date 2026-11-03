@@ -2,7 +2,7 @@ import type { PlanDraft } from "../contracts/drafts";
 import { draftsEqual } from "./merge-drafts";
 
 /** References always resolve against the immutable, owned baseRevision. */
-export type ReferencedPlanDraft = Omit<PlanDraft, "rows"> & {
+type ReferencedPlanDraft = Omit<PlanDraft, "rows"> & {
   encoding: "row-references-v1";
   rows: (string | PlanDraft["rows"][number])[];
 };

@@ -48,6 +48,7 @@ export function GeneratePanel({
       setPlanLoading(true);
       api(`ktp/${planId}`, "GET", undefined, undefined, controller.signal)
         .then((p) => {
+          if (controller.signal.aborted) return;
           setPlan(p);
           const grades = planGrades(p.rows ?? [], p.grade);
           const selectedGrade = grades.includes(p.grade) ? p.grade : grades[0];

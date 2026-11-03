@@ -1,0 +1,52 @@
+[
+  {
+    "raw": "01.09.2026–2026-09-04",
+    "start": "2026-09-01",
+    "end": "2026-09-04",
+    "warnings": []
+  },
+  {
+    "raw": "2026-09-01 — 04/09/2026",
+    "start": "2026-09-01",
+    "end": "2026-09-04",
+    "warnings": []
+  },
+  {
+    "raw": "2026-09-04–01.09.2026",
+    "start": null,
+    "end": null,
+    "warnings": ["invalid_date_range"]
+  },
+  {
+    "raw": "01.09.2026;2026-09-03;04.09.2026",
+    "start": null,
+    "end": null,
+    "warnings": ["multiple_dates_require_review"]
+  },
+  {
+    "raw": "01.09.2026–2026-02-31",
+    "start": null,
+    "end": null,
+    "warnings": ["invalid_date"]
+  },
+  { "raw": "29.02.2024", "start": "2024-02-29", "end": null, "warnings": [] },
+  {
+    "raw": "29.02.2026",
+    "start": null,
+    "end": null,
+    "warnings": ["invalid_date"]
+  },
+  {
+    "raw": "01.09",
+    "start": null,
+    "end": null,
+    "warnings": ["date_requires_year_or_review"]
+  },
+  {
+    "raw": "2026-09-01–2026-09-03",
+    "start": "2026-09-01",
+    "end": "2026-09-03",
+    "warnings": []
+  },
+  { "raw": "", "start": null, "end": null, "warnings": ["missing_date"] }
+]

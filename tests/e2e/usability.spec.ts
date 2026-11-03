@@ -1,3 +1,4 @@
+import { origin as qaOrigin } from "./helpers";
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { randomUUID } from "node:crypto";
@@ -345,7 +346,7 @@ test("each page receives a fresh CSP nonce and an untrusted inline script cannot
       );
     });
   });
-  await page.route("http://localhost:3000/", async (route) => {
+  await page.route(qaOrigin + "/", async (route) => {
     const response = await route.fetch();
     const body = (await response.text()).replace(
       "</head>",
@@ -396,7 +397,7 @@ test("profile preserves unsaved changes and can revoke other devices without sig
 }) => {
   const user = await verifiedUser(request);
   const other = await playwright.request.newContext({
-    baseURL: "http://localhost:3000",
+    baseURL: qaOrigin,
   });
   try {
     let signedIn = await other.post("/api/auth/sign-in/email", {

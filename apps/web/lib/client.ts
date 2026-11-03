@@ -1,20 +1,10 @@
 "use client";
-import { createAuthClient } from "better-auth/react";
-import {
-  emailOTPClient,
-  inferAdditionalFields,
-} from "better-auth/client/plugins";
+import { authClient } from "./auth/client";
+export { authClient };
 import { kazakhMessages, messages } from "../../../packages/domain/errors";
 import { fetchWithWakeRetry } from "./wake-retry";
 import { accountIntentHeader } from "../../../packages/contracts/account-intent";
-export const authClient = createAuthClient({
-  plugins: [
-    emailOTPClient(),
-    inferAdditionalFields({
-      user: { teachingSubject: { type: "string", required: false } },
-    }),
-  ],
-});
+import { withinRequestLifetime } from "./request-lifetime";
 export async function uploadFile(
   file: File,
   direct: boolean,
@@ -149,6 +139,7 @@ export async function api(
 export function createAccountClient(
   owner?: string,
   onSessionChanged?: () => void,
+  lifetime?: () => AbortSignal,
 ) {
   const authHeaders =
     owner === undefined ? undefined : { [accountIntentHeader]: owner };
@@ -167,7 +158,9 @@ export function createAccountClient(
     signal?: AbortSignal,
   ) => {
     try {
-      return await api(path, method, data, idempotencyKey, signal, owner);
+      return await withinRequestLifetime(signal, lifetime?.(), (activeSignal) =>
+        api(path, method, data, idempotencyKey, activeSignal, owner),
+      );
     } catch (error) {
       if ((error as { code?: string }).code === "SESSION_CHANGED")
         onSessionChanged?.();
@@ -179,12 +172,14 @@ export function createAccountClient(
     auth: {
       signOut: () =>
         observeNative(
-          authClient.signOut({ fetchOptions: { headers: authHeaders } }),
+          authClient.signOut({
+            fetchOptions: { headers: authHeaders, signal: lifetime?.() },
+          }),
         ),
       revokeOtherSessions: () =>
         observeNative(
           authClient.revokeOtherSessions({
-            fetchOptions: { headers: authHeaders },
+            fetchOptions: { headers: authHeaders, signal: lifetime?.() },
           }),
         ),
       changePassword: (body: {
@@ -195,7 +190,7 @@ export function createAccountClient(
         observeNative(
           authClient.changePassword({
             ...body,
-            fetchOptions: { headers: authHeaders },
+            fetchOptions: { headers: authHeaders, signal: lifetime?.() },
           }),
         ),
     },
@@ -204,6 +199,9 @@ export function createAccountClient(
       direct: boolean,
       onProgress?: (percent: number) => void,
       signal?: AbortSignal,
-    ) => uploadFile(file, direct, onProgress, signal, scopedApi),
+    ) =>
+      withinRequestLifetime(signal, lifetime?.(), (activeSignal) =>
+        uploadFile(file, direct, onProgress, activeSignal, scopedApi),
+      ),
   };
 }

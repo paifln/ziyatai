@@ -6,6 +6,15 @@ import { env } from "./env";
 import { AppError } from "../../../packages/domain/errors";
 import { isolatedRequest } from "./renderer";
 import { scanStream } from "./antivirus";
+import { uploadFormat } from "../../../packages/domain/uploads";
+const processErrors = new Map([
+  ["FILE_INVALID", 422],
+  ["FILE_SIZE", 413],
+  ["FILE_TYPE", 415],
+  ["OCR_UNAVAILABLE", 422],
+  ["FONT_UNAVAILABLE", 422],
+  ["RENDER_UNAVAILABLE", 503],
+]);
 export function processRun(
   executable: string,
   args: string[],
@@ -29,54 +38,69 @@ export function processRun(
       },
       shell: false,
     });
-    let out = "",
-      err = "";
-    const timer = setTimeout(() => {
+    const chunks: Buffer[] = [];
+    let outputBytes = 0;
+    let err = Buffer.alloc(0);
+    let settled = false;
+    let force: ReturnType<typeof setTimeout> | undefined;
+    function fail(error: AppError) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
       child.kill();
-      reject(new AppError("INTERNAL", 503));
+      force = setTimeout(() => {
+        if (child.exitCode === null && child.signalCode === null)
+          child.kill("SIGKILL");
+      }, 1000);
+      force.unref();
+      reject(error);
+    }
+    const timer = setTimeout(() => {
+      fail(new AppError("INTERNAL", 503));
     }, timeout);
     child.stdout.on("data", (b) => {
-      out += b;
-      if (out.length > maxOutput) {
-        child.kill();
-        reject(new AppError("FILE_SIZE", 413));
-      }
+      if (settled) return;
+      outputBytes += b.length;
+      if (outputBytes > maxOutput) return fail(new AppError("FILE_SIZE", 413));
+      chunks.push(b);
     });
     child.stderr.on("data", (b) => {
-      if (err.length < 4000) err += b;
+      if (!settled && err.length < 4000)
+        err = Buffer.concat([err, b.subarray(0, 4000 - err.length)]);
     });
     child.on("error", () => {
       clearTimeout(timer);
+      clearTimeout(force);
+      if (settled) return;
+      settled = true;
       reject(new AppError("INTERNAL", 503));
     });
     child.on("close", (code) => {
       clearTimeout(timer);
+      clearTimeout(force);
+      if (settled) return;
+      settled = true;
       if (code !== 0) {
-        const safe = err.match(/ZIYAT_ERROR:([A-Z_]+)/)?.[1] ?? "FILE_INVALID";
-        reject(new AppError(safe, 422));
-      } else resolve(out);
+        const reported = err
+          .toString("utf8")
+          .match(/^ZIYAT_ERROR:([A-Z_]+)\r?$/m)?.[1];
+        const safe =
+          reported && processErrors.has(reported) ? reported : "FILE_INVALID";
+        reject(new AppError(safe, processErrors.get(safe)!));
+      } else resolve(Buffer.concat(chunks, outputBytes).toString("utf8"));
     });
   });
 }
 export function sniffFile(bytes: Buffer, name: string) {
-  const ext = name.toLowerCase().split(".").pop();
+  const format = uploadFormat(name);
+  if (!format) throw new AppError("FILE_TYPE", 415);
   const pdf = bytes.subarray(0, 5).toString() === "%PDF-";
   const zip = bytes.subarray(0, 4).equals(Buffer.from([80, 75, 3, 4]));
   const ole = bytes
     .subarray(0, 8)
     .equals(Buffer.from([208, 207, 17, 224, 161, 177, 26, 225]));
-  if (ext === "pdf" && pdf) return { ext, mime: "application/pdf" };
-  if (ext === "docx" && zip)
-    return {
-      ext,
-      mime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    };
-  if (ext === "xlsx" && zip)
-    return {
-      ext,
-      mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    };
-  if (ext === "xls" && ole) return { ext, mime: "application/vnd.ms-excel" };
+  if (format.ext === "pdf" ? pdf : format.ext === "xls" ? ole : zip)
+    return format;
   throw new AppError("FILE_TYPE", 415);
 }
 export async function inspectFile(bytes: Buffer, name: string) {

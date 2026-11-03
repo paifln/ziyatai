@@ -22,11 +22,15 @@ import type { Texts, UiLocale } from "../lib/i18n";
 import type { KtpRow } from "../../../packages/contracts";
 import { Jobs } from "./Jobs";
 import { usePolling } from "../lib/use-polling";
+import { isAssessmentTopic } from "../../../packages/domain/goals";
 import {
-  hasRequiredGoals,
-  isAssessmentTopic,
-} from "../../../packages/domain/goals";
-import { normalizeDate } from "../../../packages/domain/dates";
+  planIssues,
+  normalizePlanRows,
+  type PlanIssueField,
+} from "../../../packages/domain/plan-review";
+import { PlanReadiness } from "./plans/PlanReadiness";
+import { PlanSchedule } from "./plans/PlanSchedule";
+import { DownloadPlanCsv } from "./plans/DownloadPlanCsv";
 import { planGrades, rowGrade } from "../../../packages/domain/grades";
 import { RevisionConflict, type RevisionSnapshot } from "./RevisionConflict";
 import type { PlanDraft } from "../../../packages/contracts/drafts";
@@ -79,6 +83,39 @@ export default function PlanReview({
   const [classFilter, setClassFilter] = useState("");
   const loadedPlan = useRef("");
   const [datesBeforeSkip, setDatesBeforeSkip] = useState<KtpRow[] | null>(null);
+  const [onlyIncomplete, setOnlyIncomplete] = useState(false);
+  const [focusedRow, setFocusedRow] = useState("");
+  const [focusIssue, setFocusIssue] = useState<{
+    id: string;
+    field: PlanIssueField;
+  }>();
+  const issues = useMemo(() => planIssues(rows, grade), [rows, grade]);
+  const incomplete = useMemo(
+    () => new Set(issues.map((issue) => issue.id)),
+    [issues],
+  );
+  useEffect(() => {
+    if (!focusIssue) return;
+    const row = document.getElementById(`ktp-row-${focusIssue.id}`);
+    const field = row?.querySelector<HTMLElement>(
+      `[data-review-field="${focusIssue.field}"]`,
+    );
+    if (!field) return;
+    const details = field.closest("details");
+    if (details) details.open = true;
+    field.focus();
+    field.scrollIntoView({ block: "center" });
+    setFocusIssue(undefined);
+  }, [
+    focusIssue,
+    onlyIncomplete,
+    page,
+    query,
+    quarter,
+    sheet,
+    classFilter,
+    sort,
+  ]);
   const [conflict, setConflict] = useState(false);
   const busy = working || conflict;
   const baseline = useRef<PlanDraft | undefined>(undefined);
@@ -168,26 +205,16 @@ export default function PlanReview({
       rows.map((r, i) =>
         i === index
           ? {
-              ...r,
-              [key]: value,
-              ...(key === "dateRaw"
-                ? {
-                    dateSkipped: false,
-                    ...normalizeDate(value),
-                    warnings: [
-                      ...r.warnings.filter((w) => !w.includes("date")),
-                      ...normalizeDate(value).warnings,
-                    ],
-                  }
-                : {}),
-              ...(key === "goals"
-                ? {
-                    goalsSkipped: false,
-                    objectiveCodes:
-                      value.match(/\b\d{1,2}\.\d+\.\d+\.\d+\b/g) ?? [],
-                  }
-                : {}),
-              source: { ...r.source, method: "manual", confidence: 0.5 },
+              ...normalizePlanRows([
+                {
+                  ...r,
+                  [key]: value,
+                  dateSkipped: key === "dateRaw" ? false : r.dateSkipped,
+                  goalsSkipped: key === "goals" ? false : r.goalsSkipped,
+                  source: { ...r.source, method: "manual", confidence: 0.5 },
+                },
+              ])[0],
+              sourceOrder: i + 1,
             }
           : r,
       ),
@@ -195,6 +222,7 @@ export default function PlanReview({
     setDirty(true);
   }
   function add(after?: number) {
+    setOnlyIncomplete(false);
     setQuery("");
     setQuarter("");
     setSort("original");
@@ -252,10 +280,17 @@ export default function PlanReview({
     if (busy) return;
     setBusy(true);
     try {
+      const canonicalRows = normalizePlanRows(rows);
+      setRows(canonicalRows);
       const saved = await api(
         `ktp/${id}/${confirm ? "confirm" : "rows"}`,
         confirm ? "POST" : "PATCH",
-        { revision: plan.revision, rows, grade, schoolYear: year },
+        {
+          revision: plan.revision,
+          rows: canonicalRows,
+          grade,
+          schoolYear: year,
+        },
       );
       // The write is committed even if the following read fails.
       setPlan((current: any) => ({
@@ -264,7 +299,7 @@ export default function PlanReview({
         status: confirm ? "confirmed" : "review",
       }));
       setDirty(false);
-      baseline.current = { rows, grade, schoolYear: year };
+      baseline.current = { rows: canonicalRows, grade, schoolYear: year };
       await load();
       onSaved();
     } catch (e) {
@@ -360,6 +395,7 @@ export default function PlanReview({
           .includes(query.toLowerCase()) &&
         (!quarter || r.quarter === quarter) &&
         (!sheet || r.source.sheet === sheet) &&
+        (!onlyIncomplete || incomplete.has(r.id) || focusedRow === r.id) &&
         (!classFilter ||
           String(rowGrade(r, grade) ?? "unknown") === classFilter),
     )
@@ -383,6 +419,18 @@ export default function PlanReview({
           locale === "ru"
             ? "Уточните год или диапазон даты"
             : "Жылды немесе күн аралығын нақтылаңыз",
+        invalid_date:
+          locale === "ru"
+            ? "Такой календарной даты нет"
+            : "Мұндай күнтізбелік күн жоқ",
+        invalid_date_range:
+          locale === "ru"
+            ? "Конец диапазона раньше начала"
+            : "Аралықтың соңы басынан бұрын тұр",
+        multiple_dates_require_review:
+          locale === "ru"
+            ? "Указано больше двух дат: проверьте диапазон"
+            : "Екі күннен көп көрсетілген: аралықты тексеріңіз",
         missing_objective_text:
           locale === "ru" ? "Нет текста цели" : "Мақсат мәтіні жоқ",
         objective_code_only:
@@ -478,6 +526,12 @@ export default function PlanReview({
           )}
         </div>
         <div className="actions">
+          <DownloadPlanCsv
+            rows={rows}
+            grade={grade}
+            locale={locale}
+            disabled={working}
+          />
           <button
             className="button primary"
             disabled={plan.status !== "confirmed" || dirty}
@@ -759,22 +813,65 @@ export default function PlanReview({
             <button
               className="button primary"
               onClick={() => save(true)}
-              disabled={
-                busy ||
-                (!grade && rows.some((r) => !rowGrade(r))) ||
-                !rows.length ||
-                rows.some((r) => !r.topic.trim() || !hasRequiredGoals(r))
-              }
+              disabled={busy || !rows.length || issues.length > 0}
             >
               <Check size={16} />
               {t.confirm}
             </button>
           </div>
+          {rows.length > 0 && (
+            <PlanReadiness
+              issues={issues}
+              total={rows.length}
+              locale={locale}
+              filtered={onlyIncomplete}
+              onFilter={() => {
+                setOnlyIncomplete(!onlyIncomplete);
+                setFocusedRow("");
+                setQuery("");
+                setQuarter("");
+                setSheet("");
+                setClassFilter("");
+                setPage(0);
+              }}
+              onFirst={() => {
+                const first = issues[0];
+                if (!first) return;
+                setOnlyIncomplete(false);
+                setQuery("");
+                setQuarter("");
+                setSheet("");
+                setClassFilter("");
+                setSort("original");
+                setPage(Math.floor(first.index / 25));
+                setFocusIssue({ id: first.id, field: first.fields[0] });
+              }}
+            />
+          )}
           {rows.some((r) => r.warnings.length) && (
             <div className="notice warning">{t.missing}</div>
           )}
           {!rows.length && <div className="notice warning">{t.noRows}</div>}
         </section>
+        <PlanSchedule
+          rows={rows}
+          grade={grade}
+          classFilter={classFilter}
+          locale={locale}
+          disabled={busy}
+          onOpen={(rowId) => {
+            const index = rows.findIndex((row) => row.id === rowId);
+            if (index < 0) return;
+            setOnlyIncomplete(false);
+            setQuery("");
+            setQuarter("");
+            setSheet("");
+            setClassFilter("");
+            setSort("original");
+            setPage(Math.floor(index / 25));
+            setFocusIssue({ id: rowId, field: "topic" });
+          }}
+        />
         <section className="card">
           <div className="toolbar">
             <label className="search-field">
@@ -834,7 +931,19 @@ export default function PlanReview({
               </thead>
               <tbody>
                 {pageRows.map(({ r, index }) => (
-                  <tr key={r.id}>
+                  <tr
+                    key={r.id}
+                    id={`ktp-row-${r.id}`}
+                    onFocusCapture={() => setFocusedRow(r.id)}
+                    onBlurCapture={(event) => {
+                      if (
+                        !event.currentTarget.contains(
+                          event.relatedTarget as Node | null,
+                        )
+                      )
+                        setFocusedRow("");
+                    }}
+                  >
                     <td data-label={t.number}>
                       <input
                         aria-label={`${t.number} ${index + 1}`}
@@ -905,6 +1014,8 @@ export default function PlanReview({
                     <td data-label={t.topic} className="topic-cell">
                       <textarea
                         aria-label={`${t.topic} ${index + 1}`}
+                        data-review-field="topic"
+                        aria-invalid={!r.topic.trim()}
                         value={r.topic}
                         maxLength={2000}
                         onChange={(e) => update(index, "topic", e.target.value)}
@@ -917,6 +1028,8 @@ export default function PlanReview({
                           {t.grade}
                           <select
                             aria-label={`${t.grade} · ${index + 1}`}
+                            data-review-field="grade"
+                            aria-invalid={!rowGrade(r, grade)}
                             value={r.grade ?? ""}
                             onChange={(e) => {
                               setRows(
@@ -985,6 +1098,11 @@ export default function PlanReview({
                     <td data-label={t.goals} className="goal-cell">
                       <textarea
                         aria-label={`${t.goals} ${index + 1}`}
+                        data-review-field="goals"
+                        aria-invalid={issues.some(
+                          (issue) =>
+                            issue.id === r.id && issue.fields.includes("goals"),
+                        )}
                         disabled={r.goalsSkipped && isAssessmentTopic(r.topic)}
                         value={r.goals}
                         maxLength={8000}
