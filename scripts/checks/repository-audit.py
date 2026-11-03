@@ -128,6 +128,13 @@ def history_scan(root):
             "textBlobsScanned": len(objects), "potentialFindings": findings}
 
 
+def script_candidates(report):
+    # Documenting a manual script must not turn it into an executable consumer.
+    return [entry["file"] for entry in report["scripts"]
+            if not any(not name.endswith(".md") for name in
+                       entry["basenameReferences"] + entry["extensionlessImportReferences"])]
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path.cwd())
@@ -147,7 +154,7 @@ def main():
     print(json.dumps({"trackedFiles": report["trackedFiles"], "trackedBytes": report["trackedBytes"],
                       "emptyFiles": report["emptyFiles"], "duplicateGroups": report["duplicateGroups"],
                       "missingMarkdownTargets": report["missingMarkdownTargets"],
-                      "unreferencedScriptCandidates": [entry["file"] for entry in report["scripts"] if not entry["basenameReferences"] and not entry["extensionlessImportReferences"]],
+                      "scriptsWithoutCodeReferences": script_candidates(report),
                       "unreferencedAssetCandidates": [entry["file"] for entry in report["assets"] if not entry["references"]],
                       "history": report.get("history"), "output": str(output)}, ensure_ascii=False, indent=2))
 

@@ -41,6 +41,8 @@
 
 `plan-grades.ts`, `deployment-config.ts`, `migration-config.ts`, `create-only-upload.ts` **не входят**: обнаружены extensionless imports в runner/test modules. Каталог `.local/ai-eval` в corpus generator, наоборот, не является импортом `ai-eval.ts`. Эти примеры показывают, почему поиска полного имени или любого совпадения basename недостаточно.
 
+После отделения документации от исполняемых потребителей scanner показывает ещё три скрипта без code references: `browser-check.ts`, `supabase/build-bootstrap.ts`, `supabase/workflow-smoke.ts`. Они уже описаны в README/runbook/Supabase-инструкциях и имеют понятную ручную роль; это не дополнительные доказательства мусора. Итого 20 без code references, из них 17 без найденного описания/вызова на baseline и 3 документированных manual entrypoints. Поле отчёта называется `scriptsWithoutCodeReferences`, а не «можно удалить».
+
 ### CSS, требующий покрытия состояний
 
 - `app/globals.css`: `demo-link`, `dot-0`, `dot-1`, `dot-2`, `empty-icon`, `mail-preview-note`.
@@ -63,6 +65,8 @@ rg -n 'demo-link|dot-[012]|empty-icon|mail-preview-note|example-paper|landing-ex
 ```
 
 `repository-audit.py` — read-only инвентаризация tracked files. Выводит подсказки о ссылках, а не разрешения на удаление; записывает только отчёт внутри `.local/`. Работает с Python standard library. `--history` не печатает найденные значения секретов.
+
+Документационные упоминания скриптов учитываются отдельно от кода: добавление этого отчёта не должно скрыть manual-кандидатов. Этот случай проверяется регрессионным тестом на отдельном временном Git-репозитории; основной репозиторий и настройки Git тест не изменяет.
 
 ## 3. Структура: было → цель
 
@@ -139,6 +143,7 @@ migrations/                        migrations/              # неизменяе
 | 0, выполнен | Чистый baseline commit, отдельные worktree/ветка, inventory | Git status, baseline checks, history/source scan | Вернуться к исходному checkout; не трогать `.local` и cloud |
 | 1, выполнен | Read-only `repository-audit.py`, production roots Knip, CI dependency gate | lint, typecheck, unit, web build, worker build; Knip оба режима | `git revert 87fc490` |
 | 2, выполнен в этой ветке | Удалить только повторный недостижимый schema guard; исправить устаревший статус Railway; сохранить этот отчёт | Те же проверки; SQL/migration files не меняются, cloud/DB jobs не запускаются | Revert отдельного второго коммита; БД не восстанавливать |
+| Проверка самого аудитора, выполнена | Не считать Markdown-упоминание выполнением скрипта; добавить regression test | Отдельный временный Git fixture, lint/typecheck/unit, сборки web/worker | Revert корректирующего коммита перед откатом этапов 2 и 1 |
 | 3, план | Разобрать manual scripts, согласовать retention `.local`; завести реестр проверок | Входящие ссылки, реальный producer, локальная интеграция; paid tests только отдельно | Revert изменений исходников; удалённые личные файлы восстанавливать только из заранее проверенного backup |
 | 4, план | Выделить общую server infrastructure без изменения API | Оба процесса собираются, client-boundary, полный local integration | Revert коммита переносов; compatibility imports на переходный период |
 | 5, план | По одному ресурсу извлекать API и worker jobs | Ownership, idempotency, transaction rollback, lease/cancellation, synthetic end-to-end | Revert одного handler extraction; schema не менять тем же коммитом |
@@ -224,7 +229,7 @@ git ls-files -ci --exclude-standard
 | Однонаправленные границы | ⚠️ | JS/TS cycles не найдены, но worker зависит от web/lib |
 | Размер модулей/смешение ответственностей | ❌ | API, редакторы, worker, Lite и global CSS требуют поэтапного разделения |
 | Стиль/типы | ✅ / ⚠️ | strict TS и lint проходят; `any` разрешён, Python style неоднороден |
-| Тесты и CI | ✅ / ⚠️ | 300 unit, 60 parser, 51 security + 3 skipped, 17 browser; полный E2E/cloud не запускался |
+| Тесты и CI | ✅ / ⚠️ | 300 unit, 60 parser, исходно 51 security + 3 skipped; добавлен 1 regression test аудитора, 17 browser; полный E2E/cloud не запускался |
 | Безопасность очистки | ✅ | Нет массовых удалений, переноса DB, rewrite истории, cloud/deploy действий |
 
 Отчёты машинных проверок лежат в `.local/reports/` этого worktree. При воспроизведении число tracked files и history blobs изменится из-за новых коммитов; baseline-числа выше относятся к исходному `ceb88e2`.
