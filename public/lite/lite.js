@@ -1,5 +1,5 @@
-/* ZiyatAI Lite: no framework, external library, analytics, cache or background polling.
- * ES5 syntax for school browsers. Draft backups use the authenticated server API.
+/* Generated from apps/lite/parts.json by npm run build:lite.
+ * ES5 syntax; ordered fragments share one private closure.
  */
 (function () {
   "use strict";

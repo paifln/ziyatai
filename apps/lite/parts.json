@@ -1,0 +1,16 @@
+[
+  "bootstrap.part.js",
+  "translations.part.js",
+  "dom.part.js",
+  "transport.part.js",
+  "navigation.part.js",
+  "auth.part.js",
+  "collections.part.js",
+  "uploads.part.js",
+  "source.part.js",
+  "plan.part.js",
+  "generate.part.js",
+  "generation.part.js",
+  "task.part.js",
+  "startup.part.js"
+]

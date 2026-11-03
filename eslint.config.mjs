@@ -13,6 +13,8 @@ export default defineConfig([
     "playwright-report/**",
     "test-results/**",
     "dist/**",
+    // Fragments are linted together in the generated public/lite/lite.js closure.
+    "apps/lite/*.part.js",
   ]),
   {
     plugins: { "react-hooks": hooks },
