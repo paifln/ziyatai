@@ -45,7 +45,7 @@ export default defineRailway((ctx) => {
   const antivirus = service("antivirus", {
     // Same pinned image as compose.laptop.yml; update both after scanning.
     source: image(
-      "clamav/clamav:1.4@sha256:b5b910ce43d595bf8a2fe401e34db56434602b2c755b7c2b07f00c917d04d469",
+      "clamav/clamav:1.4@sha256:8ad6197396974726c35d017e50aaaaf4b91745726a04faec8480c203edd98052",
     ),
     deploy: { ...continuous, sleepApplication: true },
     networking: privateNetworking,

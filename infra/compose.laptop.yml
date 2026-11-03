@@ -42,7 +42,7 @@ services:
     mem_limit: 1g
     pids_limit: 128
   antivirus:
-    image: clamav/clamav:1.4@sha256:b5b910ce43d595bf8a2fe401e34db56434602b2c755b7c2b07f00c917d04d469
+    image: clamav/clamav:1.4@sha256:8ad6197396974726c35d017e50aaaaf4b91745726a04faec8480c203edd98052
     restart: unless-stopped
     ports: ["127.0.0.1:13310:3310"]
     volumes: ["antivirus-data:/var/lib/clamav"]
