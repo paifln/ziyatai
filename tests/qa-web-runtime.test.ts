@@ -50,7 +50,7 @@ it("retains a real child exit code without copying private logs or environment t
 
 it("stops only its owned child and records the actual signal as a planned stop", async () => {
   const path = await directory();
-  const running = supervise("otp", {
+  const running = supervise("main", {
     directory: path,
     args: ["-e", "setInterval(() => {}, 1000)"],
     environment: { NODE_ENV: "test" },
@@ -59,14 +59,14 @@ it("stops only its owned child and records the actual signal as a planned stop",
     .poll(async () => {
       try {
         return JSON.parse(
-          await readFile(resolve(path, "otp.start.json"), "utf8"),
+          await readFile(resolve(path, "main.start.json"), "utf8"),
         ).run;
       } catch {
         return undefined;
       }
     })
     .toBeTruthy();
-  const stopped = await stopPhase("otp", path);
+  const stopped = await stopPhase("main", path);
   expect(stopped).toMatchObject({
     intentionalStop: true,
     stopReason: "control",
@@ -74,7 +74,7 @@ it("stops only its owned child and records the actual signal as a planned stop",
   });
   expect(stopped?.signal).toBe("SIGTERM");
   expect(await running).toMatchObject({ signal: "SIGTERM" });
-  expect((await summarize(path))[1]).toMatchObject({
+  expect((await summarize(path))[0]).toMatchObject({
     exitObserved: true,
     intentionalStop: true,
   });
@@ -114,9 +114,9 @@ it("ignores termination and stop records from an older generation", async () => 
   expect((await running).run).not.toBe(previous.run);
 });
 
-it("finishes all three owned CI phases and requires observed planned termination", async () => {
+it("finishes the password-auth CI phase without requiring retired OTP servers", async () => {
   const path = await directory();
-  const names = ["main", "otp", "no-mail"];
+  const names = ["main"];
   const running = names.map((phase) =>
     supervise(phase, {
       directory: path,

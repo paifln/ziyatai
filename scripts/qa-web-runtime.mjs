@@ -4,7 +4,7 @@ import { resolve, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { randomUUID } from "node:crypto";
 
-const phases = ["main", "otp", "no-mail"];
+const phases = ["main"];
 const defaultDirectory = resolve(".local/qa-runtime");
 const delay = (ms) => new Promise((done) => setTimeout(done, ms));
 function paths(phase, directory) {

@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -40,7 +40,7 @@ jobs:
       - run: npm audit --audit-level=moderate
       - run: python scripts/scan-secrets.py
   integration:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       HOSTNAME: 127.0.0.1
     steps:
@@ -76,7 +76,7 @@ jobs:
         if: always()
         run: supabase stop
   railway-template:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
