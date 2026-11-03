@@ -23,6 +23,7 @@ try {
   const shared = new Set<string>();
   const credentials = new Set([
     "DATABASE_URL",
+    "RUNTIME_DATABASE_URL",
     "SUPABASE_SECRET_KEY",
     "AUTH_SECRET",
     "NETLIFY_PROXY_SECRET",

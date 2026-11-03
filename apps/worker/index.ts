@@ -12,6 +12,7 @@ import { join, resolve } from "node:path";
 import { db, transaction } from "../web/lib/db";
 import { env } from "../web/lib/env";
 import { deleteSupabaseIdentity } from "../web/lib/auth/admin";
+import { resourceLimit } from "../web/lib/database-errors";
 import { getObject, putObject, deleteObject } from "../web/lib/storage";
 import { processRun, inspectFile } from "../web/lib/files";
 import { ImportResult } from "../../packages/contracts";
@@ -101,7 +102,10 @@ async function importPlan(job: Job) {
   try {
     const path = join(dir, `source.${ext}`);
     const sourceBytes = await getObject(f.object_key, {
-      maximumBytes: Math.min(Number(f.bytes), env().MAX_UPLOAD_MB * 1024 * 1024),
+      maximumBytes: Math.min(
+        Number(f.bytes),
+        env().MAX_UPLOAD_MB * 1024 * 1024,
+      ),
     });
     if (sourceBytes.length !== Number(f.bytes))
       throw new AppError("FILE_INVALID", 422);
@@ -161,9 +165,12 @@ async function importPlan(job: Job) {
         });
         published = true;
       } finally {
-        if (!published) await deleteObject(cleanKey).catch(() => {
-          console.error(JSON.stringify({ event: "unpublished_source_cleanup_failed" }));
-        });
+        if (!published)
+          await deleteObject(cleanKey).catch(() => {
+            console.error(
+              JSON.stringify({ event: "unpublished_source_cleanup_failed" }),
+            );
+          });
       }
       await deleteObject(f.object_key);
     } else if (!trustedScan(f.scan_status, env()))
@@ -453,6 +460,8 @@ async function exportDocument(job: Job) {
         await processRun(e.PYTHON_PATH, ["apps/worker/renderer-check.py", pdf]);
     }
     await stage(job, "publishing");
+    if (bytes.byteLength > 32 * 1024 * 1024)
+      throw new AppError("FILE_SIZE", 413);
     key = exportObjectKey(job.owner_id, ex.id, job.lease_token, ex.format);
     await putObject(
       key,
@@ -470,21 +479,25 @@ async function exportDocument(job: Job) {
       );
       if (!parent.rowCount) throw new AppError("CANCELLED", 409);
       await c.query(
-        "UPDATE exports SET status='succeeded',object_key=$2,checksum=$3,renderer_version=$4 WHERE id=$1",
+        "UPDATE exports SET status='succeeded',object_key=$2,checksum=$3,renderer_version=$4,budget_bytes=$5 WHERE id=$1",
         [
           ex.id,
           key,
           createHash("sha256").update(bytes).digest("hex"),
           "docx-9.11/lo-pinned",
+          bytes.byteLength,
         ],
       );
       await done(c, job, { exportId: ex.id });
     });
     published = true;
   } finally {
-    if (key && !published) await deleteObject(key).catch(() => {
-      console.error(JSON.stringify({ event: "unpublished_export_cleanup_failed" }));
-    });
+    if (key && !published)
+      await deleteObject(key).catch(() => {
+        console.error(
+          JSON.stringify({ event: "unpublished_export_cleanup_failed" }),
+        );
+      });
     await rm(dir, { recursive: true, force: true });
   }
 }
@@ -495,10 +508,16 @@ async function deleteResources(job: Job) {
     [job.owner_id, job.payload.scope === "account"],
   );
   for (const { object_key } of keys.rows) await deleteObject(object_key);
-  if (job.payload.scope === "account") await deleteSupabaseIdentity(job.owner_id);
+  if (job.payload.scope === "account")
+    await deleteSupabaseIdentity(job.owner_id);
   await transaction(async (c) => {
     await check(c, job);
-    await finalizeDeletedObjects(c, job.owner_id, keys.rows.map((row) => row.object_key), job.payload.scope === "account");
+    await finalizeDeletedObjects(
+      c,
+      job.owner_id,
+      keys.rows.map((row) => row.object_key),
+      job.payload.scope === "account",
+    );
     await done(c, job, { deletedObjects: keys.rowCount });
     if (job.payload.scope === "account") {
       await c.query("DELETE FROM usage_ledger WHERE owner_id=$1", [
@@ -511,7 +530,11 @@ async function deleteResources(job: Job) {
   });
 }
 async function fail(job: Job, error: unknown) {
-  const code = error instanceof AppError ? error.code : "INTERNAL";
+  const code = resourceLimit(error)
+    ? "STORAGE_LIMIT"
+    : error instanceof AppError
+      ? error.code
+      : "INTERNAL";
   const retry =
     [
       "AI_RATE_LIMIT",
@@ -619,64 +642,84 @@ async function janitor() {
         await rm(path, { recursive: true, force: true });
     }
 }
-let lastJanitor = 0;
-while (!stopping) {
-  try {
-    await db().query(
-      "INSERT INTO worker_health(id,heartbeat) VALUES($1,now()) ON CONFLICT(id) DO UPDATE SET heartbeat=now()",
-      [workerId],
-    );
-    if (Date.now() - lastJanitor > 30000) {
-      await janitor();
-      lastJanitor = Date.now();
-    }
-    const job = await transaction(async (c) => {
-      const claim = await c.query(
-        "SELECT id FROM jobs WHERE status='queued' AND kind IN ('import','scan','generate','regenerate','export','delete') AND available_at<=now() AND cancel_requested=false ORDER BY created_at FOR UPDATE SKIP LOCKED LIMIT 1",
+let janitorPending: Promise<void> | undefined;
+const clean = () => {
+  if (janitorPending || stopping) return;
+  janitorPending = janitor()
+    .catch(() => {
+      console.error(
+        JSON.stringify({ event: "janitor_failed", code: "INTERNAL" }),
       );
-      if (!claim.rowCount) return null;
-      const token = randomUUID();
-      return (
-        await c.query(
-          "UPDATE jobs SET status='running',attempt=attempt+1,lease_token=$2,lease_until=now()+$3*interval '1 second',heartbeat=now(),updated_at=now() WHERE id=$1 RETURNING *",
-          [claim.rows[0].id, token, env().JOB_LEASE_SECONDS],
-        )
-      ).rows[0] as Job;
+    })
+    .finally(() => {
+      janitorPending = undefined;
     });
-    if (!job) {
-      await new Promise((r) => setTimeout(r, env().WORKER_POLL_MS));
-      continue;
-    }
-    const started = Date.now();
-    const stopHeartbeat = startHeartbeat(() => db().query(
-      "WITH renewed AS (UPDATE jobs SET heartbeat=now(),lease_until=now()+$3*interval '1 second' WHERE id=$1 AND lease_token=$2 AND status='running' RETURNING id) UPDATE worker_health SET heartbeat=now() WHERE id=$4",
-      [job.id, job.lease_token, env().JOB_LEASE_SECONDS, workerId],
-    ));
+};
+const janitorTimer = setInterval(clean, 30000);
+janitorTimer.unref();
+clean();
+async function consumeJobs() {
+  while (!stopping) {
     try {
-      if (job.kind === "import" || job.kind === "scan") await importPlan(job);
-      else if (["generate", "regenerate"].includes(job.kind))
-        await generateTasks(job);
-      else if (job.kind === "export") await exportDocument(job);
-      else if (job.kind === "delete") await deleteResources(job);
-      else throw new AppError("INTERNAL", 503);
-      console.log(
-        JSON.stringify({
-          jobId: job.id,
-          outcome: "succeeded",
-          durationMs: Date.now() - started,
-        }),
+      await db().query(
+        "INSERT INTO worker_health(id,heartbeat) VALUES($1,now()) ON CONFLICT(id) DO UPDATE SET heartbeat=now()",
+        [workerId],
       );
-    } catch (e) {
-      await fail(job, e);
-    } finally {
-      stopHeartbeat();
+      const job = await transaction(async (c) => {
+        const claim = await c.query(
+          "SELECT id FROM jobs WHERE status='queued' AND kind IN ('import','scan','generate','regenerate','export','delete') AND available_at<=now() AND cancel_requested=false ORDER BY created_at FOR UPDATE SKIP LOCKED LIMIT 1",
+        );
+        if (!claim.rowCount) return null;
+        const token = randomUUID();
+        return (
+          await c.query(
+            "UPDATE jobs SET status='running',attempt=attempt+1,lease_token=$2,lease_until=now()+$3*interval '1 second',heartbeat=now(),updated_at=now() WHERE id=$1 RETURNING *",
+            [claim.rows[0].id, token, env().JOB_LEASE_SECONDS],
+          )
+        ).rows[0] as Job;
+      });
+      if (!job) {
+        await new Promise((r) => setTimeout(r, env().WORKER_POLL_MS));
+        continue;
+      }
+      const started = Date.now();
+      const stopHeartbeat = startHeartbeat(() =>
+        db().query(
+          "WITH renewed AS (UPDATE jobs SET heartbeat=now(),lease_until=now()+$3*interval '1 second' WHERE id=$1 AND lease_token=$2 AND status='running' RETURNING id) UPDATE worker_health SET heartbeat=now() WHERE id=$4",
+          [job.id, job.lease_token, env().JOB_LEASE_SECONDS, workerId],
+        ),
+      );
+      try {
+        if (job.kind === "import" || job.kind === "scan") await importPlan(job);
+        else if (["generate", "regenerate"].includes(job.kind))
+          await generateTasks(job);
+        else if (job.kind === "export") await exportDocument(job);
+        else if (job.kind === "delete") await deleteResources(job);
+        else throw new AppError("INTERNAL", 503);
+        console.log(
+          JSON.stringify({
+            jobId: job.id,
+            outcome: "succeeded",
+            durationMs: Date.now() - started,
+          }),
+        );
+      } catch (e) {
+        await fail(job, e);
+      } finally {
+        stopHeartbeat();
+      }
+    } catch {
+      console.error(
+        JSON.stringify({ outcome: "worker_error", code: "INTERNAL" }),
+      );
+      await new Promise((r) => setTimeout(r, 2000));
     }
-  } catch {
-    console.error(
-      JSON.stringify({ outcome: "worker_error", code: "INTERNAL" }),
-    );
-    await new Promise((r) => setTimeout(r, 2000));
   }
 }
+await Promise.all(
+  Array.from({ length: env().WORKER_CONCURRENCY }, consumeJobs),
+);
+clearInterval(janitorTimer);
+await janitorPending;
 await db().query("DELETE FROM worker_health WHERE id=$1", [workerId]);
 await db().end();

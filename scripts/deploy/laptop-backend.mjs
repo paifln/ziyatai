@@ -12,6 +12,10 @@ import {
 process.chdir(resolve(dirname(fileURLToPath(import.meta.url)), "../.."));
 const action = process.argv[2] || "status";
 const railwayPublication = action === "publish-railway";
+const buildContainer =
+  process.env.ZIYATAI_BUILD_CONTAINER || "ziyatai-netlify-build";
+if (!/^ziyatai-[a-z0-9-]{1,60}$/.test(buildContainer))
+  throw new Error("Invalid build container name");
 const folder = ".local/hosting";
 const backendFile = `${folder}/laptop-backend.env`;
 const frontendFile = `${folder}/${railwayPublication ? "railway" : "laptop"}-netlify.env`;
@@ -206,33 +210,33 @@ async function publish(frontend) {
     `--output=${snapshot}`,
     "HEAD",
   ]);
-  const builder = spawnSync("docker", ["inspect", "ziyatai-netlify-build"], {
+  const builder = spawnSync("docker", ["inspect", buildContainer], {
     stdio: "ignore",
   });
-  if (builder.status === 0) docker(["start", "ziyatai-netlify-build"]);
+  if (builder.status === 0) docker(["start", buildContainer]);
   else
     docker([
       "run",
       "-d",
       "--name",
-      "ziyatai-netlify-build",
+      buildContainer,
       "--entrypoint",
       "sleep",
       "node:24.22.0-bookworm-slim@sha256:a5f4366e834695d5f363b920c104953a535d3a9864d1bdf74566a0ebe01daee5",
       "infinity",
     ]);
-  docker(["cp", snapshot, "ziyatai-netlify-build:/tmp/ziyatai-release.tar"]);
-  docker(["exec", "ziyatai-netlify-build", "mkdir", "-p", buildDirectory]);
+  docker(["cp", snapshot, `${buildContainer}:/tmp/ziyatai-release.tar`]);
+  docker(["exec", buildContainer, "mkdir", "-p", buildDirectory]);
   docker([
     "exec",
-    "ziyatai-netlify-build",
+    buildContainer,
     "tar",
     "-xf",
     "/tmp/ziyatai-release.tar",
     "-C",
     buildDirectory,
   ]);
-  docker(["exec", "-w", buildDirectory, "ziyatai-netlify-build", "npm", "ci"]);
+  docker(["exec", "-w", buildDirectory, buildContainer, "npm", "ci"]);
   // Build on the container filesystem: the adapter renames .next while packaging.
   // Mounting .next as a separate volume would fail with EBUSY/EXDEV.
   const buildEnv = [
@@ -250,7 +254,7 @@ async function publish(frontend) {
     "-w",
     buildDirectory,
     ...buildEnv,
-    "ziyatai-netlify-build",
+    buildContainer,
     "npx",
     "--yes",
     "netlify-cli@27.12.1",

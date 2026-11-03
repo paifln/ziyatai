@@ -22,6 +22,7 @@ const ignored = execFileSync(
   .filter(Boolean);
 const source = ignored.filter(
   (name) =>
+    !name.startsWith("public/assets/") &&
     !name.includes("/__pycache__/") &&
     !name.includes("/node_modules/") &&
     !["public/_headers", "public/_redirects"].includes(name) &&

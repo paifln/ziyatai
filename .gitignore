@@ -12,6 +12,7 @@ playwright-report/
 *.log
 coverage/
 dist/
+public/assets/
 *.tsbuildinfo
 
 # Application source must override broad user-level lib/ ignore patterns.

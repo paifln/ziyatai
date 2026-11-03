@@ -53,3 +53,4 @@ if (process.argv.includes("--check")) {
   )
     throw new Error("Lite curriculum is stale. Run npm run build:lite.");
 } else await writeFile(curriculumPath, curriculumOutput);
+await import("./version-public-assets.mjs");

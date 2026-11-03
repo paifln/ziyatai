@@ -2,6 +2,13 @@
 
 Production: API, worker, renderer и антивирус размещаются в проекте Railway `ziyatai`. Аккаунты, PostgreSQL и приватные файлы остаются в Supabase. Интерфейс — https://ziyatai.netlify.app.
 
+После hardening используйте Shared Variable `RUNTIME_DATABASE_URL` для API/worker.
+Административный URL нужен только отдельному мигратору. Автоматическая миграция
+из API pre-deploy удалена; сначала примените миграции обслуживающим подключением,
+выдайте scoped runtime-права, затем публикуйте контейнеры. Runtime preflight
+откажет при привилегированной роли. API, renderer и AV настроены без сна;
+существующий денежный Hard Limit не повышается. Контролируйте расход внутри него.
+
 Конфигурация `.railway/railway.ts` управляет четырьмя сервисами и диском сигнатур антивируса. `npm run check:railway` проверяет её локально. Для `railway config plan/apply` требуется Railway CLI 5.42.1+ в PATH. Перед apply просмотрите план; он не должен удалять ресурсы с данными.
 
 Исходники загружаются через Railway CLI, поэтому доступ Railway GitHub App не требуется:
@@ -15,7 +22,7 @@ railway up --service api --detach
 railway service list
 ```
 
-Сначала заполните Shared Variables, перечисленные `npm run check:railway`, настоящими значениями. Секреты Supabase, базы, S3, OpenAI и renderer остаются в Railway. Node-сервисы используют `infra/Dockerfile`; `ZIYATAI_TARGET` выбирает web/worker. Renderer использует `infra/Dockerfile.renderer`. API перед запуском проверяет существующие миграции и применяет недостающие; база не создаётся заново.
+Сначала заполните Shared Variables, перечисленные `npm run check:railway`, настоящими значениями. Секреты Supabase, базы, S3, OpenAI и renderer остаются в Railway. Node-сервисы используют `infra/Dockerfile`; `ZIYATAI_TARGET` выбирает web/worker. Renderer использует `infra/Dockerfile.renderer`. Миграции применяются отдельным обслуживающим подключением до публикации; runtime-роль API не получает DDL-права.
 
 Публикация frontend выполняется отдельно, после проверки `/api/health/live` и `/api/health/ready` нового API:
 

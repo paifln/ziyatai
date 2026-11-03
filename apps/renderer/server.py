@@ -1,5 +1,5 @@
 """Private, serial execution boundary: no DB, S3 or OpenAI credentials."""
-import os,sys,json,tempfile,subprocess,hmac,signal,io,socket,time
+import os,sys,json,tempfile,subprocess,hmac,signal,io,socket,time,multiprocessing
 from pathlib import Path
 from http.server import HTTPServer,BaseHTTPRequestHandler
 sys.path.insert(0,'/scripts')
@@ -77,4 +77,24 @@ class RendererServer(HTTPServer):
    self.socket.setsockopt(socket.IPPROTO_IPV6,socket.IPV6_V6ONLY,0)
   super().server_bind()
 if __name__=='__main__':
- RendererServer((host,int(os.environ.get('PORT','8090'))),Handler).serve_forever()
+ server=RendererServer((host,int(os.environ.get('PORT','8090'))),Handler)
+ count=int(os.environ.get('RENDERER_PROCESSES','2'))
+ if not 1<=count<=4:raise RuntimeError('Renderer process count must be 1..4')
+ if count==1:server.serve_forever()
+ else:
+  # Each process keeps its own SIGALRM and LibreOffice profile. Threads would
+  # share the process alarm and cannot safely enforce the existing deadlines.
+  ctx=multiprocessing.get_context('fork')
+  workers=[ctx.Process(target=server.serve_forever) for _ in range(count)]
+  for worker in workers:worker.start()
+  def stop(signum,frame):
+   for worker in workers:worker.terminate()
+  signal.signal(signal.SIGTERM,stop);signal.signal(signal.SIGINT,stop)
+  try:
+   while all(worker.is_alive() for worker in workers):time.sleep(0.2)
+  finally:
+   for worker in workers:
+    if worker.is_alive():worker.terminate()
+   for worker in workers:worker.join(timeout=5)
+   server.server_close()
+  if any(worker.exitcode not in (0,-signal.SIGTERM) for worker in workers):sys.exit(1)

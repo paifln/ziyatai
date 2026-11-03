@@ -27,10 +27,13 @@
     "online:publish": "node scripts/deploy/laptop-backend.mjs publish",
     "publish:railway": "node scripts/deploy/laptop-backend.mjs publish-railway",
     "lint": "eslint .",
+    "format:check": "prettier --check app apps/web packages scripts tests .railway/railway.ts",
+    "format": "prettier --write app apps/web packages scripts tests .railway/railway.ts",
     "test": "vitest run",
     "test:parser": "python -m pytest tests/parser -q",
     "test:security": "python -m pytest tests/security -q",
     "test:browser": "playwright test --config=playwright.browser.config.ts",
+    "pretest:browser": "npm run build:lite",
     "test:e2e": "playwright test",
     "fixtures": "python scripts/dev/create_fixtures.py",
     "infra:up": "docker compose -f infra/compose.tools-local.yml --env-file .env.local up -d --build",
@@ -39,8 +42,7 @@
     "supabase:copy-db": "tsx scripts/supabase/copy-database.ts",
     "supabase:copy-files": "tsx scripts/supabase/copy-files.ts",
     "check:unused": "knip",
-    "format:check": "prettier --check app apps/web packages scripts tests .railway/railway.ts",
-    "format": "prettier --write app apps/web packages scripts tests .railway/railway.ts"
+    "pretest": "npm run build:lite"
   },
   "keywords": [],
   "type": "module",

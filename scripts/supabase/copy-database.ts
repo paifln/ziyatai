@@ -39,6 +39,7 @@ try {
   await dst.query("SET LOCAL TIME ZONE 'UTC'");
   await dst.query(`SET LOCAL search_path TO ${quote(to)}, public`);
   const excluded = new Set([
+    "resource_budgets", // Rebuilt by target resource triggers; never double-charge.
     "schema_migrations",
     "session",
     "account",

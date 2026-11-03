@@ -17,6 +17,9 @@ vi.mock("../apps/web/lib/env", () => ({
   env: () => ({ DATABASE_URL: "fixture" }),
 }));
 vi.mock("../apps/web/lib/storage", () => ({ storageReady: mocks.storage }));
+vi.mock("../apps/web/lib/dependency-health", () => ({
+  documentDependenciesReady: async () => undefined,
+}));
 import { createReadinessProbe, readiness } from "../apps/web/lib/readiness";
 
 describe("public readiness admission", () => {

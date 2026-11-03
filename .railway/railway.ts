@@ -33,7 +33,7 @@ export default defineRailway((ctx) => {
       builder: "DOCKERFILE",
       dockerfilePath: "infra/Dockerfile.renderer",
     },
-    deploy: { ...continuous, sleepApplication: true },
+    deploy: continuous,
     networking: privateNetworking,
     healthcheck: "/health",
     healthcheckTimeout: 60,
@@ -41,6 +41,7 @@ export default defineRailway((ctx) => {
       PORT: "8090",
       RENDERER_HOST: "::",
       RENDERER_TOKEN: ctx.shared.RENDERER_TOKEN,
+      RENDERER_PROCESSES: "2",
     },
   });
   const antivirus = service("antivirus", {
@@ -48,17 +49,18 @@ export default defineRailway((ctx) => {
     source: image(
       "clamav/clamav:1.4@sha256:8ad6197396974726c35d017e50aaaaf4b91745726a04faec8480c203edd98052",
     ),
-    deploy: { ...continuous, sleepApplication: true },
+    deploy: continuous,
     networking: privateNetworking,
     volumeMounts: { "/var/lib/clamav": antivirusData },
   });
   const common = {
     APP_ENV: "production",
     APP_URL: ctx.shared.APP_URL,
-    DATABASE_URL: ctx.shared.DATABASE_URL,
+    DATABASE_URL: ctx.shared.RUNTIME_DATABASE_URL,
     DATABASE_SSL_CA: ctx.shared.DATABASE_SSL_CA,
     DATABASE_SCHEMA: "ziyatai",
     DATABASE_POOL_MAX: "5",
+    WORKER_CONCURRENCY: "2",
     SUPABASE_URL: ctx.shared.SUPABASE_URL,
     SUPABASE_PUBLISHABLE_KEY: ctx.shared.SUPABASE_PUBLISHABLE_KEY,
     SUPABASE_SECRET_KEY: ctx.shared.SUPABASE_SECRET_KEY,
@@ -94,8 +96,8 @@ export default defineRailway((ctx) => {
   const api = service("api", {
     source,
     build: { builder: "DOCKERFILE", dockerfilePath: "infra/Dockerfile" },
-    deploy: { ...continuous, sleepApplication: true },
-    preDeploy: "node migrate.mjs",
+    deploy: continuous,
+    // Migrate separately before deploying. Never give the API a DDL credential.
     healthcheck: "/api/health/live",
     healthcheckTimeout: 60,
     cdn: { enabled: false },

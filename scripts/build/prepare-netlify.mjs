@@ -31,7 +31,7 @@ export function createNetlifyRouting(api, upload) {
       signed: "NETLIFY_PROXY_SECRET",
     },
     redirects: `/lite /lite/index.html 200\n/lite/ /lite/index.html 200\n/help /help/index.html 200\n/help/ /help/index.html 200\n`,
-    headers: `/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: same-origin\n  X-Frame-Options: DENY\n  Cross-Origin-Resource-Policy: same-origin\n  Cross-Origin-Opener-Policy: same-origin\n  Permissions-Policy: camera=(), microphone=(), geolocation=()\n  Content-Security-Policy: ${csp}\n/lite/*\n  Cache-Control: public, max-age=0, must-revalidate\n`,
+    headers: `/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: same-origin\n  X-Frame-Options: DENY\n  Cross-Origin-Resource-Policy: same-origin\n  Cross-Origin-Opener-Policy: same-origin\n  Permissions-Policy: camera=(), microphone=(), geolocation=()\n  Content-Security-Policy: ${csp}\n/lite/*\n  Cache-Control: public, max-age=0, must-revalidate\n/assets/*\n  Cache-Control: public, max-age=31536000, immutable\n`,
   };
 }
 

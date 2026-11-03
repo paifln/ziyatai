@@ -2,6 +2,7 @@ import { Pool } from "pg";
 import { env } from "./env";
 import { storageReady } from "./storage";
 import { databaseConnection } from "./database-connection";
+import { documentDependenciesReady } from "./dependency-health";
 
 // One promise and one short-lived result per process, regardless of callers.
 export function createReadinessProbe(
@@ -54,10 +55,12 @@ export const readiness = createReadinessProbe(async () => {
       "SELECT 1 FROM worker_health WHERE heartbeat>now()-interval '60 seconds' LIMIT 1",
     ),
     storageReady(AbortSignal.timeout(2000)),
+    documentDependenciesReady(),
   ]);
   return (
     results[0].status === "fulfilled" &&
     !!results[0].value.rowCount &&
-    results[1].status === "fulfilled"
+    results[1].status === "fulfilled" &&
+    results[2].status === "fulfilled"
   );
 });

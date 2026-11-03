@@ -7,7 +7,15 @@ export function db() {
   const pool = new Pool({
     ...databaseConnection(env()),
     max: env().DATABASE_POOL_MAX ?? 10,
-    options: `-c search_path=${env().DATABASE_SCHEMA ?? "public"},public`,
+    options: `-c search_path=${env().DATABASE_SCHEMA ?? "public"},public -c statement_timeout=5000 -c lock_timeout=1000 -c idle_in_transaction_session_timeout=10000`,
+    query_timeout: 7000,
+    onConnect: async (client) => {
+      // Poolers may ignore startup options. Await setup before lending a client.
+      await client.query(
+        "SELECT set_config('search_path',$1,false), set_config('statement_timeout','5s',false), set_config('lock_timeout','1s',false), set_config('idle_in_transaction_session_timeout','10s',false)",
+        [`${env().DATABASE_SCHEMA ?? "public"},public`],
+      );
+    },
     connectionTimeoutMillis: 5000,
     idleTimeoutMillis: 10000,
     allowExitOnIdle: true,

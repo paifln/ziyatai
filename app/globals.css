@@ -1,11 +1,4 @@
-@font-face {
-  font-family: "Onest";
-  src: url("/fonts/onest.woff2") format("woff2");
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-}
-
+@import "./font.generated.css";
 :root {
   --bg: #f7f8f5;
   --surface: #fff;

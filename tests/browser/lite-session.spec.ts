@@ -85,6 +85,15 @@ async function setup(page: Page, incompleteIndex?: number) {
       await route.fulfill({ json: payload });
       return;
     }
+    if (/^\/assets\/[a-z-]+\.[a-f0-9]{12}\.(js|css)$/.test(path)) {
+      await route.fulfill({
+        body: await readFile(`public${path}`),
+        contentType: path.endsWith(".js")
+          ? "application/javascript"
+          : "text/css",
+      });
+      return;
+    }
     const files: Record<string, [string, string]> = {
       "/lite/": ["index.html", "text/html"],
       "/lite/lite.js": ["lite.js", "application/javascript"],

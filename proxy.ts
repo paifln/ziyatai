@@ -34,5 +34,5 @@ export function proxy(request: NextRequest) {
   return response;
 }
 export const config = {
-  matcher: ["/((?!api|_next|lite|help|fonts|brand-owl|favicon|licenses).*)"],
+  matcher: ["/((?!api|_next|assets|lite|help|fonts|brand-owl|favicon|licenses).*)"],
 };

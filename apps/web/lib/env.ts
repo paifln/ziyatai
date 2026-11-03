@@ -95,6 +95,7 @@ const schema = z.object({
     .max(Number.MAX_SAFE_INTEGER)
     .default(16000),
   WORKER_POLL_MS: z.coerce.number().int().min(250).max(60000).default(1000),
+  WORKER_CONCURRENCY: z.coerce.number().int().min(1).max(4).default(2),
   JOB_LEASE_SECONDS: z.coerce.number().int().min(60).max(3600).default(180),
   ALLOW_DEMO: z.enum(["true", "false"]).default("false"),
   RENDERER_URL: z.string().default(""),

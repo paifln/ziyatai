@@ -1,3 +1,4 @@
+import publicAssets from "./public-assets.generated.json";
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import "./globals.css";
@@ -39,6 +40,13 @@ export default async function RootLayout({
   return (
     <html lang={locale} suppressHydrationWarning>
       <head>
+        <link
+          rel="preload"
+          href={publicAssets.font}
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
         <script
           nonce={nonce}
           dangerouslySetInnerHTML={{ __html: browserSupportScript }}

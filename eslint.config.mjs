@@ -24,11 +24,7 @@ export default defineConfig([
     },
   },
   {
-    files: [
-      "app/**/*.{ts,tsx}",
-      "apps/web/**/*.{ts,tsx}",
-      "packages/**/*.{ts,tsx}",
-    ],
+    files: ["app/**/*.{ts,tsx}", "apps/web/**/*.{ts,tsx}", "packages/**/*.{ts,tsx}"],
     rules: { "@typescript-eslint/no-explicit-any": "error" },
   },
   {

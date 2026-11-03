@@ -16,10 +16,10 @@ jobs:
   test:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with: { node-version: "24.22.0", cache: npm }
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with: { python-version: "3.13.8" }
       - run: npm ci
       - run: npm run check:source && npm run check:client && npm run check:unused && npm run format:check
@@ -38,16 +38,17 @@ jobs:
           DO_NOT_TRACK: "1"
         run: npx --yes netlify-cli@27.12.1 build --offline
       - run: npm audit --audit-level=moderate
+      - run: pip install pip-audit==2.10.1 && pip-audit --no-deps --disable-pip -r apps/worker/requirements.lock.txt
       - run: python scripts/checks/scan-secrets.py
   integration:
     runs-on: ubuntu-24.04
     env:
       HOSTNAME: 127.0.0.1
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with: { node-version: "24.22.0", cache: npm }
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@689adcfb80d947100a1eab127289b97d1fb07b13 # v3.2.0
         with: { version: "3.0.0" }
       - run: npm ci
       - run: supabase start
@@ -63,6 +64,7 @@ jobs:
           npx tsx --env-file=.env.local scripts/checks/db-resilience-check.ts
           npx tsx --env-file=.env.local scripts/checks/queue-idempotency-check.ts
           npx tsx --env-file=.env.local scripts/checks/session-read-budget-check.ts
+          npx tsx scripts/checks/resource-budget-check.ts .env.local
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - name: Exercise password authentication against local Supabase
@@ -78,8 +80,8 @@ jobs:
   railway-template:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with: { node-version: "24.22.0" }
       - run: npm --prefix .railway ci
       - run: npm --prefix .railway run check

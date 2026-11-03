@@ -1,10 +1,26 @@
 import { readFile, readdir } from "node:fs/promises";
 import { createHash } from "node:crypto";
-import { db } from "../../apps/web/lib/db";
+import { Pool } from "pg";
+import { databaseConnection } from "../../apps/web/lib/database-connection";
+import { grantRuntimeAccess } from "../supabase/runtime-role";
 import { backfillPlanGrades } from "../data-migrations/plan-grades";
 import { env } from "../../apps/web/lib/env";
-const c = await db().connect();
+// DDL and backfills have a separate, explicitly bounded maintenance budget.
+// Runtime queries keep their short deadlines.
+const pool = new Pool({
+  ...databaseConnection({
+    ...env(),
+    DATABASE_URL: process.env.MIGRATION_DATABASE_URL || env().DATABASE_URL,
+  }),
+  max: 1,
+  connectionTimeoutMillis: 5000,
+  query_timeout: 330000,
+});
+const c = await pool.connect();
 try {
+  await c.query(
+    "SET statement_timeout='5min'; SET lock_timeout='5s'; SET idle_in_transaction_session_timeout='30s'",
+  );
   const schema = env().DATABASE_SCHEMA;
   if (schema === "public")
     throw new Error(
@@ -74,8 +90,10 @@ try {
       `ALTER DEFAULT PRIVILEGES IN SCHEMA "${schema}" REVOKE ALL ON TABLES FROM anon, authenticated`,
     );
   }
+  if (process.env.RUNTIME_DATABASE_ROLE)
+    await grantRuntimeAccess(c, schema, process.env.RUNTIME_DATABASE_ROLE);
 } finally {
   await c.query("SELECT pg_advisory_unlock(843001)");
   c.release();
-  await db().end();
+  await pool.end();
 }

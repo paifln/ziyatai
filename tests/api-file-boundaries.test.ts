@@ -192,12 +192,14 @@ it("shares file-buffer capacity between multipart uploads and PDF previews befor
   } finally {
     release();
     expect((await uploading).status).toBe(201);
-    expect((await previewing).status).toBe(200);
+    const preview = await previewing;
+    expect(preview.status).toBe(200);
+    await preview.body?.cancel();
     log.mockRestore();
   }
-  expect(
-    (await handle(previewRequest(), ["ktp", plan, "preview"])).status,
-  ).toBe(200);
+  const nextPreview = await handle(previewRequest(), ["ktp", plan, "preview"]);
+  expect(nextPreview.status).toBe(200);
+  await nextPreview.body?.cancel();
 });
 
 it.each([{ includeHidden: true }, { grade: 8 }, { locale: "kk" }])(

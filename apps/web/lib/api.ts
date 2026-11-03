@@ -14,7 +14,10 @@ import { randomUUID, createHash } from "node:crypto";
 import { z } from "zod";
 import { readSupabaseSession } from "./auth/server";
 import { readJsonBody as body, boundedRequest } from "./request-body";
-import { withFileBufferCapacity } from "./file-buffer-capacity";
+import {
+  withFileBufferCapacity,
+  withFileBufferResponse,
+} from "./file-buffer-capacity";
 import { db, transaction } from "./db";
 import { env } from "./env";
 import { trustedGatewayRequest } from "./netlify-gateway";
@@ -50,6 +53,7 @@ import { materialCollection } from "./material-collection";
 import { assertAccountIntent } from "./account-intent";
 import { uploadFormat } from "../../../packages/domain/uploads";
 import { assertUploadStorageQuota } from "./storage-quota";
+import { resourceLimit } from "./database-errors";
 const uid = z.string().uuid();
 async function owned(
   table: "plans" | "generations" | "exports" | "uploads" | "jobs",
@@ -125,6 +129,13 @@ async function savePlan(
       throw new AppError("CONFLICT", 409);
     if (confirm && !canConfirmPlan(rows, grade))
       throw new AppError("UNCONFIRMED", 422);
+    if (
+      !confirm &&
+      JSON.stringify(old.rows) === JSON.stringify(rows) &&
+      old.grade === grade &&
+      old.school_year === year
+    )
+      return { revision: expected };
     const revision = expected + 1;
     await c.query(
       "INSERT INTO plan_versions(id,plan_id,revision,rows,warnings,unrecognized,parser_version,grade,school_year,confirmed_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",
@@ -155,8 +166,62 @@ async function savePlan(
     return { revision };
   });
 }
+const logPathParts = new Set([
+  "health",
+  "ready",
+  "live",
+  "public-config",
+  "account",
+  "demo",
+  "profile",
+  "uploads",
+  "init",
+  "complete",
+  "ktp",
+  "imports",
+  "collection",
+  "rows",
+  "confirm",
+  "preview",
+  "source",
+  "jobs",
+  "retry",
+  "cancel",
+  "generations",
+  "document",
+  "versions",
+  "approve",
+  "validate",
+  "tasks",
+  "regenerate",
+  "exports",
+  "download",
+  "history",
+  "library",
+  "drafts",
+  "discard",
+]);
 export async function handle(req: Request, path: string[]) {
   const requestId = randomUUID();
+  const started = performance.now();
+  const response = await handleApi(req, path, requestId);
+  response.headers.set("X-Request-ID", requestId);
+  console.info(
+    JSON.stringify({
+      event: "api_request",
+      requestId,
+      method: req.method,
+      route: path
+        .slice(0, 6)
+        .map((part) => (logPathParts.has(part) ? part : ":id"))
+        .join("/"),
+      status: response.status,
+      handlerDurationMs: Math.round(performance.now() - started),
+    }),
+  );
+  return response;
+}
+async function handleApi(req: Request, path: string[], requestId: string) {
   try {
     const method = req.method,
       url = new URL(req.url);
@@ -354,6 +419,8 @@ export async function handle(req: Request, path: string[]) {
               (t: import("../../../packages/contracts").TaskDocument) => t.id,
             ),
           );
+          if (JSON.stringify(old.document) === JSON.stringify(b.document))
+            return { revision: g.revision };
           if (
             b.document.tasks.some((t) => !existingIds.has(t.id)) ||
             b.document.tasks.length !== existingIds.size
@@ -722,7 +789,7 @@ export async function handle(req: Request, path: string[]) {
         .min(1)
         .max(150)
         .parse(url.searchParams.get("page") ?? "1");
-      return await withFileBufferCapacity(async () => {
+      return await withFileBufferResponse(async () => {
         const preview = await isolatedRequest(
           "preview",
           await getObject(file.object_key, {
@@ -748,7 +815,7 @@ export async function handle(req: Request, path: string[]) {
             },
           },
         );
-      });
+      }, req.signal);
     }
     if (resource === "ktp" && id && method === "GET")
       return json(await currentPlan(id, owner));
@@ -1000,6 +1067,10 @@ export async function handle(req: Request, path: string[]) {
           if (index < 0) throw new AppError("NOT_FOUND", 404);
           if (b.task.level !== old.document.tasks[index].level)
             throw new AppError("AI_INVALID", 422);
+          if (
+            JSON.stringify(old.document.tasks[index]) === JSON.stringify(b.task)
+          )
+            return { revision: b.revision };
           old.document.tasks[index] = b.task;
           const report = validateDocument(old.document, g.source_snapshot);
           const revision = b.revision + 1;
@@ -1303,8 +1374,9 @@ export async function handle(req: Request, path: string[]) {
     }
     throw new AppError("NOT_FOUND", 404);
   } catch (e) {
-    const error =
-      e instanceof AppError
+    const error = resourceLimit(e)
+      ? new AppError("STORAGE_LIMIT", 429)
+      : e instanceof AppError
         ? e
         : e instanceof z.ZodError || e instanceof SyntaxError
           ? new AppError("FILE_INVALID", 422)

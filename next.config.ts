@@ -6,6 +6,7 @@ const uploadEndpoint =
   process.env.STORAGE_ENDPOINT;
 const uploadOrigin = uploadEndpoint ? new URL(uploadEndpoint).origin : "";
 const config: NextConfig = {
+  poweredByHeader: false,
   // Public origin only; this makes the proxy's policy reproducible on Netlify too.
   env: {
     ZIYATAI_UPLOAD_ORIGIN: uploadOrigin,
@@ -23,6 +24,15 @@ const config: NextConfig = {
   },
   async headers() {
     return [
+      {
+        source: "/assets/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
       {
         source: "/:path*",
         headers: [
