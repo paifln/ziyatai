@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { databaseConnection } from "../apps/web/lib/database-connection";
+import { databaseConnection } from "../server/infrastructure/database/database-connection";
 
 it("preserves a local database connection without enabling TLS implicitly", () => {
   const url = "postgresql://test:test@127.0.0.1:55432/fixture";

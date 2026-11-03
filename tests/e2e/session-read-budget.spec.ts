@@ -1,7 +1,7 @@
 import { origin as qaOrigin } from "./helpers";
 import { test, expect } from "@playwright/test";
 import { randomInt } from "node:crypto";
-import { sessionReadPolicy } from "../../apps/web/lib/session-read-budget";
+import { sessionReadPolicy } from "../../server/http/session-read-budget";
 
 test("session reads below four per second remain available beyond a minute without an idle gap", async ({
   playwright,

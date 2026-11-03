@@ -1,5 +1,5 @@
 import { test, expect } from "vitest";
-import { trustedScan } from "../apps/web/lib/scan-policy";
+import { trustedScan } from "../server/infrastructure/antivirus/scan-policy";
 
 test("only explicit local development without required scanning trusts the development marker", () => {
   for (const APP_ENV of ["local", "staging", "production"])

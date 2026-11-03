@@ -10,12 +10,12 @@ const fixtures = vi.hoisted(() => ({
   scan: vi.fn(),
   inspect: vi.fn(),
 }));
-vi.mock("../apps/web/lib/env", () => ({ env: () => fixtures.config }));
-vi.mock("../apps/web/lib/antivirus", () => ({ scanStream: fixtures.scan }));
-vi.mock("../apps/web/lib/renderer", () => ({
+vi.mock("../server/config/env", () => ({ env: () => fixtures.config }));
+vi.mock("../server/infrastructure/antivirus/antivirus", () => ({ scanStream: fixtures.scan }));
+vi.mock("../server/infrastructure/documents/renderer", () => ({
   isolatedRequest: fixtures.inspect,
 }));
-import { inspectFile } from "../apps/web/lib/files";
+import { inspectFile } from "../server/infrastructure/documents/files";
 const bytes = Buffer.from("PK\x03\x04synthetic signature only");
 beforeEach(() => {
   fixtures.config.APP_ENV = "local";

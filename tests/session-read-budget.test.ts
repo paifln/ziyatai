@@ -2,7 +2,7 @@ import { expect, it } from "vitest";
 import {
   sessionReadKey,
   sessionReadPath,
-} from "../apps/web/lib/session-read-budget";
+} from "../server/http/session-read-budget";
 
 const options = {
   advanced: { ipAddress: { ipAddressHeaders: ["x-ziyatai-client-ip"] } },

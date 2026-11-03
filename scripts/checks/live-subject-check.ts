@@ -1,7 +1,7 @@
 import { randomUUID, createHash } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import { generate } from "../../apps/worker/ai";
-import { env } from "../../apps/web/lib/env";
+import { env } from "../../server/config/env";
 
 if (process.env.LIVE_AI_CHECK !== "1")
   throw new Error(

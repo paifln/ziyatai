@@ -1,4 +1,4 @@
-import { AppError } from "../../../packages/domain/errors";
+import { AppError } from "../../packages/domain/errors";
 
 /** Bound actual streamed bytes too: Content-Length is optional and untrusted. */
 export async function readBoundedBody(

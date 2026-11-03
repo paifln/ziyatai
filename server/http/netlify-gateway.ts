@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { isIP } from "node:net";
-import { AppError } from "../../../packages/domain/errors";
-import { env } from "./env";
+import { AppError } from "../../packages/domain/errors";
+import { env } from "../config/env";
 
 /** Verify Netlify's HS256 signed proxy claim before trusting its client IP. */
 export function verifyNetlifyRequest(

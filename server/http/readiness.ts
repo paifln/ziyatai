@@ -1,7 +1,7 @@
 import { Pool } from "pg";
-import { env } from "./env";
-import { storageReady } from "./storage";
-import { databaseConnection } from "./database-connection";
+import { env } from "../config/env";
+import { storageReady } from "../infrastructure/storage/storage";
+import { databaseConnection } from "../infrastructure/database/database-connection";
 
 // One promise and one short-lived result per process, regardless of callers.
 export function createReadinessProbe(

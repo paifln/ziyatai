@@ -7,7 +7,7 @@ const fixture = vi.hoisted(() => ({
   connect: vi.fn(),
   constructor: vi.fn(),
 }));
-vi.mock("../apps/web/lib/env", () => ({
+vi.mock("../server/config/env", () => ({
   env: () => ({ DATABASE_URL: "postgres://synthetic.invalid/fixture" }),
 }));
 vi.mock("pg", () => ({
@@ -19,7 +19,7 @@ vi.mock("pg", () => ({
     connect = fixture.connect;
   },
 }));
-import { db, transaction } from "../apps/web/lib/db";
+import { db, transaction } from "../server/infrastructure/database/db";
 
 beforeEach(() => {
   delete (globalThis as { ziyataiPool?: unknown }).ziyataiPool;

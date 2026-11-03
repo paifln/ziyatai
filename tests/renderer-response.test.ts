@@ -1,11 +1,11 @@
 import { afterEach, expect, it, vi } from "vitest";
-vi.mock("../apps/web/lib/env", () => ({
+vi.mock("../server/config/env", () => ({
   env: () => ({
     RENDERER_URL: "http://renderer.example.test",
     RENDERER_TOKEN: "synthetic-renderer-token",
   }),
 }));
-import { isolatedRequest } from "../apps/web/lib/renderer";
+import { isolatedRequest } from "../server/infrastructure/documents/renderer";
 afterEach(() => vi.unstubAllGlobals());
 
 it.each([

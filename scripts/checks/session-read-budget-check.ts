@@ -2,11 +2,11 @@ import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import type { PoolClient } from "pg";
-import { db } from "../../apps/web/lib/db";
+import { db } from "../../server/infrastructure/database/db";
 import {
   consumeSessionRead,
   sessionReadPolicy,
-} from "../../apps/web/lib/session-read-budget";
+} from "../../server/http/session-read-budget";
 
 const keys: string[] = [];
 const key = () => {

@@ -1,5 +1,5 @@
 import { test, expect } from "vitest";
-import { assertApiRoute, ApiMethodError } from "../apps/web/lib/api-routes";
+import { assertApiRoute, ApiMethodError } from "../server/http/api-routes";
 
 test("OPTIONS exposes only the methods for the exact business resource", () => {
   expect(assertApiRoute(["profile"], "OPTIONS")).toEqual(["GET", "PATCH"]);

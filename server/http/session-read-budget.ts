@@ -1,7 +1,7 @@
 import { createHmac } from "node:crypto";
 import ipaddr from "ipaddr.js";
 import type { PoolClient } from "pg";
-import { db } from "./db";
+import { db } from "../infrastructure/database/db";
 
 export const sessionReadPolicy = { perMinute: 240, burst: 120 } as const;
 

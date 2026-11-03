@@ -1,4 +1,4 @@
-import { transaction, db } from "./db";
+import { transaction, db } from "../database/db";
 import { deleteObject, listQuarantinePage } from "./storage";
 
 /** Also removes old signed-URL replays that no longer have a database row. */

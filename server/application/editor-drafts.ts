@@ -6,11 +6,11 @@ import {
   type DraftKind,
   PlanDraftSchema,
   type PlanDraft,
-} from "../../../packages/contracts/drafts";
-import { expandPlanDraft } from "../../../packages/domain/draft-payload";
-import { AppError } from "../../../packages/domain/errors";
-import { db, transaction } from "./db";
-import { readJsonBody } from "./request-body";
+} from "../../packages/contracts/drafts";
+import { expandPlanDraft } from "../../packages/domain/draft-payload";
+import { AppError } from "../../packages/domain/errors";
+import { db, transaction } from "../infrastructure/database/db";
+import { readJsonBody } from "../http/request-body";
 
 const uuid = z.string().uuid();
 const tables = {

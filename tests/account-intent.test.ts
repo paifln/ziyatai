@@ -1,6 +1,6 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { accountIntentHeader } from "../packages/contracts/account-intent";
-import { assertAccountIntent } from "../apps/web/lib/account-intent";
+import { assertAccountIntent } from "../server/application/account-intent";
 import { createAccountClient } from "../apps/web/lib/client";
 
 afterEach(() => {

@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { writeFile, mkdir } from "node:fs/promises";
-import { db, transaction } from "../../apps/web/lib/db";
-import { enqueue, reserveQuota } from "../../apps/web/lib/queue";
+import { db, transaction } from "../../server/infrastructure/database/db";
+import { enqueue, reserveQuota } from "../../server/infrastructure/queue/queue";
 import { syntheticDemo } from "../../packages/domain/demo";
 const owner = randomUUID(),
   gid = randomUUID(),
@@ -144,7 +144,7 @@ try {
     "SELECT object_key FROM exports WHERE owner_id=$1",
     [owner],
   );
-  const { deleteObject } = await import("../../apps/web/lib/storage");
+  const { deleteObject } = await import("../../server/infrastructure/storage/storage");
   for (const e of exports.rows)
     if (e.object_key) await deleteObject(e.object_key);
   await transaction(async (c) => {

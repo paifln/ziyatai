@@ -3,31 +3,6 @@ import { readFile, readdir } from "node:fs/promises";
 import { resolve, relative } from "node:path";
 import { pathToFileURL } from "node:url";
 
-const privateModules = new Set([
-  "api",
-  "db",
-  "database-connection",
-  "env",
-  "storage",
-  "files",
-  "renderer",
-  "queue",
-  "antivirus",
-  "clamav",
-  "request-body",
-  "storage-quota",
-  "editor-drafts",
-  "readiness",
-  "plan-collection",
-  "source-checks",
-  "upload-cleanup",
-  "read-budgets",
-  "session-read-budget",
-  "file-buffer-capacity",
-  "netlify-gateway",
-  "object-download",
-]);
-
 async function clientEntries(directory) {
   const found = [];
   for (const entry of await readdir(directory, { withFileTypes: true })) {
@@ -77,12 +52,8 @@ export async function checkClientBoundary(entries) {
               "\\",
               "/",
             );
-            const serverModule = name.match(
-              /^apps\/web\/lib\/([^/]+)\.tsx?$/,
-            )?.[1];
             if (
-              (serverModule && privateModules.has(serverModule)) ||
-              /^apps\/web\/lib\/auth\/(?:server|admin|identity)\.ts$/.test(name) ||
+              name.startsWith("server/") ||
               /\.server\.[cm]?[jt]sx?$/.test(name) ||
               name.startsWith("apps/worker/") ||
               name.startsWith("apps/renderer/")

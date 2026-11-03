@@ -17,7 +17,7 @@ const fixture = vi.hoisted(() => ({
   set: vi.fn(),
   create: vi.fn(),
 }));
-vi.mock("../apps/web/lib/env", () => ({
+vi.mock("../server/config/env", () => ({
   env: () => ({
     APP_URL: "https://school.example",
     SUPABASE_URL: "https://project.supabase.co",
@@ -27,8 +27,8 @@ vi.mock("../apps/web/lib/env", () => ({
     PASSWORD_RESET_ENABLED: fixture.passwordReset,
   }),
 }));
-vi.mock("../apps/web/lib/db", () => ({ db: () => ({ query: fixture.query }) }));
-vi.mock("../apps/web/lib/auth/identity", () => ({
+vi.mock("../server/infrastructure/database/db", () => ({ db: () => ({ query: fixture.query }) }));
+vi.mock("../server/auth/identity", () => ({
   provisionIdentity: fixture.provision,
   readIdentity: fixture.read,
 }));
@@ -47,7 +47,7 @@ vi.mock("@supabase/supabase-js", () => ({
 import {
   handleSupabaseAuth,
   readSupabaseSession,
-} from "../apps/web/lib/auth/server";
+} from "../server/auth/server";
 
 const sid = "6595ca24-87e5-45ce-bc7a-4ae28bf3bd4a";
 const token = `header.${Buffer.from(JSON.stringify({ session_id: sid })).toString("base64url")}.signature`;

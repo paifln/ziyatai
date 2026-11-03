@@ -1,6 +1,6 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { generate } from "../../apps/worker/ai";
-import { env } from "../../apps/web/lib/env";
+import { env } from "../../server/config/env";
 const limit = Number(process.env.EVAL_REQUEST_LIMIT ?? "1");
 if (
   process.env.EVAL_LIVE !== "1" ||

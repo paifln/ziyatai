@@ -1,4 +1,4 @@
-import { env } from "./env";
+import { env } from "../../config/env";
 import { scanClamStream } from "./clamav";
 
 export async function scanStream(bytes: Buffer) {

@@ -8,12 +8,12 @@ const config = vi.hoisted(() => ({
   STORAGE_ACCESS_KEY: "synthetic-access",
   STORAGE_SECRET_KEY: "synthetic-secret",
 }));
-vi.mock("../apps/web/lib/env", () => ({ env: () => config }));
+vi.mock("../server/config/env", () => ({ env: () => config }));
 afterEach(() => {
   config.STORAGE_FORCE_PATH_STYLE = "true";
 });
 it("binds private upload signatures to size, content type and the exact path-style endpoint", async () => {
-  const { signedUpload } = await import("../apps/web/lib/storage");
+  const { signedUpload } = await import("../server/infrastructure/storage/storage");
   const url = new URL(
     await signedUpload(
       "quarantine/test/lesson.xlsx",
@@ -30,7 +30,7 @@ it("binds private upload signatures to size, content type and the exact path-sty
 });
 it("supports virtual-hosted buckets without signing the path-style URL by mistake", async () => {
   config.STORAGE_FORCE_PATH_STYLE = "false";
-  const { signedUpload } = await import("../apps/web/lib/storage");
+  const { signedUpload } = await import("../server/infrastructure/storage/storage");
   const url = new URL(
     await signedUpload(
       "quarantine/test/lesson.xlsx",

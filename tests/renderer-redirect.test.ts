@@ -3,13 +3,13 @@ import type { AddressInfo } from "node:net";
 import { expect, it, vi } from "vitest";
 
 const fixture = vi.hoisted(() => ({ origin: "" }));
-vi.mock("../apps/web/lib/env", () => ({
+vi.mock("../server/config/env", () => ({
   env: () => ({
     RENDERER_URL: fixture.origin,
     RENDERER_TOKEN: "synthetic-renderer-token",
   }),
 }));
-import { isolatedRequest } from "../apps/web/lib/renderer";
+import { isolatedRequest } from "../server/infrastructure/documents/renderer";
 
 it("refuses renderer redirects rather than forwarding a document and bearer token", async () => {
   let redirected = 0;

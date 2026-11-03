@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { db, transaction } from "../../apps/web/lib/db";
-import { env } from "../../apps/web/lib/env";
+import { db, transaction } from "../../server/infrastructure/database/db";
+import { env } from "../../server/config/env";
 import { finalizeDeletedObjects } from "../../apps/worker/delete-resources";
 import { syntheticDemo } from "../../packages/domain/demo";
-import { assertUploadStorageQuota } from "../../apps/web/lib/storage-quota";
+import { assertUploadStorageQuota } from "../../server/infrastructure/storage/storage-quota";
 
 if (
   !["localhost", "127.0.0.1", "[::1]"].includes(

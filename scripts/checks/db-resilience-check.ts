@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import type { EventEmitter } from "node:events";
 import { Pool } from "pg";
-import { db, transaction } from "../../apps/web/lib/db";
-import { env } from "../../apps/web/lib/env";
+import { db, transaction } from "../../server/infrastructure/database/db";
+import { env } from "../../server/config/env";
 
 const settings = env();
 if (

@@ -1,8 +1,8 @@
 import { readFile, readdir } from "node:fs/promises";
 import { createHash } from "node:crypto";
-import { db } from "../../apps/web/lib/db";
+import { db } from "../../server/infrastructure/database/db";
 import { backfillPlanGrades } from "../data-migrations/plan-grades";
-import { env } from "../../apps/web/lib/env";
+import { env } from "../../server/config/env";
 const c = await db().connect();
 try {
   const schema = env().DATABASE_SCHEMA;

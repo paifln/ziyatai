@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { User } from "@supabase/supabase-js";
-import { transaction, db } from "../db";
-import { AppError } from "../../../../packages/domain/errors";
+import { transaction, db } from "../infrastructure/database/db";
+import { AppError } from "../../packages/domain/errors";
 
 function confirmedIdentity(user: User) {
   if (!user.email || !user.email_confirmed_at || user.is_anonymous)

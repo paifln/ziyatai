@@ -1,7 +1,7 @@
 import { request } from "node:http";
 import assert from "node:assert/strict";
 import { writeFile } from "node:fs/promises";
-import { env } from "../../apps/web/lib/env";
+import { env } from "../../server/config/env";
 
 const settings = env();
 const origin = new URL(settings.RENDERER_URL);

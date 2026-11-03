@@ -1,8 +1,8 @@
 import { expect, it, vi } from "vitest";
-vi.mock("../apps/web/lib/env", () => ({
+vi.mock("../server/config/env", () => ({
   env: () => ({ TESSERACT_PATH: "tesseract" }),
 }));
-import { processRun } from "../apps/web/lib/files";
+import { processRun } from "../server/infrastructure/documents/files";
 
 it.each([
   ["ZIYAT_ERROR:PRIVATE_SOURCE_FRAGMENT", "FILE_INVALID", 422],

@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { PoolClient } from "pg";
 import { AppError } from "../../../packages/domain/errors";
-import { env } from "./env";
+import { env } from "../../config/env";
 export async function enqueue(
   c: PoolClient,
   owner: string,

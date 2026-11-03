@@ -2,10 +2,10 @@ import { spawn } from "node:child_process";
 import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { env } from "./env";
+import { env } from "../../config/env";
 import { AppError } from "../../../packages/domain/errors";
 import { isolatedRequest } from "./renderer";
-import { scanStream } from "./antivirus";
+import { scanStream } from "../antivirus/antivirus";
 import { uploadFormat } from "../../../packages/domain/uploads";
 const processErrors = new Map([
   ["FILE_INVALID", 422],

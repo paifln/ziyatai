@@ -3,7 +3,7 @@ import { createServer, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 
 const fixture = vi.hoisted(() => ({ endpoint: "" }));
-vi.mock("../apps/web/lib/env", () => ({
+vi.mock("../server/config/env", () => ({
   env: () => ({
     STORAGE_ENDPOINT: fixture.endpoint,
     STORAGE_REGION: "test",
@@ -14,8 +14,8 @@ vi.mock("../apps/web/lib/env", () => ({
     MAX_UPLOAD_MB: 25,
   }),
 }));
-import { objectDownload } from "../apps/web/lib/object-download";
-import { getObject, openObject } from "../apps/web/lib/storage";
+import { objectDownload } from "../server/infrastructure/storage/object-download";
+import { getObject, openObject } from "../server/infrastructure/storage/storage";
 
 const bytes = Buffer.from("0123456789abcdefghijklmnopqrstuvwxyz");
 const calls: { method: string; range?: string }[] = [];

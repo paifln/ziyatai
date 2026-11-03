@@ -1,4 +1,4 @@
-import { env } from "../../apps/web/lib/env";
+import { env } from "../../server/config/env";
 const e = env();
 if (
   e.APP_ENV === "production" &&

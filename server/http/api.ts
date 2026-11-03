@@ -1,22 +1,22 @@
-import { syntheticDemo } from "../../../packages/domain/demo";
-import { rowGrade, planGrades } from "../../../packages/domain/grades";
+import { syntheticDemo } from "../../packages/domain/demo";
+import { rowGrade, planGrades } from "../../packages/domain/grades";
 import {
   GenerationDoc,
   PlanStatus,
   SourceLocale,
-} from "../../../packages/contracts";
+} from "../../packages/contracts";
 import {
   canConfirmPlan,
   normalizePlanRows,
-} from "../../../packages/domain/plan-review";
-import { hasRequiredGoals, maySkipGoals } from "../../../packages/domain/goals";
+} from "../../packages/domain/plan-review";
+import { hasRequiredGoals, maySkipGoals } from "../../packages/domain/goals";
 import { randomUUID, createHash } from "node:crypto";
 import { z } from "zod";
-import { readSupabaseSession } from "./auth/server";
+import { readSupabaseSession } from "../auth/server";
 import { readJsonBody as body, boundedRequest } from "./request-body";
-import { withFileBufferCapacity } from "./file-buffer-capacity";
-import { db, transaction } from "./db";
-import { env } from "./env";
+import { withFileBufferCapacity } from "../infrastructure/documents/file-buffer-capacity";
+import { db, transaction } from "../infrastructure/database/db";
+import { env } from "../config/env";
 import { trustedGatewayRequest } from "./netlify-gateway";
 import {
   putObject,
@@ -24,32 +24,32 @@ import {
   deleteObject,
   signedUpload,
   objectMetadata,
-} from "./storage";
-import { inspectFile } from "./files";
-import { isolatedRequest } from "./renderer";
-import { enqueue, reserveQuota } from "./queue";
-import { AppError, messages } from "../../../packages/domain/errors";
+} from "../infrastructure/storage/storage";
+import { inspectFile } from "../infrastructure/documents/files";
+import { isolatedRequest } from "../infrastructure/documents/renderer";
+import { enqueue, reserveQuota } from "../infrastructure/queue/queue";
+import { AppError, messages } from "../../packages/domain/errors";
 import {
   GenerateInput,
   Row,
   Styles,
   Task,
   type KtpRow,
-} from "../../../packages/contracts";
-import { validateDocument } from "../../../packages/domain/validation";
-import { editorDrafts } from "./editor-drafts";
+} from "../../packages/contracts";
+import { validateDocument } from "../../packages/domain/validation";
+import { editorDrafts } from "../application/editor-drafts";
 import { admitRead, ReadBudgetError } from "./read-budgets";
-import { objectDownload } from "./object-download";
+import { objectDownload } from "../infrastructure/storage/object-download";
 import { readiness } from "./readiness";
-import { trustedScan } from "./scan-policy";
-import { sourceStatus, startSourceCheck } from "./source-checks";
+import { trustedScan } from "../infrastructure/antivirus/scan-policy";
+import { sourceStatus, startSourceCheck } from "../application/source-checks";
 import { assertApiRoute, ApiMethodError } from "./api-routes";
-import { isEditablePlanStatus } from "../../../packages/domain/plan-status";
-import { planCollection } from "./plan-collection";
-import { materialCollection } from "./material-collection";
-import { assertAccountIntent } from "./account-intent";
-import { uploadFormat } from "../../../packages/domain/uploads";
-import { assertUploadStorageQuota } from "./storage-quota";
+import { isEditablePlanStatus } from "../../packages/domain/plan-status";
+import { planCollection } from "../application/plan-collection";
+import { materialCollection } from "../application/material-collection";
+import { assertAccountIntent } from "../application/account-intent";
+import { uploadFormat } from "../../packages/domain/uploads";
+import { assertUploadStorageQuota } from "../infrastructure/storage/storage-quota";
 const uid = z.string().uuid();
 async function owned(
   table: "plans" | "generations" | "exports" | "uploads" | "jobs",

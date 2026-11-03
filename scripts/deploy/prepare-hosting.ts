@@ -3,7 +3,7 @@ import { execFileSync } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
 import { pathToFileURL } from "node:url";
-import { backendEnvironmentKeys } from "../../apps/web/lib/env";
+import { backendEnvironmentKeys } from "../../server/config/env";
 import {
   readEnvFile,
   writeEnvFile,

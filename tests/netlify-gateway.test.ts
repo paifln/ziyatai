@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 import { expect, it } from "vitest";
-import { verifyNetlifyRequest } from "../apps/web/lib/netlify-gateway";
+import { verifyNetlifyRequest } from "../server/http/netlify-gateway";
 const secret = "synthetic-proxy-key-".repeat(3),
   siteId = "b0f3e39e-36bd-4d5e-bd5f-6c938fdc81bc",
   now = 1900000000;

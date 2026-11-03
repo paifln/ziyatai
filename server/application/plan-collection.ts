@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { PlanStatus } from "../../../packages/contracts";
-import type { PlanCollectionPage } from "../../../packages/contracts/plan-collection";
-import { db } from "./db";
+import { PlanStatus } from "../../packages/contracts";
+import type { PlanCollectionPage } from "../../packages/contracts/plan-collection";
+import { db } from "../infrastructure/database/db";
 
 /** A bounded page and its counts share one PostgreSQL statement snapshot. */
 export async function planCollection(

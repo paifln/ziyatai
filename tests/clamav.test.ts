@@ -1,6 +1,6 @@
 import { createServer, type AddressInfo, type Socket } from "node:net";
 import { expect, it } from "vitest";
-import { scanClamStream } from "../apps/web/lib/clamav";
+import { scanClamStream } from "../server/infrastructure/antivirus/clamav";
 
 async function withScanner(
   handle: (socket: Socket) => void,

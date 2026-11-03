@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { env } from "../../apps/web/lib/env";
+import { env } from "../../server/config/env";
 
 const settings = env();
 if (!settings.OPENAI_API_KEY || !settings.OPENAI_MODEL) {

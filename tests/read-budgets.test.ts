@@ -1,5 +1,5 @@
 import { it, expect } from "vitest";
-import { readBucket, readBudgets } from "../apps/web/lib/read-budgets";
+import { readBucket, readBudgets } from "../server/http/read-budgets";
 
 it("classifies full material fallback routes and expensive binary work without caller-controlled bucket keys", () => {
   for (const [path, expected] of [

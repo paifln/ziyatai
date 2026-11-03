@@ -1,7 +1,7 @@
-import { boundedRequest } from "../../../../apps/web/lib/request-body";
-import { trustedGatewayRequest } from "../../../../apps/web/lib/netlify-gateway";
+import { boundedRequest } from "../../../../server/http/request-body";
+import { trustedGatewayRequest } from "../../../../server/http/netlify-gateway";
 import { AppError, messages } from "../../../../packages/domain/errors";
-import { handleSupabaseAuth } from "../../../../apps/web/lib/auth/server";
+import { handleSupabaseAuth } from "../../../../server/auth/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 async function handle(req: Request) {

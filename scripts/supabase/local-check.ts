@@ -136,8 +136,8 @@ try {
   if (!refused) throw new Error("Migration overwrote a populated target");
   process.env.DATABASE_SCHEMA = target;
   const { provisionIdentity, readIdentity } =
-    await import("../../apps/web/lib/auth/identity");
-  const { db } = await import("../../apps/web/lib/db");
+    await import("../../server/auth/identity");
+  const { db } = await import("../../server/infrastructure/database/db");
   const user = {
     id: randomUUID(),
     email: "SYNTHETIC-MIGRATION@example.test",

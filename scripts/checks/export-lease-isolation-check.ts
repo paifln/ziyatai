@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { exportObjectKey } from "../../apps/worker/object-keys";
-import { putObject, getObject, deleteObject } from "../../apps/web/lib/storage";
-import { env } from "../../apps/web/lib/env";
+import { putObject, getObject, deleteObject } from "../../server/infrastructure/storage/storage";
+import { env } from "../../server/config/env";
 
 if (
   !["localhost", "127.0.0.1", "[::1]"].includes(

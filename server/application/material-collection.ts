@@ -2,8 +2,8 @@ import { z } from "zod";
 import {
   materialStatuses,
   type MaterialCollectionPage,
-} from "../../../packages/contracts/material-collection";
-import { db } from "./db";
+} from "../../packages/contracts/material-collection";
+import { db } from "../infrastructure/database/db";
 
 /** One metadata snapshot; legacy history/library array endpoints remain available. */
 export async function materialCollection(

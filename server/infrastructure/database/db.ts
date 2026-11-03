@@ -1,5 +1,5 @@
 import { Pool, type PoolClient } from "pg";
-import { env } from "./env";
+import { env } from "../../config/env";
 import { databaseConnection } from "./database-connection";
 const globalDb = globalThis as unknown as { ziyataiPool?: Pool };
 export function db() {

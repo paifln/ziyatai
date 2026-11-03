@@ -8,7 +8,7 @@ import {
 } from "@aws-sdk/client-s3";
 import { randomUUID } from "node:crypto";
 import { settings, schema, objectStore } from "./migration-config";
-import { databaseConnection } from "../../apps/web/lib/database-connection";
+import { databaseConnection } from "../../server/infrastructure/database/database-connection";
 
 const path = process.argv[2];
 if (!path)

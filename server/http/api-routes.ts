@@ -1,4 +1,4 @@
-import { AppError } from "../../../packages/domain/errors";
+import { AppError } from "../../packages/domain/errors";
 
 // Exact business paths. Literal routes precede dynamic siblings (uploads/init).
 const routes: readonly [string, readonly string[]][] = [

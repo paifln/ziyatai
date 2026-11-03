@@ -3,7 +3,7 @@ import type { AddressInfo } from "node:net";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 
 const fixture = vi.hoisted(() => ({ endpoint: "" }));
-vi.mock("../apps/web/lib/env", () => ({
+vi.mock("../server/config/env", () => ({
   env: () => ({
     STORAGE_ENDPOINT: fixture.endpoint,
     STORAGE_REGION: "test",
@@ -19,7 +19,7 @@ import {
   objectMetadata,
   putObject,
   storageReady,
-} from "../apps/web/lib/storage";
+} from "../server/infrastructure/storage/storage";
 
 let closed = 0;
 let started = 0;

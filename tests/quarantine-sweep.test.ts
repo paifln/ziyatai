@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { cleanupQuarantinePage } from "../apps/web/lib/upload-cleanup";
+import { cleanupQuarantinePage } from "../server/infrastructure/storage/upload-cleanup";
 
 it("deletes expired quarantine replays without touching published files or recent uploads", async () => {
   const removed: string[] = [],

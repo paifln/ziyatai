@@ -8,6 +8,7 @@ const ignored = execFileSync(
     "--exclude-standard",
     "-z",
     "apps",
+    "server",
     "packages",
     "migrations",
     "infra",

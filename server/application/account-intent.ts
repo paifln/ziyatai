@@ -1,5 +1,5 @@
-import { accountIntentHeader } from "../../../packages/contracts/account-intent";
-import { AppError } from "../../../packages/domain/errors";
+import { accountIntentHeader } from "../../packages/contracts/account-intent";
+import { AppError } from "../../packages/domain/errors";
 
 /** Session cookies remain authoritative. An explicit UI owner must also match. */
 export function assertAccountIntent(

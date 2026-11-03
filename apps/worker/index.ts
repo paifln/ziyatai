@@ -9,11 +9,11 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { db, transaction } from "../web/lib/db";
-import { env } from "../web/lib/env";
-import { deleteSupabaseIdentity } from "../web/lib/auth/admin";
-import { getObject, putObject, deleteObject } from "../web/lib/storage";
-import { processRun, inspectFile } from "../web/lib/files";
+import { db, transaction } from "../../server/infrastructure/database/db";
+import { env } from "../../server/config/env";
+import { deleteSupabaseIdentity } from "../../server/auth/admin";
+import { getObject, putObject, deleteObject } from "../../server/infrastructure/storage/storage";
+import { processRun, inspectFile } from "../../server/infrastructure/documents/files";
 import { ImportResult } from "../../packages/contracts";
 import { planGrades } from "../../packages/domain/grades";
 import { validateDocument } from "../../packages/domain/validation";
@@ -24,12 +24,12 @@ import { recoverExpiredJobs } from "./recover-jobs";
 import { startHeartbeat } from "./heartbeat";
 import { finalizeDeletedObjects } from "./delete-resources";
 import { exportObjectKey } from "./object-keys";
-import { trustedScan } from "../web/lib/scan-policy";
-import { isolatedRequest } from "../web/lib/renderer";
+import { trustedScan } from "../../server/infrastructure/antivirus/scan-policy";
+import { isolatedRequest } from "../../server/infrastructure/documents/renderer";
 import {
   cleanupAbandonedUploads,
   cleanupQuarantinePage,
-} from "../web/lib/upload-cleanup";
+} from "../../server/infrastructure/storage/upload-cleanup";
 const workerId = randomUUID();
 let stopping = false;
 let quarantineCursor: string | undefined;

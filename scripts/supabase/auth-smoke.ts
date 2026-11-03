@@ -3,7 +3,7 @@ import { Pool } from "pg";
 import { chromium } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { settings, schema, identifier } from "./migration-config";
-import { databaseConnection } from "../../apps/web/lib/database-connection";
+import { databaseConnection } from "../../server/infrastructure/database/database-connection";
 
 // Uses a disposable confirmed user; does not send mail or touch existing accounts.
 const values = await settings(process.argv[2] ?? ".env.supabase.local");

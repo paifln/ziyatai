@@ -4,7 +4,7 @@ import { zodTextFormat } from "openai/helpers/zod";
 import { GenerationDoc, Task } from "../../packages/contracts";
 import { validateDocument } from "../../packages/domain/validation";
 import { SYSTEM_PROMPT, PROMPT_VERSION } from "../../packages/domain/prompts";
-import { env } from "../web/lib/env";
+import { env } from "../../server/config/env";
 import { AppError } from "../../packages/domain/errors";
 export async function generate(
   snapshot: any,

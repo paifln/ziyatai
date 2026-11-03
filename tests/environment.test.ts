@@ -34,7 +34,7 @@ it.each([
   "MAX_AI_TOKENS",
 ])("rejects fractional or negative quota configuration %s", async (name) => {
   configured();
-  const { env } = await import("../apps/web/lib/env");
+  const { env } = await import("../server/config/env");
   for (const value of ["-1", "0.5", "Infinity", "9007199254740992"]) {
     vi.stubEnv(name, value);
     expect(() => env()).toThrow();
@@ -46,7 +46,7 @@ it("allows zero daily budgets to disable AI while requiring positive output capa
   vi.stubEnv("DAILY_AI_LIMIT", "0");
   vi.stubEnv("DAILY_AI_TOKEN_LIMIT", "0");
   vi.stubEnv("MAX_AI_TOKENS", "0");
-  const { env } = await import("../apps/web/lib/env");
+  const { env } = await import("../server/config/env");
   expect(() => env()).toThrow();
   vi.stubEnv("MAX_AI_TOKENS", "16000");
   expect(env().DAILY_AI_LIMIT).toBe(0);
@@ -55,7 +55,7 @@ it("allows zero daily budgets to disable AI while requiring positive output capa
 it("does not cache a rejected production configuration", async () => {
   configured();
   vi.stubEnv("SCAN_REQUIRED", "false");
-  const { env } = await import("../apps/web/lib/env");
+  const { env } = await import("../server/config/env");
   expect(() => env()).toThrow("Production requires scanning");
   expect(() => env()).toThrow("Production requires scanning");
 });
@@ -64,7 +64,7 @@ it("requires distinct proxy credentials and a site ID before enabling the Netlif
   vi.stubEnv("API_GATEWAY", "netlify");
   vi.stubEnv("NETLIFY_PROXY_SECRET", "");
   vi.stubEnv("NETLIFY_SITE_ID", "");
-  const { env } = await import("../apps/web/lib/env");
+  const { env } = await import("../server/config/env");
   expect(() => env()).toThrow("Netlify gateway requires");
   vi.stubEnv("NETLIFY_PROXY_SECRET", "a".repeat(32));
   vi.stubEnv("NETLIFY_SITE_ID", "b0f3e39e-36bd-4d5e-bd5f-6c938fdc81bc");
@@ -78,7 +78,7 @@ it("canonicalizes the application origin and requires TLS for direct production 
   configured();
   vi.stubEnv("DIRECT_UPLOADS", "true");
   vi.stubEnv("STORAGE_PUBLIC_ENDPOINT", "http://storage.example.test");
-  const { env } = await import("../apps/web/lib/env");
+  const { env } = await import("../server/config/env");
   expect(() => env()).toThrow("HTTPS");
   vi.stubEnv("STORAGE_PUBLIC_ENDPOINT", "https://storage.example.test");
   expect(env().APP_URL).toBe("https://school.example.test");

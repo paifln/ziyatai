@@ -13,11 +13,11 @@ vi.mock("pg", () => ({
     }
   },
 }));
-vi.mock("../apps/web/lib/env", () => ({
+vi.mock("../server/config/env", () => ({
   env: () => ({ DATABASE_URL: "fixture" }),
 }));
-vi.mock("../apps/web/lib/storage", () => ({ storageReady: mocks.storage }));
-import { createReadinessProbe, readiness } from "../apps/web/lib/readiness";
+vi.mock("../server/infrastructure/storage/storage", () => ({ storageReady: mocks.storage }));
+import { createReadinessProbe, readiness } from "../server/http/readiness";
 
 describe("public readiness admission", () => {
   test("concurrent callers share one check and a short cached result", async () => {

@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
-import { cleanupQuarantinePage } from "../../apps/web/lib/upload-cleanup";
+import { cleanupQuarantinePage } from "../../server/infrastructure/storage/upload-cleanup";
 import {
   putObject,
   getObject,
   deleteObject,
   listQuarantinePage,
-} from "../../apps/web/lib/storage";
+} from "../../server/infrastructure/storage/storage";
 
 // Exercise real S3 listing/deletion without aging or touching existing objects.
 const key = `quarantine/synthetic-sweep-check/${randomUUID()}.txt`;

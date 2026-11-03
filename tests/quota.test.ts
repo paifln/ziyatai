@@ -9,8 +9,8 @@ const fixture = vi.hoisted(() => ({
     GLOBAL_DAILY_AI_TOKEN_LIMIT: 2000000,
   },
 }));
-vi.mock("../apps/web/lib/env", () => ({ env: () => fixture.settings }));
-import { reserveQuota } from "../apps/web/lib/queue";
+vi.mock("../server/config/env", () => ({ env: () => fixture.settings }));
+import { reserveQuota } from "../server/infrastructure/queue/queue";
 
 function client(personal = "0", global = "0") {
   const query = vi.fn(async (sql: string) => {

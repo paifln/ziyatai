@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { db, transaction } from "../../apps/web/lib/db";
-import { env } from "../../apps/web/lib/env";
-import { enqueue } from "../../apps/web/lib/queue";
+import { db, transaction } from "../../server/infrastructure/database/db";
+import { env } from "../../server/config/env";
+import { enqueue } from "../../server/infrastructure/queue/queue";
 
 if (
   !["localhost", "127.0.0.1", "[::1]"].includes(

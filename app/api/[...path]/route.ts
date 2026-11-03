@@ -1,4 +1,4 @@
-import { handle } from "../../../apps/web/lib/api";
+import { handle } from "../../../server/http/api";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 async function route(

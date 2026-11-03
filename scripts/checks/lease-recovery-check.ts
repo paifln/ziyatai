@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
-import { db } from "../../apps/web/lib/db";
+import { db } from "../../server/infrastructure/database/db";
 import { recoverExpiredJobs } from "../../apps/worker/recover-jobs";
 import { syntheticDemo } from "../../packages/domain/demo";
 

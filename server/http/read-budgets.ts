@@ -1,5 +1,5 @@
-import { db } from "./db";
-import { AppError } from "../../../packages/domain/errors";
+import { db } from "../infrastructure/database/db";
+import { AppError } from "../../packages/domain/errors";
 
 export const readBudgets = {
   metadata: { perMinute: 600, burst: 120 },

@@ -1,6 +1,6 @@
-import { env } from "./env";
+import { env } from "../../config/env";
 import { AppError } from "../../../packages/domain/errors";
-import { readBoundedBody } from "./request-body";
+import { readBoundedBody } from "../../http/request-body";
 const responseLimits = {
   inspect: 64 * 1024,
   parse: 8 * 1024 * 1024,

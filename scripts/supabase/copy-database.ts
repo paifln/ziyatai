@@ -1,5 +1,5 @@
 import { Pool } from "pg";
-import { databaseConnection } from "../../apps/web/lib/database-connection";
+import { databaseConnection } from "../../server/infrastructure/database/database-connection";
 import {
   identifier as quote,
   migrationArguments,

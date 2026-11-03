@@ -338,7 +338,7 @@ try {
     if (!/^[a-z_][a-z0-9_]*$/.test(local.DATABASE_SCHEMA || ""))
       throw new Error("A valid backend DATABASE_SCHEMA is required");
     const { databaseConnection } =
-      await import("../../apps/web/lib/database-connection.ts");
+      await import("../../server/infrastructure/database/database-connection.ts");
     const pool = new Pool({
       ...databaseConnection(local),
       options: `-c search_path=${local.DATABASE_SCHEMA},public`,

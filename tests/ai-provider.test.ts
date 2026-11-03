@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { syntheticDemo } from "../packages/domain/demo";
 const state = vi.hoisted(() => ({ parse: vi.fn() }));
-vi.mock("../apps/web/lib/env", () => ({
+vi.mock("../server/config/env", () => ({
   env: () => ({
     OPENAI_API_KEY: "test-only-placeholder",
     OPENAI_MODEL: "test-model",

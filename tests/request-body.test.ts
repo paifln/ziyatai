@@ -3,7 +3,7 @@ import {
   boundedRequest,
   readBoundedBody,
   readJsonBody,
-} from "../apps/web/lib/request-body";
+} from "../server/http/request-body";
 
 function streamed(chunks: string[], headers?: Record<string, string>) {
   return new Request("http://localhost/api/test", {

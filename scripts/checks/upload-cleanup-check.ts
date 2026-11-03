@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { writeFile } from "node:fs/promises";
-import { db } from "../../apps/web/lib/db";
-import { cleanupAbandonedUploads } from "../../apps/web/lib/upload-cleanup";
-import { putObject, deleteObject, getObject } from "../../apps/web/lib/storage";
+import { db } from "../../server/infrastructure/database/db";
+import { cleanupAbandonedUploads } from "../../server/infrastructure/storage/upload-cleanup";
+import { putObject, deleteObject, getObject } from "../../server/infrastructure/storage/storage";
 
 const owner = randomUUID(),
   plan = randomUUID();

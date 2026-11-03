@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { withFileBufferCapacity } from "../apps/web/lib/file-buffer-capacity";
+import { withFileBufferCapacity } from "../server/infrastructure/documents/file-buffer-capacity";
 it("rejects excess concurrent buffered file operations and releases capacity after both success and failure", async () => {
   let release!: () => void;
   const gate = new Promise<void>((done) => {

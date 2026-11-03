@@ -1,6 +1,22 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "entry": ["app/**/*.{ts,tsx}!", "apps/worker/index.ts!", "scripts/**/*.{ts,mjs}", "tests/**/*.{ts,tsx}", "public/lite/*.js!"],
-  "project": ["app/**/*.{ts,tsx}!", "apps/**/*.{ts,tsx}!", "packages/**/*.ts!", "scripts/**/*.{ts,mjs}", "tests/**/*.{ts,tsx}", "public/lite/*.js!"],
-  "ignore": ["public/lite/draft-merge.js"]
+  "entry": [
+    "app/**/*.{ts,tsx}!",
+    "apps/worker/index.ts!",
+    "scripts/**/*.{ts,mjs}",
+    "tests/**/*.{ts,tsx}",
+    "public/lite/*.js!"
+  ],
+  "project": [
+    "app/**/*.{ts,tsx}!",
+    "apps/**/*.{ts,tsx}!",
+    "packages/**/*.ts!",
+    "scripts/**/*.{ts,mjs}",
+    "tests/**/*.{ts,tsx}",
+    "public/lite/*.js!",
+    "server/**/*.ts!"
+  ],
+  "ignore": [
+    "public/lite/draft-merge.js"
+  ]
 }

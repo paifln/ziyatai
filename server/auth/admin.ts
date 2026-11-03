@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
-import { db } from "../db";
-import { env } from "../env";
-import { AppError } from "../../../../packages/domain/errors";
+import { db } from "../infrastructure/database/db";
+import { env } from "../config/env";
+import { AppError } from "../../packages/domain/errors";
 
 export async function deleteSupabaseIdentity(owner: string) {
   const result = await db().query(

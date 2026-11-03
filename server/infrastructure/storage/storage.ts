@@ -8,9 +8,9 @@ import {
   ListObjectsV2Command,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { env } from "./env";
+import { env } from "../../config/env";
 import { Readable } from "node:stream";
-import { readBoundedBody } from "./request-body";
+import { readBoundedBody } from "../../http/request-body";
 let instance: S3Client;
 function storage() {
   const e = env();

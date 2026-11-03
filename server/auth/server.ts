@@ -3,13 +3,13 @@ import { createClient, type AuthError } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
-import { env } from "../env";
-import { db } from "../db";
+import { env } from "../config/env";
+import { db } from "../infrastructure/database/db";
 import { provisionIdentity, readIdentity } from "./identity";
-import { consumeSessionRead, sessionReadKey } from "../session-read-budget";
-import { assertAccountIntent } from "../account-intent";
-import { readJsonBody } from "../request-body";
-import { AppError } from "../../../../packages/domain/errors";
+import { consumeSessionRead, sessionReadKey } from "../http/session-read-budget";
+import { assertAccountIntent } from "../application/account-intent";
+import { readJsonBody } from "../http/request-body";
+import { AppError } from "../../packages/domain/errors";
 
 const supabaseCookieName = "ziyatai-auth";
 

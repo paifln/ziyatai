@@ -10,31 +10,31 @@ const fixture = vi.hoisted(() => ({
   remove: vi.fn(),
   importJob: undefined as undefined | Record<string, unknown>,
 }));
-vi.mock("../apps/web/lib/auth/server", () => ({
+vi.mock("../server/auth/server", () => ({
   readSupabaseSession: async () => ({
     user: { id: "teacher", emailVerified: true },
   }),
 }));
-vi.mock("../apps/web/lib/env", () => ({
+vi.mock("../server/config/env", () => ({
   env: () => ({
     APP_URL: "http://app.test",
     MAX_UPLOAD_MB: 25,
     SCAN_REQUIRED: "true",
   }),
 }));
-vi.mock("../apps/web/lib/netlify-gateway", () => ({
+vi.mock("../server/http/netlify-gateway", () => ({
   trustedGatewayRequest: (request: Request) => request,
 }));
-vi.mock("../apps/web/lib/db", () => ({
+vi.mock("../server/infrastructure/database/db", () => ({
   db: () => ({ query: fixture.query }),
   transaction: (work: (connection: unknown) => unknown) =>
     work({ query: fixture.query }),
 }));
-vi.mock("../apps/web/lib/files", () => ({ inspectFile: fixture.inspect }));
-vi.mock("../apps/web/lib/renderer", () => ({
+vi.mock("../server/infrastructure/documents/files", () => ({ inspectFile: fixture.inspect }));
+vi.mock("../server/infrastructure/documents/renderer", () => ({
   isolatedRequest: fixture.renderer,
 }));
-vi.mock("../apps/web/lib/storage", () => ({
+vi.mock("../server/infrastructure/storage/storage", () => ({
   getObject: fixture.get,
   putObject: fixture.put,
   deleteObject: fixture.remove,
@@ -43,7 +43,7 @@ vi.mock("../apps/web/lib/storage", () => ({
   storageReady: vi.fn(),
   listQuarantinePage: vi.fn(),
 }));
-import { handle } from "../apps/web/lib/api";
+import { handle } from "../server/http/api";
 
 const plan = "b0f3e39e-36bd-4d5e-bd5f-6c938fdc81bc";
 const upload = "65f3e39e-36bd-4d5e-bd5f-6c938fdc81bc";

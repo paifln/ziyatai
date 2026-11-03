@@ -1,4 +1,4 @@
-import { scanStream } from "../../apps/web/lib/antivirus";
+import { scanStream } from "../../server/infrastructure/antivirus/antivirus";
 import { writeFile, mkdir, readFile } from "node:fs/promises";
 process.env.CLAMAV_HOST = "127.0.0.1";
 process.env.CLAMAV_PORT = "13310";

@@ -1,8 +1,8 @@
-import { db, transaction } from "./db";
-import { env } from "./env";
-import { enqueue } from "./queue";
-import { trustedScan } from "./scan-policy";
-import { AppError } from "../../../packages/domain/errors";
+import { db, transaction } from "../infrastructure/database/db";
+import { env } from "../config/env";
+import { enqueue } from "../infrastructure/queue/queue";
+import { trustedScan } from "../infrastructure/antivirus/scan-policy";
+import { AppError } from "../../packages/domain/errors";
 
 async function source(owner: string, plan: string) {
   const result = await db().query(

@@ -1,7 +1,7 @@
 import { generate } from "../../apps/worker/ai";
 import { syntheticDemo } from "../../packages/domain/demo";
-import { db } from "../../apps/web/lib/db";
-import { env } from "../../apps/web/lib/env";
+import { db } from "../../server/infrastructure/database/db";
+import { env } from "../../server/config/env";
 import { writeFile, mkdir } from "node:fs/promises";
 if (!env().OPENAI_API_KEY || !env().OPENAI_MODEL) {
   console.log(

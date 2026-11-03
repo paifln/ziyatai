@@ -2,7 +2,7 @@ import { chromium } from "@playwright/test";
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { Pool } from "pg";
-import { databaseConnection } from "../../apps/web/lib/database-connection";
+import { databaseConnection } from "../../server/infrastructure/database/database-connection";
 import { syntheticDemo } from "../../packages/domain/demo";
 import { settings } from "./migration-config";
 

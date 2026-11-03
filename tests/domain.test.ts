@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { syntheticDemo } from "../packages/domain/demo";
 import { validateDocument } from "../packages/domain/validation";
-import { sniffFile } from "../apps/web/lib/files";
+import { sniffFile } from "../server/infrastructure/documents/files";
 import { renderDocx } from "../packages/document-renderer";
 import { normalizeDate } from "../packages/domain/dates";
 import { arithmetic } from "../packages/domain/arithmetic";

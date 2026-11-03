@@ -1,6 +1,6 @@
 import type { PoolClient } from "pg";
 import { expect, it, vi } from "vitest";
-import { assertUploadStorageQuota } from "../apps/web/lib/storage-quota";
+import { assertUploadStorageQuota } from "../server/infrastructure/storage/storage-quota";
 
 function usage(bytes: string, count: number) {
   const query = vi.fn(async () => ({ rows: [{ bytes, count }] }));
