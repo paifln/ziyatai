@@ -545,7 +545,7 @@ function WorkspaceContent({
                 ref={profileTrigger}
                 className="profile-trigger"
                 onClick={() => setProfileMenu(!profileMenu)}
-                aria-label={t.profile}
+                aria-label={t.accountMenu}
                 aria-expanded={profileMenu}
                 aria-controls="profile-menu"
               >
