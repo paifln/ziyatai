@@ -1,0 +1,17 @@
+{
+  "name": "ziyatai-railway-template",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "tsx check.ts"
+  },
+  "dependencies": {
+    "railway": "3.16.0"
+  },
+  "devDependencies": {
+    "tsx": "4.23.15"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
+  }
+}

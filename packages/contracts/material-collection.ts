@@ -7,7 +7,7 @@ export const materialStatuses = [
   "failed",
   "cancelled",
 ] as const;
-export type MaterialStatus = (typeof materialStatuses)[number];
+type MaterialStatus = (typeof materialStatuses)[number];
 export interface MaterialSummary {
   id: string;
   title: string;

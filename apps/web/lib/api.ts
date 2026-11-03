@@ -12,7 +12,7 @@ import {
 import { hasRequiredGoals, maySkipGoals } from "../../../packages/domain/goals";
 import { randomUUID, createHash } from "node:crypto";
 import { z } from "zod";
-import { auth } from "./auth";
+import { readSupabaseSession } from "./auth/server";
 import { readJsonBody as body, boundedRequest } from "./request-body";
 import { withFileBufferCapacity } from "./file-buffer-capacity";
 import { db, transaction } from "./db";
@@ -190,11 +190,11 @@ export async function handle(req: Request, path: string[]) {
       return json({
         authProvider: "supabase",
         authMode: "password",
-        emailVerificationRequired: true,
-        passwordResetAvailable: true,
+        emailVerificationRequired: false,
+        passwordResetAvailable: env().PASSWORD_RESET_ENABLED,
       });
     }
-    const session = await auth().api.getSession({ headers: req.headers });
+    const session = await readSupabaseSession();
     if (!session || !session.user.emailVerified)
       throw new AppError("UNAUTHORIZED", 401);
     const owner = session.user.id;

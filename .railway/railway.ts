@@ -14,7 +14,6 @@ export default defineRailway((ctx) => {
     branch: "main",
     checkSuites: true,
   });
-  const postgresData = volume("postgres-data", { sizeMB: 1024 });
   const antivirusData = volume("antivirus-data", { sizeMB: 1024 });
   const privateNetworking = {
     serviceDomains: {},
@@ -27,24 +26,6 @@ export default defineRailway((ctx) => {
     restartPolicyType: "ON_FAILURE" as const,
     restartPolicyMaxRetries: 10,
   };
-  const postgres = service("postgres", {
-    source,
-    build: {
-      builder: "DOCKERFILE",
-      dockerfilePath: "infra/Dockerfile.postgres",
-    },
-    deploy: continuous,
-    networking: privateNetworking,
-    volumeMounts: { "/var/lib/postgresql": postgresData },
-    env: {
-      POSTGRES_USER: "ziyatai",
-      POSTGRES_DB: "ziyatai",
-      POSTGRES_PASSWORD: ctx.shared.POSTGRES_PASSWORD,
-      // Use a random hexadecimal password: references are not URI-escaped.
-      DATABASE_URL:
-        "postgresql://ziyatai:${{shared.POSTGRES_PASSWORD}}@${{postgres.RAILWAY_PRIVATE_DOMAIN}}:5432/ziyatai",
-    },
-  });
   const renderer = service("renderer", {
     source,
     build: {
@@ -73,7 +54,14 @@ export default defineRailway((ctx) => {
   const common = {
     APP_ENV: "production",
     APP_URL: ctx.shared.APP_URL,
-    DATABASE_URL: postgres.env.DATABASE_URL,
+    DATABASE_URL: ctx.shared.DATABASE_URL,
+    DATABASE_SSL_CA: ctx.shared.DATABASE_SSL_CA,
+    DATABASE_SCHEMA: "ziyatai",
+    DATABASE_POOL_MAX: "5",
+    SUPABASE_URL: ctx.shared.SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY: ctx.shared.SUPABASE_PUBLISHABLE_KEY,
+    SUPABASE_SECRET_KEY: ctx.shared.SUPABASE_SECRET_KEY,
+    PASSWORD_RESET_ENABLED: "false",
     AUTH_SECRET: ctx.shared.AUTH_SECRET,
     API_GATEWAY: "netlify",
     DIRECT_UPLOADS: "true",
@@ -81,7 +69,6 @@ export default defineRailway((ctx) => {
     NETLIFY_PROXY_SECRET: ctx.shared.NETLIFY_PROXY_SECRET,
     SCAN_REQUIRED: "true",
     ALLOW_DEMO: "false",
-    EMAIL_VERIFICATION_REQUIRED: "false",
     DEFAULT_EXPORT_FONT: "Liberation Serif",
     DAILY_AI_LIMIT: "5",
     GLOBAL_DAILY_AI_LIMIT: "20",
@@ -126,14 +113,6 @@ export default defineRailway((ctx) => {
     env: { ...common, ZIYATAI_TARGET: "worker" },
   });
   return project("ziyatai", {
-    resources: [
-      postgresData,
-      antivirusData,
-      postgres,
-      renderer,
-      antivirus,
-      api,
-      worker,
-    ],
+    resources: [antivirusData, renderer, antivirus, api, worker],
   });
 });

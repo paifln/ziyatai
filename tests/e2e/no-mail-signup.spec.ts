@@ -42,7 +42,7 @@ test("Lite registration also enters the workspace without a verification code", 
   expect(
     (await (await page.request.get("/api/auth/get-session")).json()).user
       .emailVerified,
-  ).toBe(false);
+  ).toBe(true);
 });
 
 test("registration without email verification creates a working session without sending a code", async ({
@@ -111,7 +111,7 @@ test("registration without email verification creates a working session without 
   const session = await (
     await page.request.get("/api/auth/get-session")
   ).json();
-  expect(session.user.emailVerified).toBe(false);
+  expect(session.user.emailVerified).toBe(true);
   const signedOut = await authRequest(() =>
     page.request.post("/api/auth/sign-out", { headers, data: {} }),
   );
@@ -129,7 +129,7 @@ test("registration without email verification creates a working session without 
       headers,
       data: { email, redirectTo: qaOrigin + "/" },
     });
-    expect(reset.status()).toBe(503);
+    expect(reset.status()).toBe(404);
   }
 });
 
@@ -152,11 +152,12 @@ test("mail-free login retains real brute-force limits and recovers only after th
     ).status(),
   ).toBe(200);
   let status = 0;
-  for (let i = 0; i < 6; i++) {
+  const invalidEmail = `invalid-${randomBytes(6).toString("hex")}@example.test`;
+  for (let i = 0; i < 17; i++) {
     const probe = await request.post("/api/auth/sign-in/email", {
       headers,
       data: {
-        email: `invalid-${randomBytes(6).toString("hex")}@example.test`,
+        email: invalidEmail,
         password: randomBytes(16).toString("hex"),
       },
     });

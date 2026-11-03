@@ -5,7 +5,7 @@ import { kazakhMessages, messages } from "../../../packages/domain/errors";
 import { fetchWithWakeRetry } from "./wake-retry";
 import { accountIntentHeader } from "../../../packages/contracts/account-intent";
 import { withinRequestLifetime } from "./request-lifetime";
-export async function uploadFile(
+async function uploadFile(
   file: File,
   direct: boolean,
   onProgress?: (percent: number) => void,

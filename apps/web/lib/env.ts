@@ -10,7 +10,10 @@ const schema = z.object({
     .regex(/^[a-z][a-z0-9_]{0,62}$/)
     .default("ziyatai"),
   DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(20).default(10),
-  AUTH_PROVIDER: z.literal("supabase").default("supabase"),
+  PASSWORD_RESET_ENABLED: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((value) => value === "true"),
   SUPABASE_URL: z.string().default(""),
   SUPABASE_PUBLISHABLE_KEY: z.string().default(""),
   SUPABASE_SECRET_KEY: z.string().default(""),
@@ -112,7 +115,7 @@ export function env() {
       RENDER_CONTAINER_IMAGE: process.env.RENDER_CONTAINER_IMAGE ?? "",
       FONT_DIRECTORY: process.env.FONT_DIRECTORY ?? "",
     };
-    if (parsed.AUTH_PROVIDER === "supabase") {
+    {
       if (parsed.DATABASE_SCHEMA === "public")
         throw new Error("Supabase requires a private DATABASE_SCHEMA");
       const url = z.url().safeParse(parsed.SUPABASE_URL);

@@ -93,17 +93,6 @@ export async function verifiedUser(
     }),
   );
   expect(signup.ok(), await signup.text()).toBeTruthy();
-  const configuration = await (await request.get("/api/public-config")).json();
-  if (configuration.emailVerificationRequired !== false) {
-    const otp = await emailCode(request, email);
-    const verified = await authRequest(() =>
-      request.post("/api/auth/email-otp/verify-email", {
-        headers,
-        data: { email, otp },
-      }),
-    );
-    expect(verified.ok(), await verified.text()).toBeTruthy();
-  }
   const login = await authRequest(() =>
     request.post("/api/auth/sign-in/email", {
       headers,
@@ -112,31 +101,6 @@ export async function verifiedUser(
   );
   expect(login.ok(), await login.text()).toBeTruthy();
   return { email, password };
-}
-export async function emailCode(request: APIRequestContext, email: string) {
-  let otp = "";
-  await expect
-    .poll(
-      async () => {
-        const data = await (
-          await request.get("http://127.0.0.1:8025/api/v1/messages")
-        ).json();
-        const message = data.messages?.find((m: any) =>
-          m.To.some((to: any) => to.Address === email),
-        );
-        if (!message) return false;
-        const detail = await (
-          await request.get(
-            `http://127.0.0.1:8025/api/v1/message/${message.ID}`,
-          )
-        ).json();
-        otp = detail.Text.match(/\b\d{6}\b/)?.[0] ?? "";
-        return !!otp;
-      },
-      { timeout: 15000 },
-    )
-    .toBe(true);
-  return otp;
 }
 export async function jobDone(request: APIRequestContext, id: string) {
   let job: any;

@@ -11,7 +11,7 @@ import { assertAccountIntent } from "../account-intent";
 import { readJsonBody } from "../request-body";
 import { AppError } from "../../../../packages/domain/errors";
 
-export const supabaseCookieName = "ziyatai-auth";
+const supabaseCookieName = "ziyatai-auth";
 
 // Only server route handlers own Supabase tokens; the browser receives no JWT.
 async function requestClient() {
@@ -50,14 +50,14 @@ function providerFailure(error: AuthError): never {
   if (error.status === 429) throw new AppError("LIMIT", 429);
   if (!error.status || error.status >= 500)
     throw new AppError("AUTH_UNAVAILABLE", 503);
-  if (error.code === "email_not_confirmed")
-    throw new AppError("EMAIL_NOT_VERIFIED", 403);
+  if (["email_exists", "user_already_exists"].includes(error.code ?? ""))
+    throw new AppError("ACCOUNT_EXISTS", 409);
   throw new AppError("UNAUTHORIZED", 401);
 }
 
 // Decode only AFTER getUser validated the token with Supabase, never authorize
 // using client-supplied JWT claims alone.
-export function verifiedSessionId(accessToken: string) {
+function verifiedSessionId(accessToken: string) {
   const claims = JSON.parse(
     Buffer.from(accessToken.split(".")[1], "base64url").toString(),
   );
@@ -143,14 +143,16 @@ export async function handleSupabaseAuth(request: Request) {
   if (request.method === "GET" && path === "callback") {
     const url = new URL(request.url);
     const client = await requestClient();
+    if (!env().PASSWORD_RESET_ENABLED)
+      return respond({ code: "NOT_FOUND" }, 404);
     const type = url.searchParams.get("type");
     const hash = url.searchParams.get("token_hash");
     const code = url.searchParams.get("code");
     const result =
-      hash && ["signup", "recovery", "email"].includes(type ?? "")
+      hash && type === "recovery"
         ? await client.auth.verifyOtp({
             token_hash: hash,
-            type: type as "signup" | "recovery" | "email",
+            type: "recovery",
           })
         : code
           ? await client.auth.exchangeCodeForSession(code)
@@ -244,21 +246,35 @@ export async function handleSupabaseAuth(request: Request) {
       })
       .parse(await readJsonBody(request));
     await admit("password", input.email, 15, 600);
-    const result = signup
-      ? await client.auth.signUp({
-          email: input.email,
-          password: input.password,
-          options: {
-            data: { name: input.name, teachingSubject: input.teachingSubject },
-            emailRedirectTo: `${env().APP_URL}/api/auth/callback`,
-          },
-        })
-      : await client.auth.signInWithPassword({
-          email: input.email,
-          password: input.password,
-        });
+    if (signup) {
+      const existing = await db().query(
+        'SELECT 1 FROM "user" WHERE lower(email)=$1 LIMIT 1',
+        [input.email],
+      );
+      if (existing.rowCount) throw new AppError("ACCOUNT_EXISTS", 409);
+      // Registration intentionally skips email confirmation. The secret key stays on this rate-limited server route.
+      const admin = createClient(
+        env().SUPABASE_URL,
+        env().SUPABASE_SECRET_KEY,
+        { auth: { persistSession: false, autoRefreshToken: false } },
+      );
+      const created = await admin.auth.admin.createUser({
+        email: input.email,
+        password: input.password,
+        email_confirm: true,
+        user_metadata: {
+          name: input.name,
+          teachingSubject: input.teachingSubject,
+        },
+      });
+      if (created.error) providerFailure(created.error);
+    }
+    const result = await client.auth.signInWithPassword({
+      email: input.email,
+      password: input.password,
+    });
     if (result.error) providerFailure(result.error);
-    if (!result.data.session) return respond({ needsEmailConfirmation: true });
+    if (!result.data.session) throw new AppError("UNAUTHORIZED", 401);
     if (!result.data.user) throw new AppError("UNAUTHORIZED", 401);
     try {
       await provisionIdentity(
@@ -273,6 +289,8 @@ export async function handleSupabaseAuth(request: Request) {
     return respond({ success: true });
   }
   if (path === "request-password-reset") {
+    if (!env().PASSWORD_RESET_ENABLED)
+      return respond({ code: "NOT_FOUND" }, 404);
     const input = z
       .object({ email: emailInput })
       .parse(await readJsonBody(request));
@@ -284,6 +302,8 @@ export async function handleSupabaseAuth(request: Request) {
     return respond({ sent: true });
   }
   if (["change-password", "reset-password"].includes(path)) {
+    if (path === "reset-password" && !env().PASSWORD_RESET_ENABLED)
+      return respond({ code: "NOT_FOUND" }, 404);
     const session = await current(client);
     if (!session) throw new AppError("UNAUTHORIZED", 401);
     assertAccountIntent(request.headers, session.user.id);

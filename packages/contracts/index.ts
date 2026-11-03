@@ -4,7 +4,7 @@ export const PlanStatus = z.enum(planStatuses);
 const Locale = z.enum(["kk", "ru", "kk+ru"]);
 export const SourceLocale = z.enum(["kk", "ru", "en"]);
 export type SourceLocale = z.infer<typeof SourceLocale>;
-export const Block = z
+const Block = z
   .object({
     type: z.enum(["paragraph", "list", "table", "code"]),
     text: z.string(),

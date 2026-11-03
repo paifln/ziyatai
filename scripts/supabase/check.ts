@@ -19,8 +19,6 @@ const values = await settings(path);
 const namespace = schema(values);
 if (namespace === "public")
   throw new Error("Use a private DATABASE_SCHEMA such as ziyatai");
-if (values.AUTH_PROVIDER !== "supabase")
-  throw new Error("AUTH_PROVIDER must be supabase");
 if (
   [
     values.SUPABASE_URL,
@@ -36,7 +34,10 @@ const client = createClient(values.SUPABASE_URL, values.SUPABASE_SECRET_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 const pool = new Pool({
-  ...databaseConnection({ DATABASE_URL: values.DATABASE_URL, DATABASE_SSL_CA: values.DATABASE_SSL_CA }),
+  ...databaseConnection({
+    DATABASE_URL: values.DATABASE_URL,
+    DATABASE_SSL_CA: values.DATABASE_SSL_CA,
+  }),
   max: 1,
   connectionTimeoutMillis: 10000,
 });

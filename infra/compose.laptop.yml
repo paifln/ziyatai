@@ -4,8 +4,8 @@ services:
     image: ziyatai-renderer:laptop
     restart: unless-stopped
     env_file: ../.local/renderer.env
-    ports: ["127.0.0.1:18091:8090"]
-    volumes: ["${FONT_DIRECTORY:?Set path to licensed fonts}:/usr/local/share/fonts/licensed:ro"]
+    ports: ["127.0.0.1:18090:8090"]
+    volumes: ["${FONT_DIRECTORY:-../.local/fonts}:/usr/local/share/fonts/licensed:ro"]
     read_only: true
     tmpfs: ["/tmp:size=512m,mode=1777"]
     cap_drop: [ALL]
@@ -37,3 +37,11 @@ services:
     security_opt: ["no-new-privileges:true"]
     mem_limit: 1g
     pids_limit: 128
+  antivirus:
+    image: clamav/clamav:1.4@sha256:b5b910ce43d595bf8a2fe401e34db56434602b2c755b7c2b07f00c917d04d469
+    restart: unless-stopped
+    ports: ["127.0.0.1:13310:3310"]
+    volumes: ["antivirus-data:/var/lib/clamav"]
+    mem_limit: 2g
+volumes:
+  antivirus-data:

@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { Pool } from "pg";
-import { chromium } from "playwright";
+import { chromium } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { settings, schema, identifier } from "./migration-config";
 import { databaseConnection } from "../../apps/web/lib/database-connection";
@@ -25,6 +25,7 @@ const browser = await chromium.launch({
 });
 const context = await browser.newContext();
 let subject: string | undefined, owner: string | undefined;
+const email = `migration-smoke-${randomUUID()}@example.test`;
 try {
   let ready = false;
   for (let attempt = 0; attempt < 30; attempt++) {
@@ -41,27 +42,26 @@ try {
     await new Promise((done) => setTimeout(done, 1000));
   }
   if (!ready) throw new Error("Synthetic smoke server did not become ready");
-  const email = `migration-smoke-${randomUUID()}@example.test`;
   const password = `Smoke-${randomUUID()}!`;
-  const generated = await admin.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true,
-    user_metadata: { name: "Migration smoke test" },
-  });
-  if (generated.error || !generated.data.user)
-    throw new Error("Synthetic user creation failed");
-  subject = generated.data.user.id;
   const verified = await context.request.post(
-    `${origin}/api/auth/sign-in/email`,
-    { headers: { Origin: origin }, data: { email, password } },
+    `${origin}/api/auth/sign-up/email`,
+    {
+      headers: { Origin: origin },
+      data: {
+        email,
+        password,
+        name: "Migration smoke test",
+        teachingSubject: "mathematics",
+      },
+    },
   );
   if (!verified.ok())
-    throw new Error(`Password endpoint failed (${verified.status()})`);
+    throw new Error(`Password signup failed (${verified.status()})`);
   const session = await (
     await context.request.get(`${origin}/api/auth/get-session`)
   ).json();
   owner = session?.user?.id;
+  subject = (await pool.query(`SELECT subject FROM ${namespace}.auth_identities WHERE owner_id=$1`, [owner])).rows[0]?.subject;
   if (!owner || session.user.email !== email)
     throw new Error("Verified session missing");
   const originalCookies = await context.cookies();
@@ -114,39 +114,45 @@ try {
   );
   if (!changed.ok())
     throw new Error(`Password change failed (${changed.status()})`);
-  const recovery = await admin.auth.admin.generateLink({
-    type: "recovery",
-    email,
-  });
-  if (recovery.error || !recovery.data.properties.hashed_token)
-    throw new Error("Synthetic recovery link generation failed");
-  const recovered = await context.request.get(
-    `${origin}/api/auth/callback?type=recovery&token_hash=${encodeURIComponent(recovery.data.properties.hashed_token)}`,
-    { maxRedirects: 0 },
-  );
-  if (
-    recovered.status() !== 303 ||
-    !recovered.headers().location?.endsWith("?auth=recovery")
-  )
-    throw new Error("Password recovery callback failed");
-  const reset = await context.request.post(
-    `${origin}/api/auth/reset-password`,
-    {
-      headers: { Origin: origin, "X-ZiyatAI-Account": owner },
-      data: { newPassword: `Reset-${password}` },
-    },
-  );
-  if (!reset.ok()) throw new Error(`Password reset failed (${reset.status()})`);
-  const resetSession = await (
-    await context.request.get(`${origin}/api/auth/get-session`)
-  ).json();
-  if (resetSession !== null)
-    throw new Error("Revoked recovery session still accepted");
-  const login = await context.request.post(`${origin}/api/auth/sign-in/email`, {
-    headers: { Origin: origin },
-    data: { email, password: `Reset-${password}` },
-  });
-  if (!login.ok()) throw new Error("Password login after recovery failed");
+  if (values.PASSWORD_RESET_ENABLED === "true") {
+    const recovery = await admin.auth.admin.generateLink({
+      type: "recovery",
+      email,
+    });
+    if (recovery.error || !recovery.data.properties.hashed_token)
+      throw new Error("Synthetic recovery link generation failed");
+    const recovered = await context.request.get(
+      `${origin}/api/auth/callback?type=recovery&token_hash=${encodeURIComponent(recovery.data.properties.hashed_token)}`,
+      { maxRedirects: 0 },
+    );
+    if (
+      recovered.status() !== 303 ||
+      !recovered.headers().location?.endsWith("?auth=recovery")
+    )
+      throw new Error("Password recovery callback failed");
+    const reset = await context.request.post(
+      `${origin}/api/auth/reset-password`,
+      {
+        headers: { Origin: origin, "X-ZiyatAI-Account": owner },
+        data: { newPassword: `Reset-${password}` },
+      },
+    );
+    if (!reset.ok())
+      throw new Error(`Password reset failed (${reset.status()})`);
+    const resetSession = await (
+      await context.request.get(`${origin}/api/auth/get-session`)
+    ).json();
+    if (resetSession !== null)
+      throw new Error("Revoked recovery session still accepted");
+    const login = await context.request.post(
+      `${origin}/api/auth/sign-in/email`,
+      {
+        headers: { Origin: origin },
+        data: { email, password: `Reset-${password}` },
+      },
+    );
+    if (!login.ok()) throw new Error("Password login after recovery failed");
+  }
   const logout = await context.request.post(`${origin}/api/auth/sign-out`, {
     headers: { Origin: origin, "X-ZiyatAI-Account": owner },
     data: {},
@@ -164,9 +170,11 @@ try {
   }
   console.log(
     JSON.stringify({
+      passwordSignup: "passed",
       passwordSignIn: "passed",
       passwordChange: "passed",
-      recoveryAndReset: "passed",
+      recoveryAndReset:
+        values.PASSWORD_RESET_ENABLED === "true" ? "passed" : "disabled",
       httpOnlyCookies: "passed",
       workspace: "passed",
       ownership: other ? "passed" : "no-foreign-plan-fixture",
@@ -187,6 +195,10 @@ try {
 } finally {
   await context.close();
   await browser.close();
+  if (!subject)
+    subject = (
+      await pool.query("SELECT id FROM auth.users WHERE email=$1", [email])
+    ).rows[0]?.id;
   if (subject) {
     if (!owner)
       owner = (

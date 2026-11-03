@@ -6,7 +6,7 @@ services:
     restart: unless-stopped
     env_file: ../.local/renderer.env
     ports: ["127.0.0.1:18090:8090"]
-    volumes: ["${FONT_DIRECTORY:?Set path to licensed fonts}:/usr/local/share/fonts/licensed:ro"]
+    volumes: ["${FONT_DIRECTORY:-../.local/fonts}:/usr/local/share/fonts/licensed:ro"]
     read_only: true
     tmpfs: ["/tmp:size=512m,mode=1777"]
     cap_drop: [ALL]

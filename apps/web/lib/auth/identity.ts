@@ -3,7 +3,7 @@ import type { User } from "@supabase/supabase-js";
 import { transaction, db } from "../db";
 import { AppError } from "../../../../packages/domain/errors";
 
-export function confirmedIdentity(user: User) {
+function confirmedIdentity(user: User) {
   if (!user.email || !user.email_confirmed_at || user.is_anonymous)
     throw new AppError("UNAUTHORIZED", 401);
   return { subject: user.id, email: user.email.trim().toLowerCase() };
@@ -35,7 +35,8 @@ export async function provisionIdentity(
       if (previous.rows.length > 1) throw new AppError("UNAUTHORIZED", 401);
       owner = previous.rows[0]?.id;
       // Password login alone must never claim an unbound imported account.
-      if (owner && !emailProof) throw new AppError("EMAIL_NOT_VERIFIED", 403);
+      if (owner && !emailProof)
+        throw new AppError("ACCOUNT_MIGRATION_REQUIRED", 409);
       if (!owner) {
         owner = randomUUID();
         await c.query(

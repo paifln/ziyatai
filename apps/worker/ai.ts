@@ -133,8 +133,23 @@ export async function generate(
         });
       if (error instanceof AppError) throw annotate(error);
       if (error instanceof OpenAI.APIError) {
-        if (error.status === 429)
-          throw annotate(new AppError("AI_RATE_LIMIT", 429));
+        if (error.status === 429) {
+          const billingCodes = [
+            "credit_balance_exhausted",
+            "insufficient_quota",
+            "organization_spend_limit_exceeded",
+            "project_spend_limit_exceeded",
+            "organization_usage_limit_exceeded",
+          ];
+          throw annotate(
+            new AppError(
+              billingCodes.includes(error.code ?? "")
+                ? "AI_BILLING"
+                : "AI_RATE_LIMIT",
+              429,
+            ),
+          );
+        }
         if (error.status && error.status >= 500)
           throw annotate(new AppError("AI_TEMPORARY", 503));
         if (error.status === 401 || error.status === 403)

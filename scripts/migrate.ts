@@ -6,7 +6,7 @@ import { env } from "../apps/web/lib/env";
 const c = await db().connect();
 try {
   const schema = env().DATABASE_SCHEMA;
-  if (env().AUTH_PROVIDER === "supabase" && schema === "public")
+  if (schema === "public")
     throw new Error(
       "Supabase application tables require a private DATABASE_SCHEMA",
     );
@@ -47,7 +47,7 @@ try {
       throw e;
     }
   }
-  if (env().AUTH_PROVIDER === "supabase") {
+  {
     if (schema === "public")
       throw new Error(
         "Supabase application tables require a private DATABASE_SCHEMA",

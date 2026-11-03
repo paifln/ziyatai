@@ -3,7 +3,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 type Values = Record<string, string | undefined>;
 export type DeploymentProfile = "backend" | "frontend";
-export type DeploymentCheck = {
+type DeploymentCheck = {
   id: string;
   status: "pass" | "blocked" | "manual";
   message: string;
@@ -195,7 +195,7 @@ export async function deploymentChecks(
     );
     manual(
       "supabase-mail",
-      "В Supabase Auth проверить Site URL, callback URL, подтверждение почты и восстановление пароля по ссылкам. Для публичной доставки нужен SMTP в Supabase.",
+      "Регистрация сразу открывает кабинет без письма. Восстановление отключено; включать только после настройки SMTP в Supabase.",
     );
     const storage =
       supplied(values.STORAGE_BUCKET) &&

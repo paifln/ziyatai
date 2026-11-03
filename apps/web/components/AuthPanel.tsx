@@ -1,12 +1,12 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowRight } from "lucide-react";
 import { ThemeToggle } from "./ui/ThemeToggle";
 import { Form } from "./ui/Form";
 import { PasswordField } from "./ui/PasswordField";
 import { LessonPreview } from "./auth/LessonPreview";
 import { subjects } from "../../../packages/domain/subjects";
-import { authClient } from "../lib/client";
+import { api, authClient } from "../lib/client";
 import type { Texts, UiLocale } from "../lib/i18n";
 
 type AuthPanelProps = {
@@ -33,6 +33,17 @@ export default function AuthPanel({
   const [subject, setSubject] = useState("");
   const [customSubject, setCustomSubject] = useState("");
   const [busy, setBusy] = useState(false);
+  const [passwordResetAvailable, setPasswordResetAvailable] = useState(false);
+  useEffect(() => {
+    const controller = new AbortController();
+    void api("public-config", "GET", undefined, undefined, controller.signal)
+      .then((config) => {
+        if (!controller.signal.aborted)
+          setPasswordResetAvailable(config.passwordResetAvailable === true);
+      })
+      .catch(() => {});
+    return () => controller.abort();
+  }, []);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   async function submit(event: React.FormEvent) {
@@ -59,23 +70,18 @@ export default function AuthPanel({
         setError(
           result.error.status === 429
             ? t.tooManyAttempts
-            : result.error.code === "EMAIL_NOT_VERIFIED"
+            : ["ACCOUNT_EXISTS", "ACCOUNT_MIGRATION_REQUIRED"].includes(
+                  result.error.code,
+                )
               ? locale === "ru"
-                ? "Подтвердите почту по ссылке. Для прежнего аккаунта сначала восстановите пароль."
-                : "Поштаңызды сілтеме арқылы растаңыз. Бұрынғы аккаунт үшін алдымен құпиясөзді қалпына келтіріңіз."
+                ? "Этот email уже используется. Войдите с паролем; для аккаунта прежней версии обратитесь к администратору."
+                : "Бұл email бұрын тіркелген. Құпиясөзбен кіріңіз; бұрынғы аккаунт үшін әкімшіге хабарласыңыз."
               : locale === "ru"
                 ? "Не удалось выполнить действие. Проверьте email и пароль."
                 : "Әрекет орындалмады. Email мен құпиясөзді тексеріңіз.",
         );
       } else if (mode === "reset") setMessage(t.resetSent);
-      else if (result.data?.needsEmailConfirmation) {
-        setPassword("");
-        setMessage(
-          locale === "ru"
-            ? "Откройте письмо и подтвердите почту по ссылке. Затем войдите с паролем."
-            : "Хаттағы сілтеме арқылы поштаңызды растаңыз. Содан кейін құпиясөзбен кіріңіз.",
-        );
-      } else window.location.assign("/");
+      else window.location.assign("/");
     } catch {
       setError(
         locale === "ru"
@@ -245,7 +251,7 @@ export default function AuthPanel({
                   onChange={(e) => setPassword(e.target.value)}
                 />
               )}
-              {mode === "login" && (
+              {mode === "login" && passwordResetAvailable && (
                 <button
                   className="text-button forgot"
                   type="button"

@@ -33,7 +33,6 @@ async function run(
         env: {
           ...process.env,
           APP_ENV: "local",
-          AUTH_PROVIDER: "supabase",
           ...overrides,
         },
         stdio: ["ignore", "pipe", "pipe"],
@@ -136,7 +135,6 @@ try {
   }
   if (!refused) throw new Error("Migration overwrote a populated target");
   process.env.DATABASE_SCHEMA = target;
-  process.env.AUTH_PROVIDER = "supabase";
   const { provisionIdentity, readIdentity } =
     await import("../../apps/web/lib/auth/identity");
   const { db } = await import("../../apps/web/lib/db");

@@ -3,7 +3,7 @@ import { build } from "esbuild";
 import { readFile } from "node:fs/promises";
 
 for (const locale of ["ru", "kk"] as const) {
-  test(`Supabase password signup preserves details and asks for confirmation on mobile (${locale})`, async ({
+  test(`Supabase password signup preserves details and opens the workspace immediately on mobile (${locale})`, async ({
     page,
   }) => {
     const origin = "http://localhost:3199";
@@ -31,25 +31,23 @@ for (const locale of ["ru", "kk"] as const) {
         return route.fulfill({ json: { authProvider: "supabase" } });
       if (path.startsWith("/api/auth/")) {
         requests.push({ path, body: route.request().postDataJSON() });
-        return route.fulfill({ json: { needsEmailConfirmation: true } });
+        return route.fulfill({ json: { success: true } });
       }
-      if (path === "/")
+      if (path === "/" || path === "/signup")
         return route.fulfill({
           contentType: "text/html",
           body: `<html lang="${locale}"><head><title>Email code</title></head><body><div id="root"></div></body></html>`,
         });
       return route.fulfill({ status: 404, body: "" });
     });
-    await page.goto(origin);
+    await page.goto(`${origin}/signup`);
     for (const file of ["app/globals.css", "app/theme.css", "app/landing.css"])
       await page.addStyleTag({ content: await readFile(file, "utf8") });
     await page.addScriptTag({ content: bundle.outputFiles[0].text });
     await expect(page.locator('input[type="password"]')).toHaveCount(1);
     await page.locator('input[autocomplete="name"]').fill("Әлия Ғалымқызы");
     await page.getByRole("combobox").selectOption("mathematics");
-    await page
-      .locator('input[type="email"]')
-      .fill("teacher@example.test");
+    await page.locator('input[type="email"]').fill("teacher@example.test");
     await page.getByRole("checkbox").check();
     await page.locator('input[type="password"]').fill("synthetic-password-123");
     await page
@@ -58,9 +56,7 @@ for (const locale of ["ru", "kk"] as const) {
         exact: true,
       })
       .click();
-    await expect(page.getByRole("status")).toContainText(
-      locale === "ru" ? "подтвердите почту" : "поштаңызды растаңыз",
-    );
+    await expect(page).toHaveURL(`${origin}/`);
     expect(requests[0]).toEqual({
       path: "/api/auth/sign-up/email",
       body: {

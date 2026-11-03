@@ -7,7 +7,8 @@ const fixture = vi.hoisted(() => ({
   getUser: vi.fn(),
   getSession: vi.fn(),
   signInWithPassword: vi.fn(),
-  signUp: vi.fn(),
+  createUser: vi.fn(),
+  passwordReset: true,
   updateUser: vi.fn(),
   resetPasswordForEmail: vi.fn(),
   exchangeCodeForSession: vi.fn(),
@@ -22,6 +23,8 @@ vi.mock("../apps/web/lib/env", () => ({
     SUPABASE_URL: "https://project.supabase.co",
     SUPABASE_PUBLISHABLE_KEY: "test-publishable",
     AUTH_SECRET: "a".repeat(32),
+    SUPABASE_SECRET_KEY: "synthetic-secret",
+    PASSWORD_RESET_ENABLED: fixture.passwordReset,
   }),
 }));
 vi.mock("../apps/web/lib/db", () => ({ db: () => ({ query: fixture.query }) }));
@@ -38,6 +41,9 @@ vi.mock("next/headers", () => ({
   }),
 }));
 vi.mock("@supabase/ssr", () => ({ createServerClient: fixture.create }));
+vi.mock("@supabase/supabase-js", () => ({
+  createClient: () => ({ auth: { admin: { createUser: fixture.createUser } } }),
+}));
 import {
   handleSupabaseAuth,
   readSupabaseSession,
@@ -58,6 +64,11 @@ function request(
 }
 beforeEach(() => {
   vi.resetAllMocks();
+  fixture.passwordReset = true;
+  fixture.createUser.mockResolvedValue({
+    data: { user: { id: "provider-user" } },
+    error: null,
+  });
   fixture.query.mockResolvedValue({ rows: [{ count: 1 }] });
   fixture.signInWithPassword.mockResolvedValue({
     data: { user: { id: "provider-user" }, session: { access_token: token } },
@@ -69,7 +80,6 @@ beforeEach(() => {
       getUser: fixture.getUser,
       getSession: fixture.getSession,
       signInWithPassword: fixture.signInWithPassword,
-      signUp: fixture.signUp,
       updateUser: fixture.updateUser,
       resetPasswordForEmail: fixture.resetPasswordForEmail,
       exchangeCodeForSession: fixture.exchangeCodeForSession,
@@ -102,11 +112,7 @@ it("authenticates with a password, binds only a confirmed identity and never ret
     sameSite: "lax",
   });
 });
-it("requires confirmation before provisioning a new signup without a session", async () => {
-  fixture.signUp.mockResolvedValue({
-    data: { user: { id: "provider-user" }, session: null },
-    error: null,
-  });
+it("registers and signs in immediately without sending a confirmation email", async () => {
   const response = await handleSupabaseAuth(
     request("sign-up/email", {
       email: "test@example.test",
@@ -114,8 +120,44 @@ it("requires confirmation before provisioning a new signup without a session", a
       name: "Teacher",
     }),
   );
-  expect(await response.json()).toEqual({ needsEmailConfirmation: true });
-  expect(fixture.provision).not.toHaveBeenCalled();
+  expect(fixture.createUser).toHaveBeenCalledWith({
+    email: "test@example.test",
+    password: "synthetic-password",
+    email_confirm: true,
+    user_metadata: { name: "Teacher", teachingSubject: undefined },
+  });
+  expect(fixture.signInWithPassword).toHaveBeenCalled();
+  expect(await response.json()).toEqual({ success: true });
+});
+it("never claims imported data through password registration without email proof", async () => {
+  fixture.query.mockImplementation(async (sql: string) =>
+    sql.startsWith("SELECT 1")
+      ? { rowCount: 1, rows: [{ exists: true }] }
+      : { rows: [{ count: 1 }] },
+  );
+  await expect(
+    handleSupabaseAuth(
+      request("sign-up/email", {
+        email: "old@example.test",
+        password: "synthetic-password",
+      }),
+    ),
+  ).rejects.toMatchObject({ code: "ACCOUNT_EXISTS", status: 409 });
+  expect(fixture.createUser).not.toHaveBeenCalled();
+});
+it("does not offer recovery endpoints before email delivery is enabled", async () => {
+  fixture.passwordReset = false;
+  for (const path of ["request-password-reset", "reset-password"])
+    expect((await handleSupabaseAuth(request(path))).status).toBe(404);
+  expect(
+    (
+      await handleSupabaseAuth(
+        new Request(
+          "https://school.example/api/auth/callback?type=recovery&token_hash=synthetic",
+        ),
+      )
+    ).status,
+  ).toBe(404);
 });
 it("rejects invalid passwords without provisioning an owner", async () => {
   fixture.signInWithPassword.mockResolvedValue({
@@ -180,7 +222,7 @@ it("password reset requires fresh email recovery proof even for a logged-in owne
   ).rejects.toMatchObject({ status: 401 });
   expect(fixture.updateUser).not.toHaveBeenCalled();
 });
-it("only verified confirmation callbacks can link imported accounts", async () => {
+it("only a verified recovery callback can link imported accounts", async () => {
   fixture.verifyOtp.mockResolvedValue({
     data: {
       user: { id: "provider-user", user_metadata: { name: "Teacher" } },
@@ -190,7 +232,7 @@ it("only verified confirmation callbacks can link imported accounts", async () =
   });
   const response = await handleSupabaseAuth(
     new Request(
-      "https://school.example/api/auth/callback?token_hash=synthetic&type=signup&next=https://evil.example",
+      "https://school.example/api/auth/callback?token_hash=synthetic&type=recovery&next=https://evil.example",
     ),
   );
   expect(fixture.provision).toHaveBeenCalledWith(
@@ -199,7 +241,9 @@ it("only verified confirmation callbacks can link imported accounts", async () =
     { name: "Teacher" },
     true,
   );
-  expect(response.headers.get("location")).toBe("https://school.example/");
+  expect(response.headers.get("location")).toBe(
+    "https://school.example/?auth=recovery",
+  );
 });
 it("never trusts the cookie session when the provider rejects the user", async () => {
   fixture.getUser.mockResolvedValue({ data: {}, error: { status: 401 } });

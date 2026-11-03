@@ -1,21 +1,6 @@
 # Run on the chosen Kazakhstan host. Provision managed private S3 separately.
 name: ziyatai-production
 services:
-  postgres:
-    image: ziyatai-postgres:${RELEASE:?required}
-    build: {context: .., dockerfile: infra/Dockerfile.postgres}
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ziyatai
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?required}
-      POSTGRES_DB: ziyatai
-    volumes: ["postgres-alpine:/var/lib/postgresql"]
-    networks: [data]
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ziyatai -d ziyatai"]
-      interval: 10s
-      timeout: 3s
-      retries: 10
   web:
     image: ziyatai-web:${RELEASE:?required}
     build:
@@ -35,7 +20,6 @@ services:
       ALLOW_DEMO: "false"
       PARSER_CONTAINER_IMAGE: ""
       RENDER_CONTAINER_IMAGE: ""
-    depends_on: {postgres: {condition: service_healthy}}
     volumes: ["clam-db:/var/lib/clamav:ro"]
     tmpfs: ["/tmp:size=512m,mode=1777"]
     read_only: true
@@ -44,7 +28,7 @@ services:
     mem_limit: 1g
     cpus: 1.0
     pids_limit: 128
-    networks: [data,egress,edge,render,av]
+    networks: [egress,edge,render,av]
   worker:
     image: ziyatai-worker:${RELEASE:?required}
     build: {context: .., dockerfile: infra/Dockerfile, target: worker}
@@ -57,7 +41,6 @@ services:
       ALLOW_DEMO: "false"
       PARSER_CONTAINER_IMAGE: ""
       RENDER_CONTAINER_IMAGE: ""
-    depends_on: {postgres: {condition: service_healthy}}
     tmpfs: ["/tmp:size=512m,mode=1777"]
     read_only: true
     cap_drop: [ALL]
@@ -65,7 +48,7 @@ services:
     mem_limit: 2g
     cpus: 2.0
     pids_limit: 128
-    networks: [data,egress,render,av]
+    networks: [egress,render,av]
   renderer:
     image: ziyatai-renderer:${RELEASE:?required}
     build: {context: .., dockerfile: infra/Dockerfile.renderer}
@@ -98,12 +81,10 @@ services:
     volumes: ["${CADDY_CONFIG:-./Caddyfile}:/etc/caddy/Caddyfile:ro","caddy-data:/data","caddy-config:/config"]
     networks: [edge]
 volumes:
-  postgres-alpine:
   clam-db:
   caddy-data:
   caddy-config:
 networks:
-  data: {internal: true}
   edge:
   egress:
   render: {internal: true}

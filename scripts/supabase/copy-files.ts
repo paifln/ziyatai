@@ -20,7 +20,7 @@ if (
 const src = objectStore(source),
   dst = objectStore(target);
 const uploadToSupabase =
-  args.apply && target.AUTH_PROVIDER === "supabase"
+  args.apply && !!target.SUPABASE_URL
     ? supabaseCreateOnlyUploader(target)
     : undefined;
 async function bytes(client: S3Client, bucket: string, key: string) {

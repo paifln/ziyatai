@@ -6,7 +6,10 @@ import {
   type Edge,
   type ResourceNode,
 } from "railway/iac";
-import configuration from "../.railway/railway";
+import configuration from "./railway";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+process.chdir(resolve(dirname(fileURLToPath(import.meta.url)), ".."));
 import { readFile } from "node:fs/promises";
 
 // Offline evaluation only: no CLI login, API call, plan or apply.
@@ -19,13 +22,13 @@ try {
   const edges: Edge[] = [];
   const shared = new Set<string>();
   const credentials = new Set([
-    "POSTGRES_PASSWORD",
+    "DATABASE_URL",
+    "SUPABASE_SECRET_KEY",
     "AUTH_SECRET",
     "NETLIFY_PROXY_SECRET",
     "RENDERER_TOKEN",
     "STORAGE_ACCESS_KEY",
     "STORAGE_SECRET_KEY",
-    "SMTP_PASSWORD",
     "OPENAI_API_KEY",
   ]);
   let literalCredentials = false;

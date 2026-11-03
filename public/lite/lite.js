@@ -6,7 +6,7 @@
   var content = document.getElementById("content");
   var datesBeforeSkip = null;
   var sourceRead = null;
-  var passwordResetAvailable = true;
+  var passwordResetAvailable = false;
   var message = document.getElementById("message");
   var navigation = document.getElementById("navigation");
   if (
@@ -899,10 +899,13 @@
             unlock();
             if (err) {
               note(
-                result && result.code === "EMAIL_NOT_VERIFIED"
+                result &&
+                  ["ACCOUNT_EXISTS", "ACCOUNT_MIGRATION_REQUIRED"].indexOf(
+                    result.code
+                  ) !== -1
                   ? text(
-                      "Поштаны сілтемемен растаңыз немесе құпиясөзді қалпына келтіріңіз.",
-                      "Подтвердите почту по ссылке или восстановите пароль."
+                      "Бұл email бұрын тіркелген. Құпиясөзбен кіріңіз.",
+                      "Этот email уже используется. Войдите с паролем."
                     )
                   : err,
                 true
@@ -912,7 +915,7 @@
             window.location.reload();
           }
         );
-      } else if (mode === "signup")
+      } else if (mode === "signup") {
         action(
           "auth/sign-up/email",
           {
@@ -920,39 +923,30 @@
             password: password.value,
             name: name.value,
             teachingSubject: subject.value,
-            callbackURL: "/lite/",
           },
-          function (result) {
-            if (result && result.success) window.location.reload();
-            else
-              note(
-                text(
-                  "Хаттағы сілтеме арқылы поштаңызды растаңыз.",
-                  "Подтвердите почту по ссылке из письма."
-                )
-              );
+          function () {
+            window.location.reload();
           }
         );
-      else if (mode === "reset")
+      } else if (mode === "reset") {
         action(
           "auth/request-password-reset",
-          { email: email.value, redirectTo: window.location.origin + "/lite/" },
+          { email: email.value },
           function () {
             note(t("sent"));
           }
         );
-      else
+      } else {
         action(
           "auth/reset-password",
-          {
-            newPassword: password.value,
-          },
+          { newPassword: password.value },
           function () {
             window.history.replaceState(null, "", "/lite/");
             authForm("login");
             note(t("changed"));
           }
         );
+      }
     };
     var buttons = add(form, el("div", null, "actions"));
     ["login", "signup", "reset"].forEach(function (m) {
@@ -2478,6 +2472,12 @@
     }
   });
   language();
+  request("public-config", "GET", undefined, function (error, config) {
+    passwordResetAvailable =
+      !error && config && config.passwordResetAvailable === true;
+    var option = document.getElementById("auth-reset-option");
+    if (option) option.hidden = !passwordResetAvailable;
+  });
   if (new URLSearchParams(window.location.search).get("auth") === "recovery") {
     authForm("newPassword");
     return;

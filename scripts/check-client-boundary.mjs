@@ -5,8 +5,6 @@ import { pathToFileURL } from "node:url";
 
 const privateModules = new Set([
   "api",
-  "auth",
-  "auth-account-intent",
   "db",
   "database-connection",
   "env",

@@ -1,0 +1,6 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": ["app/**/*.{ts,tsx}", "scripts/**/*.{ts,mjs}", "tests/**/*.{ts,tsx}", "public/lite/*.js"],
+  "project": ["app/**/*.{ts,tsx}", "apps/**/*.{ts,tsx}", "packages/**/*.ts", "scripts/**/*.{ts,mjs}", "tests/**/*.{ts,tsx}", "public/lite/*.js"],
+  "ignore": ["public/lite/draft-merge.js"]
+}

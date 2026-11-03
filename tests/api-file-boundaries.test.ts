@@ -10,13 +10,9 @@ const fixture = vi.hoisted(() => ({
   remove: vi.fn(),
   importJob: undefined as undefined | Record<string, unknown>,
 }));
-vi.mock("../apps/web/lib/auth", () => ({
-  auth: () => ({
-    api: {
-      getSession: async () => ({
-        user: { id: "teacher", emailVerified: true },
-      }),
-    },
+vi.mock("../apps/web/lib/auth/server", () => ({
+  readSupabaseSession: async () => ({
+    user: { id: "teacher", emailVerified: true },
   }),
 }));
 vi.mock("../apps/web/lib/env", () => ({

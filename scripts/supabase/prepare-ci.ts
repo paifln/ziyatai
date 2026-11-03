@@ -14,7 +14,7 @@ const secret = () => randomBytes(32).toString("hex");
 const values = {
   APP_ENV: "local",
   APP_URL: "http://localhost:3000",
-  AUTH_PROVIDER: "supabase",
+  PASSWORD_RESET_ENABLED: "false",
   AUTH_SECRET: secret(),
   SUPABASE_URL: status.API_URL,
   SUPABASE_PUBLISHABLE_KEY: status.PUBLISHABLE_KEY ?? status.ANON_KEY,

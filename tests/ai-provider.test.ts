@@ -36,6 +36,22 @@ describe("OpenAI contract (mock only, not live API acceptance)", () => {
       code: "AI_RATE_LIMIT",
     });
   });
+  it.each([
+    "credit_balance_exhausted",
+    "insufficient_quota",
+    "project_spend_limit_exceeded",
+  ])(
+    "does not classify billing failure %s as retryable throttling",
+    async (code) => {
+      state.parse.mockRejectedValue(
+        Object.assign(new (OpenAI.APIError as any)(429), { code }),
+      );
+      await expect(
+        generate(syntheticDemo("ru").snapshot),
+      ).rejects.toMatchObject({ code: "AI_BILLING" });
+      expect(state.parse).toHaveBeenCalledTimes(1);
+    },
+  );
   it("marks a connection failure as an unknown outcome", async () => {
     state.parse.mockImplementation(() => {
       throw new (OpenAI.APIConnectionError as any)();

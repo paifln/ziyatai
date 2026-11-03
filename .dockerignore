@@ -21,3 +21,6 @@ docs
 .github
 README.md
 AGENTS.md
+
+.railway
+**/node_modules
