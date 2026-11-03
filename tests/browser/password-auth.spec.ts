@@ -45,6 +45,21 @@ for (const locale of ["ru", "kk"] as const) {
       await page.addStyleTag({ content: await readFile(file, "utf8") });
     await page.addScriptTag({ content: bundle.outputFiles[0].text });
     await expect(page.locator('input[type="password"]')).toHaveCount(1);
+    for (const [width, height] of [
+      [1366, 768],
+      [390, 844],
+      [320, 800],
+    ]) {
+      await page.setViewportSize({ width, height });
+      await expect
+        .poll(() =>
+          page.evaluate(() => ({
+            horizontal: document.documentElement.scrollWidth > innerWidth + 1,
+            vertical: document.documentElement.scrollHeight > innerHeight + 1,
+          })),
+        )
+        .toEqual({ horizontal: false, vertical: false });
+    }
     await page.locator('input[autocomplete="name"]').fill("Әлия Ғалымқызы");
     await page.getByRole("combobox").selectOption("mathematics");
     await page.locator('input[type="email"]').fill("teacher@example.test");

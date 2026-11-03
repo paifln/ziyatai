@@ -93,7 +93,9 @@ export default function AuthPanel({
     }
   }
   return (
-    <main className="auth-page">
+    <main
+      className={`auth-page${mode === "signup" ? " auth-page--signup" : ""}`}
+    >
       <div className="auth-theme">
         <ThemeToggle locale={locale} />
       </div>
@@ -130,7 +132,7 @@ export default function AuthPanel({
               ? "От учебного плана к заданиям для вашего класса. Просто, спокойно, по вашему предмету."
               : "Оқу жоспарынан сыныпқа арналған тапсырмаларға дейін. Қарапайым, ыңғайлы, өз пәніңіз бойынша."}
           </p>
-          <LessonPreview locale={locale} />
+          {mode !== "signup" && <LessonPreview locale={locale} />}
         </div>
         <p className="auth-foot">{t.policy}</p>
       </section>
@@ -329,17 +331,14 @@ export default function AuthPanel({
             <a href="/privacy/">
               {locale === "ru" ? "Конфиденциальность" : "Құпиялық"}
             </a>
-            {" · "}
             <a href="/terms/">
               {locale === "ru" ? "Условия использования" : "Пайдалану шарттары"}
             </a>
-            <br />
             <a href="/lite/">
               {locale === "ru"
                 ? "Слабый компьютер? Открыть лёгкую версию"
                 : "Компьютер баяу ма? Жеңіл нұсқаны ашу"}
             </a>
-            <br />
             <a href="/help/">
               {locale === "ru"
                 ? "Как пользоваться ZiyatAI"
