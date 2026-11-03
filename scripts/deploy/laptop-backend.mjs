@@ -273,7 +273,16 @@ async function publish(frontend) {
   );
 }
 try {
-  if (!["start", "stop", "status", "publish", "publish-railway", "build"].includes(action))
+  if (
+    ![
+      "start",
+      "stop",
+      "status",
+      "publish",
+      "publish-railway",
+      "build",
+    ].includes(action)
+  )
     throw new Error(
       "Usage: node scripts/deploy/laptop-backend.mjs start|stop|status|publish|build",
     );
@@ -398,9 +407,11 @@ try {
       signal: AbortSignal.timeout(15000),
     });
     if (!configuration.ok) throw new Error("Netlify API proxy is unavailable");
-    console.log(railwayPublication
-      ? `Open ${site}. Backend runs on Railway; the laptop is not required.`
-      : `Open ${site} and keep this laptop and Docker running.`);
+    console.log(
+      railwayPublication
+        ? `Open ${site}. Backend runs on Railway; the laptop is not required.`
+        : `Open ${site} and keep this laptop and Docker running.`,
+    );
   }
 } catch (error) {
   console.error(

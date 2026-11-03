@@ -33,16 +33,14 @@ async function fixture(request: APIRequestContext) {
 }
 async function enter(page: Page, request: APIRequestContext) {
   await page.context().addCookies((await request.storageState()).cookies);
-  await page
-    .context()
-    .addCookies([
-      {
-        name: "ziyatai-locale",
-        value: "ru",
-        domain: new URL(qaOrigin).hostname,
-        path: "/",
-      },
-    ]);
+  await page.context().addCookies([
+    {
+      name: "ziyatai-locale",
+      value: "ru",
+      domain: new URL(qaOrigin).hostname,
+      path: "/",
+    },
+  ]);
   await page.goto("/");
 }
 

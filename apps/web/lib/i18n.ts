@@ -416,3 +416,8 @@ export const dictionary = {
 };
 export type UiLocale = "kk" | "ru";
 export type Texts = typeof dictionary.ru;
+export function textForKey(t: Texts, key: string, fallback: string) {
+  return Object.prototype.hasOwnProperty.call(t, key)
+    ? t[key as keyof Texts]
+    : fallback;
+}

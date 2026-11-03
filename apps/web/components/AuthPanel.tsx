@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ArrowRight } from "lucide-react";
 import { ThemeToggle } from "./ui/ThemeToggle";
 import { Form } from "./ui/Form";
@@ -8,6 +8,12 @@ import { LessonPreview } from "./auth/LessonPreview";
 import { subjects } from "../../../packages/domain/subjects";
 import { api, authClient } from "../lib/client";
 import type { Texts, UiLocale } from "../lib/i18n";
+import { authFailureMessage, authHelpLabel } from "../lib/auth-feedback";
+import {
+  readWorkspaceLocation,
+  workspaceHref,
+} from "../../../packages/domain/workspace-location";
+import { siteCopy } from "../../../packages/domain/site-copy";
 
 type AuthPanelProps = {
   t: Texts;
@@ -28,18 +34,27 @@ export default function AuthPanel({
       : (initialMode ?? "login"),
   );
   const [email, setEmail] = useState("");
+  useEffect(() => {
+    document.title = siteCopy[locale][mode === "signup" ? "signup" : "login"];
+  }, [locale, mode]);
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [subject, setSubject] = useState("");
   const [customSubject, setCustomSubject] = useState("");
   const [busy, setBusy] = useState(false);
+  const submitting = useRef(false);
   const [passwordResetAvailable, setPasswordResetAvailable] = useState(false);
+  const [supportEmail, setSupportEmail] = useState("");
   useEffect(() => {
     const controller = new AbortController();
     void api("public-config", "GET", undefined, undefined, controller.signal)
       .then((config) => {
-        if (!controller.signal.aborted)
+        if (!controller.signal.aborted) {
           setPasswordResetAvailable(config.passwordResetAvailable === true);
+          setSupportEmail(
+            typeof config.supportEmail === "string" ? config.supportEmail : "",
+          );
+        }
       })
       .catch(() => {});
     return () => controller.abort();
@@ -48,6 +63,8 @@ export default function AuthPanel({
   const [error, setError] = useState("");
   async function submit(event: React.FormEvent) {
     event.preventDefault();
+    if (submitting.current) return;
+    submitting.current = true;
     setBusy(true);
     setError("");
     setMessage("");
@@ -67,28 +84,16 @@ export default function AuthPanel({
               ? await authClient.resetPassword({ newPassword: password })
               : await authClient.signIn.email({ email, password });
       if (result.error) {
-        setError(
-          result.error.status === 429
-            ? t.tooManyAttempts
-            : ["ACCOUNT_EXISTS", "ACCOUNT_MIGRATION_REQUIRED"].includes(
-                  result.error.code,
-                )
-              ? locale === "ru"
-                ? "Этот email уже используется. Войдите с паролем; для аккаунта прежней версии обратитесь к администратору."
-                : "Бұл email бұрын тіркелген. Құпиясөзбен кіріңіз; бұрынғы аккаунт үшін әкімшіге хабарласыңыз."
-              : locale === "ru"
-                ? "Не удалось выполнить действие. Проверьте email и пароль."
-                : "Әрекет орындалмады. Email мен құпиясөзді тексеріңіз.",
-        );
+        setError(authFailureMessage(result.error, locale));
       } else if (mode === "reset") setMessage(t.resetSent);
-      else window.location.assign("/");
+      else
+        window.location.assign(
+          workspaceHref(readWorkspaceLocation(window.location.search)),
+        );
     } catch {
-      setError(
-        locale === "ru"
-          ? "Сервис недоступен. Попробуйте позже."
-          : "Сервис қолжетімсіз. Кейінірек қайталаңыз.",
-      );
+      setError(authFailureMessage({ code: "AUTH_UNAVAILABLE" }, locale));
     } finally {
+      submitting.current = false;
       setBusy(false);
     }
   }
@@ -328,6 +333,15 @@ export default function AuthPanel({
             </button>
           </p>
           <p className="auth-support">
+            <a
+              href={
+                supportEmail
+                  ? `mailto:${supportEmail}`
+                  : "/help/#account-access"
+              }
+            >
+              {authHelpLabel(locale)}
+            </a>
             <a href="/privacy/">
               {locale === "ru" ? "Конфиденциальность" : "Құпиялық"}
             </a>

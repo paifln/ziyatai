@@ -22,6 +22,10 @@ import { authClient } from "../lib/client";
 import { AccountClientProvider, useAccountClient } from "../lib/account-client";
 import { messages, kazakhMessages } from "../../../packages/domain/errors";
 import { dictionary, type UiLocale } from "../lib/i18n";
+import type {
+  AccountProfile,
+  JobSummary,
+} from "../../../packages/contracts/workspace";
 import AuthPanel from "./AuthPanel";
 import Landing from "./Landing";
 import { ThemeToggle } from "./ui/ThemeToggle";
@@ -31,6 +35,9 @@ import { Jobs } from "./Jobs";
 import { PlanCollection } from "./plans/PlanCollection";
 import { usePolling, useResume } from "../lib/use-polling";
 import { ConnectionNotice } from "./ui/ConnectionNotice";
+import { useWorkspaceNavigation } from "../lib/use-workspace-navigation";
+import type { WorkspaceView } from "../../../packages/domain/workspace-location";
+import { siteCopy } from "../../../packages/domain/site-copy";
 const ResourceCollection = dynamic(() => import("./ResourceCollection"));
 const PlanReview = dynamic(() => import("./PlanReview"));
 const GenerationEditor = dynamic(() => import("./GenerationEditor"));
@@ -49,8 +56,7 @@ const nav = [
   { key: "history", icon: History },
   { key: "library", icon: Library },
 ] as const;
-type View =
-  (typeof nav)[number]["key"] | "upload" | "review" | "editor" | "profile";
+type View = WorkspaceView;
 export default function Workspace({
   authMode,
   initialGuest,
@@ -110,12 +116,10 @@ function WorkspaceContent({
   useEffect(() => {
     if (!isPending) setSessionLoaded(true);
   }, [isPending]);
-  const [view, setView] = useState<View>("plans"),
-    [menu, setMenu] = useState(false),
-    [profile, setProfile] = useState<any>(),
+  const [menu, setMenu] = useState(false),
+    [profile, setProfile] = useState<AccountProfile>(),
     [plansRevision, setPlansRevision] = useState(0),
-    [jobs, setJobs] = useState<any[]>([]),
-    [selected, setSelected] = useState(""),
+    [jobs, setJobs] = useState<JobSummary[]>([]),
     [error, setError] = useState(""),
     [toast, setToast] = useState(""),
     [loaded, setLoaded] = useState(false),
@@ -151,16 +155,49 @@ function WorkspaceContent({
       document.removeEventListener("keydown", key);
     };
   }, [profileMenu]);
-  const openedLink = useRef(false);
   const [passwordReset, setPasswordReset] = useState(false);
   useEffect(() => {
-    setPasswordReset(new URLSearchParams(window.location.search).get("auth") === "recovery");
+    setPasswordReset(
+      new URLSearchParams(window.location.search).get("auth") === "recovery",
+    );
   }, []);
   const sidebar = useRef<HTMLElement>(null);
   const discardPrompt =
     locale === "ru"
       ? "Есть несохранённые изменения. Уйти без сохранения?"
       : "Сақталмаған өзгерістер бар. Сақтамай шығу керек пе?";
+  const confirmDiscard = useCallback(
+    () => confirm(discardPrompt),
+    [confirm, discardPrompt],
+  );
+  const onNavigate = useCallback(() => {
+    setHasChanges(false);
+    setMenu(false);
+    setProfileMenu(false);
+    setError("");
+    window.scrollTo(0, 0);
+    requestAnimationFrame(() =>
+      document.getElementById("workspace-main")?.focus({ preventScroll: true }),
+    );
+  }, []);
+  const navigation = useWorkspaceNavigation(
+    hasChanges,
+    confirmDiscard,
+    onNavigate,
+  );
+  const { view, id: selected } = navigation.location;
+  useEffect(() => {
+    if (passwordReset || (!session && (authMode || view !== "plans"))) return;
+    const label =
+      view === "review"
+        ? t.plans
+        : view === "editor"
+          ? t.editor
+          : view === "upload"
+            ? t.upload
+            : t[view];
+    document.title = session ? `${label} · ZiyatAI` : siteCopy[locale].home;
+  }, [locale, view, t, session, authMode, passwordReset]);
   const refreshing = useRef(false);
   const refreshAbort = useRef<AbortController | undefined>(undefined);
   const sessionUserId = session?.user.id;
@@ -178,6 +215,15 @@ function WorkspaceContent({
     setLocaleState(l);
     document.documentElement.lang = l;
     document.cookie = `ziyatai-locale=${l}; Path=/; SameSite=Lax; Max-Age=31536000`;
+    const url = new URL(window.location.href);
+    if (url.searchParams.has("lang") && url.searchParams.get("lang") !== l) {
+      url.searchParams.set("lang", l);
+      window.history.replaceState(
+        window.history.state,
+        "",
+        url.pathname + url.search + url.hash,
+      );
+    }
   }, []);
   useEffect(() => {
     const cookie = document.cookie.match(
@@ -226,15 +272,6 @@ function WorkspaceContent({
   );
   useResume(refresh, !!session);
   useEffect(() => {
-    if (!loaded || openedLink.current) return;
-    openedLink.current = true;
-    const id = new URLSearchParams(window.location.search).get("generation");
-    if (id && /^[0-9a-f-]{36}$/i.test(id)) {
-      setSelected(id);
-      setView("editor");
-    }
-  }, [loaded]);
-  useEffect(() => {
     if (!menu) return;
     const previousFocus = document.activeElement as HTMLElement | null;
     const onKey = (event: KeyboardEvent) => {
@@ -272,14 +309,7 @@ function WorkspaceContent({
     }
   }, [toast]);
   async function navigate(next: View, id = "") {
-    if (hasChanges && !(await confirm(discardPrompt))) return;
-    setHasChanges(false);
-    setView(next);
-    setSelected(id);
-    setMenu(false);
-    setProfileMenu(false);
-    setError("");
-    window.scrollTo(0, 0);
+    await navigation.navigate({ view: next, id });
   }
   async function demo() {
     setBusy(true);
@@ -302,7 +332,7 @@ function WorkspaceContent({
       setError((e as Error).message);
     }
   }
-  const openPlan = (p: any) => navigate("review", p.id);
+  const openPlan = (p: { id: string }) => navigate("review", p.id);
   if (passwordReset)
     return <AuthPanel t={t} locale={locale} setLocale={setLocale} />;
   if (isPending && !sessionLoaded && initialGuest && !authMode)
@@ -313,7 +343,13 @@ function WorkspaceContent({
     return (
       <div className="loading-screen">
         <div>
-          <img src="/brand-owl.png" width="42" height="42" alt="ZiyatAI" />
+          <img
+            src="/brand-owl.png"
+            loading="lazy"
+            width="42"
+            height="42"
+            alt="ZiyatAI"
+          />
           <span className="spinner" />
           <span>{t.loading}</span>
         </div>
@@ -323,7 +359,13 @@ function WorkspaceContent({
     return (
       <main className="loading-screen session-retry">
         <section className="card" aria-labelledby="session-retry-title">
-          <img src="/brand-owl.png" width="42" height="42" alt="ZiyatAI" />
+          <img
+            src="/brand-owl.png"
+            loading="lazy"
+            width="42"
+            height="42"
+            alt="ZiyatAI"
+          />
           <h1 id="session-retry-title">
             {locale === "ru"
               ? "Не удалось проверить вход"
@@ -352,7 +394,7 @@ function WorkspaceContent({
       </main>
     );
   if (!session)
-    return authMode || passwordReset ? (
+    return authMode || passwordReset || view !== "plans" ? (
       <AuthPanel
         t={t}
         locale={locale}
@@ -367,7 +409,9 @@ function WorkspaceContent({
       ? t.plans
       : view === "editor"
         ? t.editor
-        : ((t as any)[view] ?? t.upload);
+        : view === "upload"
+          ? t.upload
+          : t[view];
   return (
     <>
       <a className="skip-link" href="#workspace-main">
@@ -501,7 +545,7 @@ function WorkspaceContent({
                 ref={profileTrigger}
                 className="profile-trigger"
                 onClick={() => setProfileMenu(!profileMenu)}
-                aria-label="Профиль"
+                aria-label={t.profile}
                 aria-expanded={profileMenu}
                 aria-controls="profile-menu"
               >
@@ -574,7 +618,7 @@ function WorkspaceContent({
               </button>
             </div>
           )}
-          {!loaded ? (
+          {!loaded || !profile ? (
             <div className="inline-loading">
               <span className="spinner" /> {t.loading}
               {error && (

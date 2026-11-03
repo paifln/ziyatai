@@ -25,7 +25,7 @@ import { subjectLabel } from "../domain/subjects";
 const cm = (n: number) => Math.round(n * 567);
 export async function renderDocx(
   doc: GenerationDocument,
-  snapshot: any,
+  snapshot: { topic: string; goals: string; subject?: string; demo?: boolean },
   stylesInput: unknown,
   audience: "full" | "student",
   teacherReviewed = false,

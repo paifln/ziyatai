@@ -1,4 +1,5 @@
 "use client";
+import { textForKey } from "../../lib/i18n";
 import { useState } from "react";
 import { Plus, Trash2, Undo2 } from "lucide-react";
 import {
@@ -67,7 +68,7 @@ export function BlocksEditor({
             >
               {["paragraph", "list", "table", "code"].map((type) => (
                 <option key={type} value={type}>
-                  {(t as any)[type]}
+                  {textForKey(t, type, type)}
                 </option>
               ))}
             </select>

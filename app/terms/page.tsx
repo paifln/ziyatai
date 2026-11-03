@@ -1,4 +1,7 @@
-export const metadata = { title: "Условия использования · ZiyatAI" };
+export const metadata = {
+  title: "Условия использования · ZiyatAI",
+  alternates: { canonical: "/terms" },
+};
 export default function Terms() {
   return (
     <main className="legal-page" lang="ru">

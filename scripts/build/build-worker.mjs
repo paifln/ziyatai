@@ -14,6 +14,8 @@ for (const [input, output] of [
     format: "esm",
     packages: "bundle",
     external: ["pg-native"],
-    banner: {js:'import { createRequire } from "node:module"; const require = createRequire(import.meta.url);'},
+    banner: {
+      js: 'import { createRequire } from "node:module"; const require = createRequire(import.meta.url);',
+    },
     target: "node24",
   });

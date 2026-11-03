@@ -1,7 +1,7 @@
 import Workspace from "../../apps/web/components/Workspace";
-import { cookies } from "next/headers";
+import { pageMetadata, requestLocale } from "../../apps/web/lib/site-metadata";
+export const generateMetadata = () => pageMetadata("login");
 export default async function LoginPage() {
-  const locale =
-    (await cookies()).get("ziyatai-locale")?.value === "ru" ? "ru" : "kk";
+  const locale = await requestLocale();
   return <Workspace authMode="login" initialLocale={locale} />;
 }

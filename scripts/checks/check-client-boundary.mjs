@@ -82,7 +82,9 @@ export async function checkClientBoundary(entries) {
             )?.[1];
             if (
               (serverModule && privateModules.has(serverModule)) ||
-              /^apps\/web\/lib\/auth\/(?:server|admin|identity)\.ts$/.test(name) ||
+              /^apps\/web\/lib\/auth\/(?:server|admin|identity)\.ts$/.test(
+                name,
+              ) ||
               /\.server\.[cm]?[jt]sx?$/.test(name) ||
               name.startsWith("apps/worker/") ||
               name.startsWith("apps/renderer/")

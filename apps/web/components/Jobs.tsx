@@ -1,4 +1,6 @@
 "use client";
+import type { JobSummary } from "../../../packages/contracts/workspace";
+import { textForKey } from "../lib/i18n";
 import { useState } from "react";
 import { Check, AlertTriangle, ChevronRight } from "lucide-react";
 import { useAccountApi } from "../lib/account-client";
@@ -11,9 +13,9 @@ export function Jobs({
   refresh,
   locale,
 }: {
-  jobs: any[];
+  jobs: JobSummary[];
   t: Texts;
-  onOpen?: (j: any) => void;
+  onOpen?: (j: JobSummary) => void;
   refresh: () => Promise<void>;
   locale?: UiLocale;
 }) {
@@ -34,14 +36,14 @@ export function Jobs({
           <div className="job-body">
             <strong>
               {["succeeded", "failed", "cancelled"].includes(j.status)
-                ? (t as any)[j.status]
-                : ((t as any)[j.stage] ?? t.processing)}
+                ? textForKey(t, j.status, t.processing)
+                : (textForKey(t, j.stage, t.processing) ?? t.processing)}
             </strong>
             <small>
               {["queued", "running"].includes(j.status)
-                ? ((t as any)[j.status] ?? t.processing)
+                ? (textForKey(t, j.status, t.processing) ?? t.processing)
                 : j.format?.toUpperCase()}
-              {j.attempt > 1
+              {(j.attempt ?? 0) > 1
                 ? ` · ${locale === "kk" ? "Қайта әрекет" : "Повторная попытка"} (${j.attempt})`
                 : j.error_code || j.error
                   ? ` · ${t.retry}`
@@ -51,7 +53,7 @@ export function Jobs({
               ["failed", "cancelled"].includes(j.status) && (
                 <small className="job-error">
                   {(locale === "kk" ? kazakhMessages : messages)[
-                    j.error?.code ?? j.error_code
+                    j.error?.code ?? j.error_code ?? "INTERNAL"
                   ] ??
                     (locale === "kk"
                       ? kazakhMessages.INTERNAL

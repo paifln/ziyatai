@@ -5,6 +5,7 @@
   font-style: normal;
   font-display: swap;
 }
+
 :root {
   --bg: #f7f8f5;
   --surface: #fff;
@@ -2723,6 +2724,36 @@ progress::-webkit-progress-value {
   .auth-page--signup .auth-theme {
     top: 18px;
     right: 18px;
+  }
+}
+/* Keep hit areas accessible even on short signup screens. */
+:root .icon-button,
+:root .language-switch button,
+:root .password-toggle,
+:root .auth-toggle button,
+:root .forgot {
+  min-width: 44px;
+  min-height: 44px;
+}
+:root .auth-support {
+  gap: 8px 14px;
+}
+:root .auth-support a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  line-height: 1.5;
+}
+:root .consent {
+  min-height: 44px;
+}
+:root .landing-faq summary {
+  min-height: 44px;
+  padding-block: 10px;
+}
+@supports (padding: env(safe-area-inset-bottom)) {
+  .auth-form-area {
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
   }
 }
 @media (prefers-reduced-motion: reduce) {

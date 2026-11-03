@@ -12,7 +12,10 @@ import {
 export default defineRailway((ctx) => {
   // Release archives are uploaded with `railway up`; no GitHub App is required.
   const source = empty();
-  const antivirusData = volume("antivirus-data", { sizeMB: 1024, region: "iad" });
+  const antivirusData = volume("antivirus-data", {
+    sizeMB: 1024,
+    region: "iad",
+  });
   const privateNetworking = {
     serviceDomains: {},
     customDomains: {},

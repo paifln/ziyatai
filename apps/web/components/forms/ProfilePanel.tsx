@@ -1,4 +1,6 @@
 "use client";
+import { Styles } from "../../../../packages/contracts";
+import type { AccountProfile } from "../../../../packages/contracts/workspace";
 import { useState, useRef, useEffect } from "react";
 import { Check } from "lucide-react";
 import { useAccountClient } from "../../lib/account-client";
@@ -19,7 +21,7 @@ export function ProfilePanel({
 }: {
   t: Texts;
   locale: UiLocale;
-  profile: any;
+  profile: AccountProfile;
   onError: (s: string) => void;
   onSaved: () => void;
   setLocale: (l: UiLocale) => void;
@@ -36,18 +38,7 @@ export function ProfilePanel({
   }, []);
   const [form, setForm] = useState({
       ...profile,
-      styles: {
-        font: "Times New Roman",
-        size: 14,
-        marginLeft: 3,
-        marginRight: 1.5,
-        marginTop: 2,
-        marginBottom: 2,
-        lineSpacing: 1.15,
-        answerSpace: true,
-        includeLogo: true,
-        ...profile.styles,
-      },
+      styles: Styles.parse(profile.styles),
     }),
     [busy, setBusy] = useState(false);
   const baseline = useRef(JSON.stringify(form));
@@ -153,7 +144,12 @@ export function ProfilePanel({
                 {t.language}
                 <select
                   value={form.locale}
-                  onChange={(e) => setForm({ ...form, locale: e.target.value })}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      locale: e.target.value === "ru" ? "ru" : "kk",
+                    })
+                  }
                 >
                   <option value="kk">Қазақша</option>
                   <option value="ru">Русский</option>
@@ -189,7 +185,10 @@ export function ProfilePanel({
                   onChange={(e) =>
                     setForm({
                       ...form,
-                      styles: { ...form.styles, font: e.target.value },
+                      styles: {
+                        ...form.styles,
+                        font: Styles.shape.font.parse(e.target.value),
+                      },
                     })
                   }
                 >

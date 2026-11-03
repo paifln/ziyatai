@@ -1,4 +1,12 @@
 ﻿"use client";
+import {
+  ValidationReportSchema,
+  type GenerationDetail,
+  type JobSummary,
+  type ExportStyles,
+  type SourceSnapshot,
+  type ValidationReport,
+} from "../../../packages/contracts/workspace";
 import { useUnsavedChanges } from "../lib/use-unsaved-changes";
 import { useDraftState } from "../lib/use-draft-state";
 import { useConfirm } from "./ui/ConfirmProvider";
@@ -50,8 +58,8 @@ export default function GenerationEditor({
   id: string;
   t: Texts;
   locale: UiLocale;
-  jobs: any[];
-  profileStyles: any;
+  jobs: JobSummary[];
+  profileStyles: ExportStyles;
   onError: (s: string) => void;
   onDirtyChange: (dirty: boolean) => void;
   onSaved: () => void;
@@ -59,15 +67,17 @@ export default function GenerationEditor({
 }) {
   const api = useAccountApi();
   const confirm = useConfirm();
-  const [generation, setGeneration] = useState<any>(),
+  const [generation, setGeneration] = useState<GenerationDetail>(),
     [document, setDocument] = useState<GenerationDocument>(),
-    [versions, setVersions] = useState<any[]>([]),
+    [versions, setVersions] = useState<
+      { revision: number; created_at: string }[]
+    >([]),
     [working, setBusy] = useState(false),
     [mode, setMode] = useState<"review" | "edit" | "print">("review"),
     [audience, setAudience] = useState<"full" | "student">("full"),
     [styles, setStyles] = useState(Styles.parse(profileStyles)),
-    [exportJobs, setExportJobs] = useState<any[]>([]),
-    [report, setReport] = useState<any>();
+    [exportJobs, setExportJobs] = useState<JobSummary[]>([]),
+    [report, setReport] = useState<ValidationReport>();
   const [regenerationJob, setRegenerationJob] = useState("");
   const { dirty, setDirty, guard } = useDraftState();
   const readController = useRef<AbortController | null>(null);
@@ -173,7 +183,7 @@ export default function GenerationEditor({
     void load();
     return () => readController.current?.abort();
   }, [load]);
-  usePolling(load, ["queued", "running"].includes(generation?.status));
+  usePolling(load, ["queued", "running"].includes(generation?.status ?? ""));
   async function refreshExports(all = false) {
     const next = await Promise.all(
       exportJobs
@@ -221,10 +231,10 @@ export default function GenerationEditor({
       ),
     });
     setDirty(true);
-    setReport({ ...report, stale: true });
+    setReport({ issues: [], ...report, stale: true });
   }
   async function save() {
-    if (!document || busy) return;
+    if (!document || !generation || busy) return;
     setBusy(true);
     try {
       const saved = await api(`generations/${id}/document`, "PATCH", {
@@ -232,12 +242,15 @@ export default function GenerationEditor({
         document,
       });
       // A failed refresh must not roll back the acknowledged revision.
-      setGeneration((current: any) => ({
-        ...current,
-        revision: saved.revision,
-        status: "needs_review",
-        reviewed_at: null,
-      }));
+      setGeneration(
+        (current) =>
+          current && {
+            ...current,
+            revision: saved.revision,
+            status: "needs_review",
+            reviewed_at: null,
+          },
+      );
       setDirty(false);
       baseline.current = document;
       await load();
@@ -249,7 +262,8 @@ export default function GenerationEditor({
       setBusy(false);
     }
   }
-  async function exportFile(format: string) {
+  async function exportFile(format: "docx" | "pdf") {
+    if (!generation || busy) return;
     setBusy(true);
     try {
       const data = {
@@ -280,7 +294,7 @@ export default function GenerationEditor({
     }
   }
   async function approve() {
-    if (!teacherReviewed || dirty || !document) return;
+    if (!generation || !teacherReviewed || dirty || !document) return;
     setBusy(true);
     try {
       await api(`generations/${id}/approve`, "POST", {
@@ -297,7 +311,7 @@ export default function GenerationEditor({
     }
   }
   async function regenerate(task: TaskDocument) {
-    if (dirty) return;
+    if (dirty || !generation) return;
     setBusy(true);
     try {
       const j = await api(
@@ -411,13 +425,16 @@ export default function GenerationEditor({
         onRestore={(stored) => {
           readController.current?.abort();
           baseline.current = stored.base;
-          setGeneration((current: any) => ({
-            ...current,
-            revision: stored.baseRevision,
-            reviewed_at: null,
-          }));
+          setGeneration(
+            (current) =>
+              current && {
+                ...current,
+                revision: stored.baseRevision,
+                reviewed_at: null,
+              },
+          );
           setDocument(stored.draft);
-          setReport((current: any) => ({ ...current, stale: true }));
+          setReport((current) => ({ issues: [], ...current, stale: true }));
           setTeacherReviewed(false);
           setDirty(true);
           setConflict(true);
@@ -433,18 +450,24 @@ export default function GenerationEditor({
           onResolve={(latest, merged, changed) => {
             readController.current?.abort();
             baseline.current = latest.draft;
-            setGeneration((current: any) => ({
-              ...current,
-              revision: latest.revision,
-              status: latest.status,
-              reviewed_at: latest.reviewedAt,
-              document: latest.draft,
-            }));
+            setGeneration(
+              (current) =>
+                current && {
+                  ...current,
+                  revision: latest.revision,
+                  status: latest.status,
+                  reviewed_at: latest.reviewedAt,
+                  document: latest.draft,
+                },
+            );
             setDocument(merged);
             setReport(
               changed
-                ? { ...(latest.validation as object), stale: true }
-                : latest.validation,
+                ? {
+                    ...ValidationReportSchema.parse(latest.validation ?? {}),
+                    stale: true,
+                  }
+                : ValidationReportSchema.parse(latest.validation ?? {}),
             );
             setDirty(changed);
             setTeacherReviewed(false);
@@ -966,7 +989,9 @@ export default function GenerationEditor({
                 {locale === "ru" ? "Вариант" : "Нұсқа"}
                 <select
                   value={audience}
-                  onChange={(e) => setAudience(e.target.value as any)}
+                  onChange={(e) =>
+                    setAudience(e.target.value as "full" | "student")
+                  }
                 >
                   <option value="full">{t.full}</option>
                   <option value="student">{t.student}</option>
@@ -999,7 +1024,10 @@ export default function GenerationEditor({
                 <select
                   value={styles.font}
                   onChange={(e) =>
-                    setStyles({ ...styles, font: e.target.value as any })
+                    setStyles({
+                      ...styles,
+                      font: Styles.shape.font.parse(e.target.value),
+                    })
                   }
                 >
                   {[
@@ -1034,7 +1062,9 @@ export default function GenerationEditor({
                     onChange={(e) =>
                       setStyles({
                         ...styles,
-                        lineSpacing: Number(e.target.value) as any,
+                        lineSpacing: Styles.shape.lineSpacing.parse(
+                          Number(e.target.value),
+                        ),
                       })
                     }
                   >
@@ -1124,7 +1154,11 @@ export default function GenerationEditor({
                 }}
               />
               {exportJobs
-                .filter((job) => job.status === "succeeded")
+                .filter(
+                  (job): job is JobSummary & { result: { exportId: string } } =>
+                    job.status === "succeeded" &&
+                    typeof job.result?.exportId === "string",
+                )
                 .map((job) => (
                   <div key={job.id} className="export-download">
                     <span>{job.format?.toUpperCase()}</span>
@@ -1149,7 +1183,7 @@ export default function GenerationEditor({
                   : "Тапсырманы өзгерткеннен кейін қайта тексеру қажет."}
               </div>
             )}
-            {report?.issues?.length > 0 && (
+            {report && report.issues.length > 0 && (
               <div className="notice warning" role="status">
                 {locale === "ru"
                   ? "Есть ошибки структуры, баллов или ссылок на цели. Проверьте отредактированные задания."
@@ -1252,9 +1286,9 @@ function Preview({
   onRegenerate,
 }: {
   doc: GenerationDocument;
-  snapshot: any;
+  snapshot: SourceSnapshot;
   audience: string;
-  styles: any;
+  styles: ExportStyles;
   t: Texts;
   onEditTask: (id: string) => void;
   onRegenerate?: (task: TaskDocument) => void;

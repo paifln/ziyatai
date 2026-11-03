@@ -1,4 +1,7 @@
-export const metadata = { title: "Cookies · ZiyatAI" };
+export const metadata = {
+  title: "Cookies · ZiyatAI",
+  alternates: { canonical: "/cookies" },
+};
 export default function Cookies() {
   return (
     <main className="legal-page" lang="ru">
@@ -10,8 +13,10 @@ export default function Cookies() {
       <a href="#kazakh">Қазақша оқу</a>
       <h2>Только необходимое</h2>
       <p>
-        Cookies Better Auth поддерживают защищённую сессию и вход в аккаунт.
-        Cookie ziyatai-locale сохраняет язык на срок до года. Local storage
+        Cookie ziyatai-auth используется сервером ZiyatAI для защищённой сессии
+        Supabase Auth и входа в аккаунт. Cookie сеанса недоступен JavaScript
+        (HttpOnly), передаётся по HTTPS (Secure) и имеет SameSite=Lax. Cookie
+        ziyatai-locale сохраняет язык на срок до года. Local storage
         ziyatai-sidebar хранит состояние боковой панели на вашем устройстве.
         Local storage ziyatai-theme сохраняет выбранную светлую или тёмную тему.
         Сессионные данные имеют ограниченный срок действия и удаляются при
@@ -32,10 +37,13 @@ export default function Cookies() {
       <section lang="kk" id="kazakh">
         <h2>Cookies және браузер баптаулары</h2>
         <p>
-          Better Auth cookies қорғалған сессия мен аккаунтқа кіру үшін қажет.
-          ziyatai-locale cookie тілді бір жылға дейін сақтайды. Құрылғыңыздағы
-          local storage ішінде ziyatai-sidebar бүйірлік панель күйін, ал
-          ziyatai-theme ашық немесе қараңғы тақырыпты сақтайды.
+          ziyatai-auth cookie файлы ZiyatAI серверінде Supabase Auth қорғалған
+          сеансы мен аккаунтқа кіру үшін пайдаланылады. Сеанс cookie файлы
+          JavaScript үшін қолжетімсіз (HttpOnly), HTTPS арқылы беріледі
+          (Secure), SameSite=Lax параметрі бар. ziyatai-locale cookie тілді бір
+          жылға дейін сақтайды. Құрылғыңыздағы local storage ішінде
+          ziyatai-sidebar бүйірлік панель күйін, ал ziyatai-theme ашық немесе
+          қараңғы тақырыпты сақтайды.
         </p>
         <p>
           Жарнамалық cookies, үшінші тарап трекерлері және сыртқы веб-қаріптер

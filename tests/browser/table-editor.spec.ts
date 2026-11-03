@@ -32,15 +32,16 @@ test("table paste grows a range and duplication opens the correct page", async (
     await page
       .getByRole("textbox", { name: label, exact: true })
       .evaluate((input, value) => {
-        const clipboardData = new DataTransfer();
-        clipboardData.setData("text/plain", value);
-        input.dispatchEvent(
-          new ClipboardEvent("paste", {
-            clipboardData,
-            bubbles: true,
-            cancelable: true,
-          }),
-        );
+        // Firefox strips DataTransfer data from untrusted ClipboardEvents.
+        // Supply the event's read-only clipboard contract directly; OS clipboard
+        // access is a separate integration concern, not part of this fixture.
+        const event = new Event("paste", { bubbles: true, cancelable: true });
+        Object.defineProperty(event, "clipboardData", {
+          value: {
+            getData: (type: string) => (type === "text/plain" ? value : ""),
+          },
+        });
+        input.dispatchEvent(event);
       }, text);
   };
   await paste("Строка 10, Столбец 2", "x\ty\r\nz\tw\r\n");

@@ -192,6 +192,9 @@ export async function handle(req: Request, path: string[]) {
         authMode: "password",
         emailVerificationRequired: false,
         passwordResetAvailable: env().PASSWORD_RESET_ENABLED,
+        ...(process.env.LEGAL_CONTACT_EMAIL
+          ? { supportEmail: process.env.LEGAL_CONTACT_EMAIL }
+          : {}),
       });
     }
     const session = await readSupabaseSession();
@@ -346,7 +349,11 @@ export async function handle(req: Request, path: string[]) {
               [id, g.revision],
             )
           ).rows[0];
-          const existingIds = new Set(old.document.tasks.map((t: any) => t.id));
+          const existingIds = new Set(
+            old.document.tasks.map(
+              (t: import("../../../packages/contracts").TaskDocument) => t.id,
+            ),
+          );
           if (
             b.document.tasks.some((t) => !existingIds.has(t.id)) ||
             b.document.tasks.length !== existingIds.size
@@ -359,8 +366,11 @@ export async function handle(req: Request, path: string[]) {
             report.issues.includes("DUPLICATE_ID") ||
             b.document.tasks.some(
               (t) =>
-                old.document.tasks.find((previous: any) => previous.id === t.id)
-                  ?.level !== t.level,
+                old.document.tasks.find(
+                  (
+                    previous: import("../../../packages/contracts").TaskDocument,
+                  ) => previous.id === t.id,
+                )?.level !== t.level,
             )
           )
             throw new AppError("AI_INVALID", 422);
@@ -984,7 +994,8 @@ export async function handle(req: Request, path: string[]) {
             )
           ).rows[0];
           const index = old.document.tasks.findIndex(
-            (t: any) => t.id === child,
+            (t: import("../../../packages/contracts").TaskDocument) =>
+              t.id === child,
           );
           if (index < 0) throw new AppError("NOT_FOUND", 404);
           if (b.task.level !== old.document.tasks[index].level)
@@ -1027,7 +1038,8 @@ export async function handle(req: Request, path: string[]) {
         .parse(await body(req));
       if (g.revision !== b.revision) throw new AppError("CONFLICT", 409);
       const regenerationTask = g.document.tasks.find(
-        (t: any) => t.id === child,
+        (t: import("../../../packages/contracts").TaskDocument) =>
+          t.id === child,
       );
       if (!regenerationTask) throw new AppError("NOT_FOUND", 404);
       const key = uid.parse(req.headers.get("idempotency-key"));

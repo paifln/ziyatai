@@ -21,5 +21,8 @@ const report = {
   scope: "local TCP INSTREAM adapter; harmless standard test signature",
 };
 await mkdir(".local/reports", { recursive: true });
-await writeFile(".local/reports/antivirus.json", JSON.stringify(report, null, 2));
+await writeFile(
+  ".local/reports/antivirus.json",
+  JSON.stringify(report, null, 2),
+);
 console.log(JSON.stringify(report));

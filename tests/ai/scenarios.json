@@ -7,9 +7,7 @@
       "grade": 5,
       "topic": "Ақпараттың өлшем бірліктері",
       "goals": "1 байт = 8 бит қатынасы берілгенде ақпарат көлемін байттан битке түрлендіру.",
-      "objectiveCodes": [
-        "manual"
-      ],
+      "objectiveCodes": ["manual"],
       "subject": "informatics",
       "locale": "kk",
       "count": 1,
@@ -30,9 +28,7 @@
       "grade": 5,
       "topic": "Ақпараттың өлшем бірліктері",
       "goals": "1 байт = 8 бит қатынасы берілгенде ақпарат көлемін байттан битке түрлендіру.",
-      "objectiveCodes": [
-        "manual"
-      ],
+      "objectiveCodes": ["manual"],
       "subject": "informatics",
       "locale": "kk",
       "count": 3,
@@ -53,9 +49,7 @@
       "grade": 5,
       "topic": "Единицы измерения информации",
       "goals": "Переводить количество информации из байтов в биты при заданном соотношении 1 байт = 8 бит.",
-      "objectiveCodes": [
-        "manual"
-      ],
+      "objectiveCodes": ["manual"],
       "subject": "informatics",
       "locale": "ru",
       "count": 1,
@@ -76,9 +70,7 @@
       "grade": 5,
       "topic": "Единицы измерения информации",
       "goals": "Переводить количество информации из байтов в биты при заданном соотношении 1 байт = 8 бит.",
-      "objectiveCodes": [
-        "manual"
-      ],
+      "objectiveCodes": ["manual"],
       "subject": "informatics",
       "locale": "ru",
       "count": 3,
@@ -99,9 +91,7 @@
       "grade": 5,
       "topic": "Ақпараттың өлшем бірліктері",
       "goals": "1 байт = 8 бит қатынасы берілгенде ақпарат көлемін байттан битке түрлендіру.",
-      "objectiveCodes": [
-        "manual"
-      ],
+      "objectiveCodes": ["manual"],
       "subject": "informatics",
       "locale": "kk+ru",
       "count": 1,
@@ -122,9 +112,7 @@
       "grade": 5,
       "topic": "Ақпараттың өлшем бірліктері",
       "goals": "1 байт = 8 бит қатынасы берілгенде ақпарат көлемін байттан битке түрлендіру.",
-      "objectiveCodes": [
-        "manual"
-      ],
+      "objectiveCodes": ["manual"],
       "subject": "informatics",
       "locale": "kk+ru",
       "count": 3,
@@ -145,9 +133,7 @@
       "grade": 6,
       "topic": "Сызықтық алгоритмдер",
       "goals": "Әрекеттер тізбегін құру және түсіндіру.",
-      "objectiveCodes": [
-        "manual"
-      ],
+      "objectiveCodes": ["manual"],
       "subject": "informatics",
       "locale": "kk",
       "count": 1,
@@ -168,9 +154,7 @@
       "grade": 6,
       "topic": "Сызықтық алгоритмдер",
       "goals": "Әрекеттер тізбегін құру және түсіндіру.",
-      "objectiveCodes": [
-        "manual"
-      ],
+      "objectiveCodes": ["manual"],
       "subject": "informatics",
       "locale": "kk",
       "count": 3,
@@ -191,9 +175,7 @@
       "grade": 6,
       "topic": "Линейные алгоритмы",
       "goals": "Составлять и объяснять последовательность действий.",
-      "objectiveCodes": [
-        "manual"
-      ],
+      "objectiveCodes": ["manual"],
       "subject": "informatics",
       "locale": "ru",
       "count": 1,
@@ -214,9 +196,7 @@
       "grade": 6,
       "topic": "Линейные алгоритмы",
       "goals": "Составлять и объяснять последовательность действий.",
-      "objectiveCodes": [
-        "manual"
-      ],
+      "objectiveCodes": ["manual"],
       "subject": "informatics",
       "locale": "ru",
       "count": 3,
@@ -237,9 +217,7 @@
       "grade": 6,
       "topic": "Сызықтық алгоритмдер",
       "goals": "Әрекеттер тізбегін құру және түсіндіру.",
-      "objectiveCodes": [
-        "manual"
-      ],
+      "objectiveCodes": ["manual"],
       "subject": "informatics",
       "locale": "kk+ru",
       "count": 1,
@@ -260,9 +238,7 @@
       "grade": 6,
       "topic": "Сызықтық алгоритмдер",
       "goals": "Әрекеттер тізбегін құру және түсіндіру.",
-      "objectiveCodes": [
-        "manual"
-      ],
+      "objectiveCodes": ["manual"],
       "subject": "informatics",
       "locale": "kk+ru",
       "count": 3,
@@ -283,9 +259,7 @@
       "grade": 7,
       "topic": "Python шартты операторы",
       "goals": "Толық берілген сандық деректерге if/else қолдану.",
-      "objectiveCodes": [
-        "manual"
-      ],
+      "objectiveCodes": ["manual"],
       "subject": "informatics",
       "locale": "kk",
       "count": 1,
@@ -306,9 +280,7 @@
       "grade": 7,
       "topic": "Python шартты операторы",
       "goals": "Толық берілген сандық деректерге if/else қолдану.",
-      "objectiveCodes": [
-        "manual"
-      ],
+      "objectiveCodes": ["manual"],
       "subject": "informatics",
       "locale": "kk",
       "count": 3,
@@ -329,9 +301,7 @@
       "grade": 7,
       "topic": "Условный оператор Python",
       "goals": "Применять if/else к полностью заданным числовым данным.",
-      "objectiveCodes": [
-        "manual"
-      ],
+      "objectiveCodes": ["manual"],
       "subject": "informatics",
       "locale": "ru",
       "count": 1,
@@ -352,9 +322,7 @@
       "grade": 7,
       "topic": "Условный оператор Python",
       "goals": "Применять if/else к полностью заданным числовым данным.",
-      "objectiveCodes": [
-        "manual"
-      ],
+      "objectiveCodes": ["manual"],
       "subject": "informatics",
       "locale": "ru",
       "count": 3,
@@ -375,9 +343,7 @@
       "grade": 7,
       "topic": "Python шартты операторы",
       "goals": "Толық берілген сандық деректерге if/else қолдану.",
-      "objectiveCodes": [
-        "manual"
-      ],
+      "objectiveCodes": ["manual"],
       "subject": "informatics",
       "locale": "kk+ru",
       "count": 1,
@@ -398,9 +364,7 @@
       "grade": 7,
       "topic": "Python шартты операторы",
       "goals": "Толық берілген сандық деректерге if/else қолдану.",
-      "objectiveCodes": [
-        "manual"
-      ],
+      "objectiveCodes": ["manual"],
       "subject": "informatics",
       "locale": "kk+ru",
       "count": 3,
@@ -421,9 +385,7 @@
       "grade": 8,
       "topic": "Кестелердегі формулалар",
       "goals": "Сыртқы файлдарсыз берілген кесте бойынша қосынды мен орташа мәнді есептеу.",
-      "objectiveCodes": [
-        "manual"
-      ],
+      "objectiveCodes": ["manual"],
       "subject": "informatics",
       "locale": "kk",
       "count": 1,
@@ -444,9 +406,7 @@
       "grade": 8,
       "topic": "Кестелердегі формулалар",
       "goals": "Сыртқы файлдарсыз берілген кесте бойынша қосынды мен орташа мәнді есептеу.",
-      "objectiveCodes": [
-        "manual"
-      ],
+      "objectiveCodes": ["manual"],
       "subject": "informatics",
       "locale": "kk",
       "count": 3,
@@ -467,9 +427,7 @@
       "grade": 8,
       "topic": "Формулы в таблицах",
       "goals": "Вычислять сумму и среднее по приведённой таблице без внешних файлов.",
-      "objectiveCodes": [
-        "manual"
-      ],
+      "objectiveCodes": ["manual"],
       "subject": "informatics",
       "locale": "ru",
       "count": 1,
@@ -490,9 +448,7 @@
       "grade": 8,
       "topic": "Формулы в таблицах",
       "goals": "Вычислять сумму и среднее по приведённой таблице без внешних файлов.",
-      "objectiveCodes": [
-        "manual"
-      ],
+      "objectiveCodes": ["manual"],
       "subject": "informatics",
       "locale": "ru",
       "count": 3,
@@ -513,9 +469,7 @@
       "grade": 8,
       "topic": "Кестелердегі формулалар",
       "goals": "Сыртқы файлдарсыз берілген кесте бойынша қосынды мен орташа мәнді есептеу.",
-      "objectiveCodes": [
-        "manual"
-      ],
+      "objectiveCodes": ["manual"],
       "subject": "informatics",
       "locale": "kk+ru",
       "count": 1,
@@ -536,9 +490,7 @@
       "grade": 8,
       "topic": "Кестелердегі формулалар",
       "goals": "Сыртқы файлдарсыз берілген кесте бойынша қосынды мен орташа мәнді есептеу.",
-      "objectiveCodes": [
-        "manual"
-      ],
+      "objectiveCodes": ["manual"],
       "subject": "informatics",
       "locale": "kk+ru",
       "count": 3,
@@ -559,9 +511,7 @@
       "grade": 9,
       "topic": "Логикалық өрнектер",
       "goals": "Берілген AND, OR, NOT үшін ақиқат кестелерін құру.",
-      "objectiveCodes": [
-        "manual"
-      ],
+      "objectiveCodes": ["manual"],
       "subject": "informatics",
       "locale": "kk",
       "count": 1,
@@ -582,9 +532,7 @@
       "grade": 9,
       "topic": "Логикалық өрнектер",
       "goals": "Берілген AND, OR, NOT үшін ақиқат кестелерін құру.",
-      "objectiveCodes": [
-        "manual"
-      ],
+      "objectiveCodes": ["manual"],
       "subject": "informatics",
       "locale": "kk",
       "count": 3,
@@ -605,9 +553,7 @@
       "grade": 9,
       "topic": "Логические выражения",
       "goals": "Строить таблицы истинности для заданных AND, OR, NOT.",
-      "objectiveCodes": [
-        "manual"
-      ],
+      "objectiveCodes": ["manual"],
       "subject": "informatics",
       "locale": "ru",
       "count": 1,
@@ -628,9 +574,7 @@
       "grade": 9,
       "topic": "Логические выражения",
       "goals": "Строить таблицы истинности для заданных AND, OR, NOT.",
-      "objectiveCodes": [
-        "manual"
-      ],
+      "objectiveCodes": ["manual"],
       "subject": "informatics",
       "locale": "ru",
       "count": 3,
@@ -651,9 +595,7 @@
       "grade": 9,
       "topic": "Логикалық өрнектер",
       "goals": "Берілген AND, OR, NOT үшін ақиқат кестелерін құру.",
-      "objectiveCodes": [
-        "manual"
-      ],
+      "objectiveCodes": ["manual"],
       "subject": "informatics",
       "locale": "kk+ru",
       "count": 1,
@@ -674,9 +616,7 @@
       "grade": 9,
       "topic": "Логикалық өрнектер",
       "goals": "Берілген AND, OR, NOT үшін ақиқат кестелерін құру.",
-      "objectiveCodes": [
-        "manual"
-      ],
+      "objectiveCodes": ["manual"],
       "subject": "informatics",
       "locale": "kk+ru",
       "count": 3,
@@ -697,9 +637,7 @@
       "grade": 10,
       "topic": "Қарапайым SQL сұраулары",
       "goals": "Берілген кесте сұлбасы мен жолдарына SELECT және WHERE қолдану.",
-      "objectiveCodes": [
-        "manual"
-      ],
+      "objectiveCodes": ["manual"],
       "subject": "informatics",
       "locale": "kk",
       "count": 1,
@@ -720,9 +658,7 @@
       "grade": 10,
       "topic": "Қарапайым SQL сұраулары",
       "goals": "Берілген кесте сұлбасы мен жолдарына SELECT және WHERE қолдану.",
-      "objectiveCodes": [
-        "manual"
-      ],
+      "objectiveCodes": ["manual"],
       "subject": "informatics",
       "locale": "kk",
       "count": 3,
@@ -743,9 +679,7 @@
       "grade": 10,
       "topic": "Простые запросы SQL",
       "goals": "Применять SELECT и WHERE к приведённой схеме и строкам таблицы.",
-      "objectiveCodes": [
-        "manual"
-      ],
+      "objectiveCodes": ["manual"],
       "subject": "informatics",
       "locale": "ru",
       "count": 1,
@@ -766,9 +700,7 @@
       "grade": 10,
       "topic": "Простые запросы SQL",
       "goals": "Применять SELECT и WHERE к приведённой схеме и строкам таблицы.",
-      "objectiveCodes": [
-        "manual"
-      ],
+      "objectiveCodes": ["manual"],
       "subject": "informatics",
       "locale": "ru",
       "count": 3,
@@ -789,9 +721,7 @@
       "grade": 10,
       "topic": "Қарапайым SQL сұраулары",
       "goals": "Берілген кесте сұлбасы мен жолдарына SELECT және WHERE қолдану.",
-      "objectiveCodes": [
-        "manual"
-      ],
+      "objectiveCodes": ["manual"],
       "subject": "informatics",
       "locale": "kk+ru",
       "count": 1,
@@ -812,9 +742,7 @@
       "grade": 10,
       "topic": "Қарапайым SQL сұраулары",
       "goals": "Берілген кесте сұлбасы мен жолдарына SELECT және WHERE қолдану.",
-      "objectiveCodes": [
-        "manual"
-      ],
+      "objectiveCodes": ["manual"],
       "subject": "informatics",
       "locale": "kk+ru",
       "count": 3,

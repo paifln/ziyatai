@@ -61,7 +61,12 @@ try {
     await context.request.get(`${origin}/api/auth/get-session`)
   ).json();
   owner = session?.user?.id;
-  subject = (await pool.query(`SELECT subject FROM ${namespace}.auth_identities WHERE owner_id=$1`, [owner])).rows[0]?.subject;
+  subject = (
+    await pool.query(
+      `SELECT subject FROM ${namespace}.auth_identities WHERE owner_id=$1`,
+      [owner],
+    )
+  ).rows[0]?.subject;
   if (!owner || session.user.email !== email)
     throw new Error("Verified session missing");
   const originalCookies = await context.cookies();

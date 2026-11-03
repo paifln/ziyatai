@@ -119,13 +119,15 @@ async function setup(page: Page, incompleteIndex?: number) {
   };
 }
 
-test("Lite signup sends a POST and opens the workspace immediately", async ({ page }) => {
+test("Lite signup sends a POST and opens the workspace immediately", async ({
+  page,
+}) => {
   const state = await setup(page);
   state.setOwner(null);
   await page.reload();
   await page.getByRole("button", { name: "Регистрация", exact: true }).click();
   let submitted: Record<string, unknown> | undefined;
-  await page.route(`${origin}/api/auth/sign-up/email`, async route => {
+  await page.route(`${origin}/api/auth/sign-up/email`, async (route) => {
     expect(route.request().method()).toBe("POST");
     submitted = route.request().postDataJSON();
     state.setOwner("teacher-a");
@@ -134,11 +136,18 @@ test("Lite signup sends a POST and opens the workspace immediately", async ({ pa
   await page.getByLabel("Имя", { exact: true }).fill("Synthetic teacher");
   await page.getByLabel("Ваш предмет", { exact: true }).fill("Математика");
   await page.getByLabel("Email", { exact: true }).fill("teacher@example.test");
-  await page.getByLabel("Пароль", { exact: true }).fill("synthetic-password-123");
+  await page
+    .getByLabel("Пароль", { exact: true })
+    .fill("synthetic-password-123");
   await page.getByRole("checkbox").check();
   await page.getByRole("button", { name: "Регистрация", exact: true }).click();
-  await expect(page.getByText("Личный КТП первого учителя", { exact: true })).toBeVisible();
-  expect(submitted).toMatchObject({ email: "teacher@example.test", name: "Synthetic teacher" });
+  await expect(
+    page.getByText("Личный КТП первого учителя", { exact: true }),
+  ).toBeVisible();
+  expect(submitted).toMatchObject({
+    email: "teacher@example.test",
+    name: "Synthetic teacher",
+  });
 });
 
 test("old Lite save carries the original owner and clears private forms after rejection", async ({

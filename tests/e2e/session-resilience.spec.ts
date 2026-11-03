@@ -24,16 +24,14 @@ for (const status of [429, 503]) {
   }) => {
     await verifiedUser(request);
     await page.context().addCookies((await request.storageState()).cookies);
-    await page
-      .context()
-      .addCookies([
-        {
-          name: "ziyatai-locale",
-          value: "ru",
-          domain: new URL(qaOrigin).hostname,
-          path: "/",
-        },
-      ]);
+    await page.context().addCookies([
+      {
+        name: "ziyatai-locale",
+        value: "ru",
+        domain: new URL(qaOrigin).hostname,
+        path: "/",
+      },
+    ]);
     await page.route(
       "**/api/auth/get-session",
       (route) =>

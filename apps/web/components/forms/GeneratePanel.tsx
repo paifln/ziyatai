@@ -1,4 +1,6 @@
 "use client";
+import type { PlanDetail } from "../../../../packages/contracts/workspace";
+import { textForKey } from "../../lib/i18n";
 import { useState, useEffect, useRef } from "react";
 import { Sparkles, Minus, Plus, Clock3 } from "lucide-react";
 import { useAccountApi } from "../../lib/account-client";
@@ -28,7 +30,7 @@ export function GeneratePanel({
 }) {
   const api = useAccountApi();
   const [planId, setPlanId] = useState(selected || ""),
-    [plan, setPlan] = useState<any>(),
+    [plan, setPlan] = useState<PlanDetail>(),
     [rowId, setRowId] = useState(""),
     [outLocale, setOutLocale] = useState<string>(locale),
     [count, setCount] = useState(3),
@@ -55,7 +57,7 @@ export function GeneratePanel({
           setClassFilter(selectedGrade ? String(selectedGrade) : "");
           setRowId(
             p.rows?.find(
-              (r: any) =>
+              (r: import("../../../../packages/contracts").KtpRow) =>
                 !selectedGrade || rowGrade(r, p.grade) === selectedGrade,
             )?.id ?? "",
           );
@@ -69,7 +71,9 @@ export function GeneratePanel({
     } else setPlanLoading(false);
     return () => controller.abort();
   }, [planId, onError, api]);
-  const row = plan?.rows?.find((r: any) => r.id === rowId);
+  const row = plan?.rows?.find(
+    (r: import("../../../../packages/contracts").KtpRow) => r.id === rowId,
+  );
   const requestKeys = useRef(new Map<string, string>());
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -134,7 +138,8 @@ export function GeneratePanel({
                     setTopicQuery("");
                     setRowId(
                       plan.rows.find(
-                        (r: any) => String(rowGrade(r, plan.grade)) === next,
+                        (r: import("../../../../packages/contracts").KtpRow) =>
+                          String(rowGrade(r, plan.grade)) === next,
                       )?.id ?? "",
                     );
                   }}
@@ -149,7 +154,7 @@ export function GeneratePanel({
             )}
             <div className="mt-20 field-group">
               <label htmlFor="generation-topic">{t.chooseTopic}</label>
-              {plan?.rows?.length > 20 && (
+              {(plan?.rows?.length ?? 0) > 20 && (
                 <input
                   type="search"
                   aria-label={
@@ -172,19 +177,19 @@ export function GeneratePanel({
               >
                 {plan?.rows
                   ?.filter(
-                    (r: any) =>
+                    (r: import("../../../../packages/contracts").KtpRow) =>
                       !classFilter ||
                       String(rowGrade(r, plan.grade)) === classFilter,
                   )
                   .filter(
-                    (r: any) =>
+                    (r: import("../../../../packages/contracts").KtpRow) =>
                       !topicQuery.trim() ||
                       r.topic
                         .toLocaleLowerCase()
                         .includes(topicQuery.trim().toLocaleLowerCase()) ||
                       r.id === rowId,
                   )
-                  .map((r: any) => (
+                  .map((r: import("../../../../packages/contracts").KtpRow) => (
                     <option key={r.id} value={r.id}>
                       {r.sourceOrder}. {r.topic}
                     </option>
@@ -199,7 +204,7 @@ export function GeneratePanel({
             {row && (
               <div className="topic-summary">
                 <span className="badge green">
-                  {rowGrade(row, plan.grade)} {t.grade.toLowerCase()} ·{" "}
+                  {rowGrade(row, plan?.grade ?? null)} {t.grade.toLowerCase()} ·{" "}
                   {t.confirmed}
                 </span>
                 <h3 className="mt-20">{row.topic}</h3>
@@ -226,7 +231,7 @@ export function GeneratePanel({
                 >
                   {["mixed", "theory", "programming", "logic"].map((f) => (
                     <option key={f} value={f}>
-                      {(t as any)[f]}
+                      {textForKey(t, f, f)}
                     </option>
                   ))}
                 </select>

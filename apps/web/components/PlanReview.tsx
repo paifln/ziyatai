@@ -1,4 +1,8 @@
 "use client";
+import type {
+  PlanDetail,
+  JobSummary,
+} from "../../../packages/contracts/workspace";
 import { useUnsavedChanges } from "../lib/use-unsaved-changes";
 import { useDraftState } from "../lib/use-draft-state";
 import { useConfirm } from "./ui/ConfirmProvider";
@@ -57,13 +61,13 @@ export default function PlanReview({
   onDirtyChange: (dirty: boolean) => void;
   onSaved: () => void;
   onGenerate: () => void;
-  jobs: any[];
+  jobs: JobSummary[];
   refresh: () => Promise<void>;
   onBack: () => void;
 }) {
   const api = useAccountApi();
   const confirm = useConfirm();
-  const [plan, setPlan] = useState<any>(),
+  const [plan, setPlan] = useState<PlanDetail>(),
     [rows, setRows] = useState<KtpRow[]>([]),
     [grade, setGrade] = useState<number | null>(null),
     [year, setYear] = useState(""),
@@ -277,7 +281,7 @@ export default function PlanReview({
     setDirty(true);
   }
   async function save(confirm = false) {
-    if (busy) return;
+    if (busy || !plan) return;
     setBusy(true);
     try {
       const canonicalRows = normalizePlanRows(rows);
@@ -293,11 +297,14 @@ export default function PlanReview({
         },
       );
       // The write is committed even if the following read fails.
-      setPlan((current: any) => ({
-        ...current,
-        revision: saved.revision,
-        status: confirm ? "confirmed" : "review",
-      }));
+      setPlan(
+        (current) =>
+          current && {
+            ...current,
+            revision: saved.revision,
+            status: confirm ? "confirmed" : "review",
+          },
+      );
       setDirty(false);
       baseline.current = { rows: canonicalRows, grade, schoolYear: year };
       await load();
@@ -454,10 +461,13 @@ export default function PlanReview({
         onRestore={(stored) => {
           readController.current?.abort();
           baseline.current = stored.base;
-          setPlan((current: any) => ({
-            ...current,
-            revision: stored.baseRevision,
-          }));
+          setPlan(
+            (current) =>
+              current && {
+                ...current,
+                revision: stored.baseRevision,
+              },
+          );
           setRows(stored.draft.rows);
           setGrade(stored.draft.grade);
           setYear(stored.draft.schoolYear);
@@ -482,14 +492,17 @@ export default function PlanReview({
           onResolve={(latest, merged, changed) => {
             readController.current?.abort();
             baseline.current = latest.draft;
-            setPlan((current: any) => ({
-              ...current,
-              revision: latest.revision,
-              status: latest.status,
-              rows: latest.draft.rows,
-              grade: latest.draft.grade,
-              school_year: latest.draft.schoolYear,
-            }));
+            setPlan(
+              (current) =>
+                current && {
+                  ...current,
+                  revision: latest.revision,
+                  status: latest.status,
+                  rows: latest.draft.rows,
+                  grade: latest.draft.grade,
+                  school_year: latest.draft.schoolYear,
+                },
+            );
             setRows(merged.rows);
             setGrade(merged.grade);
             setYear(merged.schoolYear);
@@ -1304,7 +1317,7 @@ export default function PlanReview({
             {t.addRow}
           </button>
         </section>
-        {plan.unrecognized?.length > 0 && (
+        {plan.unrecognized && plan.unrecognized.length > 0 && (
           <section className="card">
             <button
               className="text-button"

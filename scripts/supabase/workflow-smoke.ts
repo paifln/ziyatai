@@ -111,7 +111,10 @@ try {
       const sample = syntheticDemo("kk");
       generation = { id: randomUUID() };
       const pool = new Pool({
-        ...databaseConnection({ DATABASE_URL: values.DATABASE_URL, DATABASE_SSL_CA: values.DATABASE_SSL_CA }),
+        ...databaseConnection({
+          DATABASE_URL: values.DATABASE_URL,
+          DATABASE_SSL_CA: values.DATABASE_SSL_CA,
+        }),
         options: "-c search_path=ziyatai,public",
         max: 1,
       });

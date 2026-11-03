@@ -100,7 +100,9 @@ it("omits solutions from student exports while retaining them in full exports", 
   task.rubric[0].criterion = "PRIVATE_RUBRIC";
   task.translation = {
     contentBlocks: structuredClone(task.contentBlocks),
-    answerBlocks: [{ ...task.answerBlocks[0], text: "PRIVATE_TRANSLATED_ANSWER" }],
+    answerBlocks: [
+      { ...task.answerBlocks[0], text: "PRIVATE_TRANSLATED_ANSWER" },
+    ],
     explanationHow: "PRIVATE_TRANSLATED_HOW",
     explanationWhy: "PRIVATE_TRANSLATED_WHY",
     rubric: [{ ...task.rubric[0], criterion: "PRIVATE_TRANSLATED_RUBRIC" }],

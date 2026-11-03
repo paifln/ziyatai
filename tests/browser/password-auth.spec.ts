@@ -1,6 +1,8 @@
 import { test, expect } from "@playwright/test";
 import { build } from "esbuild";
 import { readFile } from "node:fs/promises";
+import { browserStyles } from "./styles";
+import AxeBuilder from "@axe-core/playwright";
 
 for (const locale of ["ru", "kk"] as const) {
   test(`Supabase password signup preserves details and opens the workspace immediately on mobile (${locale})`, async ({
@@ -46,8 +48,14 @@ for (const locale of ["ru", "kk"] as const) {
       return route.fulfill({ status: 404, body: "" });
     });
     await page.goto(`${origin}/signup`);
-    for (const file of ["app/globals.css", "app/theme.css", "app/landing.css"])
-      await page.addStyleTag({ content: await readFile(file, "utf8") });
+    for (const file of [
+      "app/globals.css",
+      "app/theme.css",
+      "app/landing.css",
+    ]) {
+      const content = await browserStyles(file);
+      await page.addStyleTag({ content });
+    }
     await page.addScriptTag({ content: bundle.outputFiles[0].text });
     await expect(page.locator('input[type="password"]')).toHaveCount(1);
     await page.evaluate(() => document.fonts.ready);
@@ -60,12 +68,30 @@ for (const locale of ["ru", "kk"] as const) {
       await page.setViewportSize({ width, height });
       await expect
         .poll(() =>
-          page.evaluate(() => ({
-            horizontal: document.documentElement.scrollWidth > innerWidth + 1,
-            vertical: document.documentElement.scrollHeight > innerHeight + 1,
-          })),
+          page.evaluate(
+            () => document.documentElement.scrollWidth > innerWidth + 1,
+          ),
         )
-        .toEqual({ horizontal: false, vertical: false });
+        .toBe(false);
+      // Vertical scrolling is necessary at short heights and browser zoom; do not
+      // shrink touch targets or clip controls to force the whole page above the fold.
+      for (const control of await page
+        .locator(
+          'form input:not([type="checkbox"]),form select,.password-toggle,.language-switch button',
+        )
+        .all()) {
+        const box = await control.boundingBox();
+        expect(box?.height).toBeGreaterThanOrEqual(44);
+      }
+      await page.locator("form button.primary").scrollIntoViewIfNeeded();
+      await expect(page.locator("form button.primary")).toBeInViewport();
+      expect(
+        (
+          await new AxeBuilder({ page })
+            .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
+            .analyze()
+        ).violations,
+      ).toEqual([]);
     }
     await page.locator('input[autocomplete="name"]').fill("Әлия Ғалымқызы");
     await page.getByRole("combobox").selectOption("mathematics");

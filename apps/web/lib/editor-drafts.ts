@@ -59,7 +59,13 @@ function reply(value: unknown, status = 200) {
     headers: { "Cache-Control": "private, no-store" },
   });
 }
-function summary(row: any) {
+function summary(row: {
+  id: string;
+  base_revision: number;
+  sequence: number;
+  saved_at: string | Date;
+  expires_at: string | Date;
+}) {
   return {
     id: row.id,
     baseRevision: row.base_revision,

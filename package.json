@@ -38,7 +38,9 @@
     "supabase:check": "tsx scripts/supabase/check.ts",
     "supabase:copy-db": "tsx scripts/supabase/copy-database.ts",
     "supabase:copy-files": "tsx scripts/supabase/copy-files.ts",
-    "check:unused": "knip"
+    "check:unused": "knip",
+    "format:check": "prettier --check app apps/web packages scripts tests .railway/railway.ts",
+    "format": "prettier --write app apps/web packages scripts tests .railway/railway.ts"
   },
   "keywords": [],
   "type": "module",
