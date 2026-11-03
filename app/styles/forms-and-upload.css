@@ -1,0 +1,290 @@
+.form-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+}
+.form-grid .span-2 {
+  grid-column: span 2;
+}
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+.workflow {
+  display: flex;
+  list-style: none;
+  margin: 0 0 32px;
+  padding: 0 0 24px;
+  border-bottom: 1px solid var(--line);
+  gap: 24px;
+}
+.workflow li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.workflow li > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #ccd5c7;
+  border-radius: 50%;
+  font-size: 10px;
+}
+.workflow strong {
+  font-weight: 500;
+}
+.workflow .current {
+  color: var(--green);
+}
+.workflow .current > span {
+  background: var(--green);
+  color: #fff;
+  border-color: var(--green);
+}
+.workflow .current strong {
+  font-weight: 650;
+}
+.workflow .complete > span {
+  background: #e7eedf;
+  color: var(--green);
+  border-color: #e7eedf;
+}
+.upload-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 270px;
+  gap: 36px;
+  align-items: start;
+}
+.upload-card {
+  min-width: 0;
+}
+.dropzone {
+  text-align: center;
+  padding: 36px 20px 28px;
+  border: 1px dashed #9fac95;
+  background: #fbfcf7;
+  border-radius: 12px;
+  transition: border-color 0.18s;
+}
+.dropzone.dragging {
+  background: #e8f1df;
+  border-color: var(--green);
+}
+.upload-symbol {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border: 1px solid #d6dfcc;
+  border-radius: 16px;
+  background: #f0f4e7;
+  color: var(--green);
+  margin-bottom: 18px;
+}
+.dropzone h2 {
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+.dropzone p {
+  font-size: 12px;
+  margin-bottom: 22px;
+}
+.file-picker {
+  box-shadow: 0 2px 3px #20302108;
+  border-color: #cbd4c1;
+}
+.file-formats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 22px;
+  font-size: 10px;
+  color: var(--muted);
+}
+.file-formats > span {
+  background: #edf1e5;
+  padding: 3px 7px;
+  border-radius: 4px;
+  font-weight: 550;
+  color: #536446;
+}
+.file-formats small {
+  font-size: 10px;
+  margin-left: 4px;
+}
+.selected-file {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  margin-top: 18px;
+  border: 1px solid #d8e4cd;
+  border-radius: 12px;
+  background: #f8fbf4;
+}
+.selected-file > div {
+  min-width: 0;
+  flex: 1;
+}
+.selected-file strong {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.selected-file small {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  margin-top: 4px;
+}
+.upload-options {
+  margin-top: 26px !important;
+}
+.advanced-options {
+  border-top: 1px solid var(--line);
+  margin-top: 22px;
+  padding-top: 18px;
+  font-size: 12px;
+}
+summary {
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 550;
+  color: var(--green);
+}
+.advanced-options label {
+  margin-top: 16px;
+}
+.advanced-options p {
+  font-size: 11px;
+  margin: 12px 0 0;
+}
+.upload-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--line);
+  padding-top: 24px;
+  margin-top: 24px;
+}
+.upload-guide {
+  padding-top: 12px;
+}
+.upload-guide h2 {
+  font-size: 21px;
+  margin-bottom: 28px;
+}
+.upload-guide > div {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 22px;
+}
+.upload-guide > div > span {
+  color: #60724f;
+  font-size: 11px;
+  padding-top: 3px;
+}
+.upload-guide p {
+  font-size: 12px;
+  margin: 0;
+}
+.upload-guide strong {
+  display: block;
+  color: var(--ink);
+  font-weight: 550;
+  margin-bottom: 7px;
+}
+.upload-guide .upload-private {
+  border-top: 1px solid var(--line);
+  padding-top: 22px;
+  margin-top: 30px;
+  color: var(--green);
+}
+.upload-private > svg {
+  flex-shrink: 0;
+}
+.upload-guide > small {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+}
+.upload-progress {
+  margin-top: 24px;
+}
+.upload-progress > div {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+progress {
+  display: block;
+  width: 100%;
+  height: 5px;
+  border: 0;
+  border-radius: 8px;
+  accent-color: var(--green);
+}
+progress::-webkit-progress-bar {
+  background: #e7eddf;
+  border-radius: 8px;
+}
+progress::-webkit-progress-value {
+  background: var(--green);
+  border-radius: 8px;
+}
+.job-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+}
+.job-body {
+  flex: 1;
+  min-width: 0;
+}
+.job-card strong {
+  display: block;
+  font-size: 12px;
+}
+.job-card small {
+  color: var(--muted);
+  font-size: 11px;
+}
+.spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid #b4c3a7;
+  border-top-color: var(--green);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+.button.primary .spinner {
+  border-color: #ffffff50;
+  border-top-color: #fff;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

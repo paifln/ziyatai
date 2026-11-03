@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { build } from "esbuild";
-import { readFile } from "node:fs/promises";
+import { stylesheet } from "./styles";
 
 for (const locale of ["ru", "kk"] as const) {
   test(`Supabase password signup preserves details and opens the workspace immediately on mobile (${locale})`, async ({
@@ -42,7 +42,7 @@ for (const locale of ["ru", "kk"] as const) {
     });
     await page.goto(`${origin}/signup`);
     for (const file of ["app/globals.css", "app/theme.css", "app/landing.css"])
-      await page.addStyleTag({ content: await readFile(file, "utf8") });
+      await page.addStyleTag({ content: await stylesheet(file) });
     await page.addScriptTag({ content: bundle.outputFiles[0].text });
     await expect(page.locator('input[type="password"]')).toHaveCount(1);
     for (const [width, height] of [

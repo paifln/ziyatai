@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { build } from "esbuild";
 import { syntheticDemo } from "../../packages/domain/demo";
-import { readFile } from "node:fs/promises";
+import { stylesheet } from "./styles";
 import AxeBuilder from "@axe-core/playwright";
 
 for (const locale of ["ru", "kk"] as const) {
@@ -40,7 +40,7 @@ for (const locale of ["ru", "kk"] as const) {
       `<html lang="${locale}"><head><title>Task review</title></head><body><main style="padding:16px;max-width:1100px;margin:auto"><h1>Task review</h1><div id="root"></div></main></body></html>`,
     );
     for (const path of ["app/globals.css", "app/theme.css", "app/review.css"]) {
-      await page.addStyleTag({ content: await readFile(path, "utf8") });
+      await page.addStyleTag({ content: await stylesheet(path) });
     }
     await page.addScriptTag({ content: bundle.outputFiles[0].text });
     const cards = page.locator(".task-review-card");

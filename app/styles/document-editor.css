@@ -1,0 +1,354 @@
+.editor-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 290px;
+  gap: 24px;
+  align-items: start;
+}
+.editor-layout > *,
+.generation-layout > * {
+  min-width: 0;
+}
+.editor-fields {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+  min-inline-size: 0;
+  position: relative;
+}
+.editor-side {
+  position: sticky;
+  top: 20px;
+}
+.editor-side .card {
+  padding: 22px;
+  margin-bottom: 20px;
+}
+.editor-side label {
+  margin: 14px 0;
+}
+.editor-side .form-grid {
+  gap: 10px;
+}
+.editor-side .button {
+  font-size: 12px;
+}
+.task-card {
+  margin-bottom: 20px;
+}
+.task-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.task-toggle {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  text-align: left;
+  background: transparent;
+  color: var(--ink);
+  border: 0;
+  padding: 6px 0;
+  min-height: 44px;
+}
+.task-toggle strong {
+  flex: 1;
+  min-width: 100px;
+  font-weight: 600;
+}
+.task-toggle small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.task-toggle > span {
+  font-size: 23px;
+  color: var(--green);
+}
+.task-excerpt {
+  font-size: 14px;
+  margin-bottom: 0;
+  color: var(--muted);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  max-height: 4.8em;
+  overflow: hidden;
+}
+.task-card[data-expanded="false"] .task-header {
+  margin-bottom: 9px;
+}
+.task-card label {
+  margin-bottom: 16px;
+}
+.task-card .form-grid label {
+  margin-bottom: 0;
+}
+.task-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.blocks {
+  margin-bottom: 16px;
+}
+.block-editor {
+  padding: 14px;
+  background: #f3f6ee;
+  border-radius: 10px;
+  margin: 10px 0;
+}
+.block-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.block-top select {
+  padding: 6px 30px 6px 10px;
+  font-size: 11px;
+  max-width: 150px;
+}
+.block-top .icon-button {
+  margin-left: auto;
+}
+.code-input {
+  font-family: Consolas, monospace;
+}
+.table-grid :is(input, textarea) {
+  min-width: 95px;
+  border-radius: 0;
+  padding: 6px;
+  font-size: 12px;
+}
+.table-column-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 150px;
+}
+.table-editor-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.table-editor-actions .pagination {
+  margin: 8px 0;
+}
+.rubric-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 65px 36px;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.version-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
+.version-row span {
+  flex: 1;
+}
+.validation-list {
+  padding-left: 18px;
+  margin-bottom: 0;
+}
+.validation-list li {
+  margin-top: 10px;
+}
+.validation-list button {
+  text-align: left;
+  font-size: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.teacher-review {
+  align-items: flex-start;
+  line-height: 1.5;
+}
+.teacher-review input {
+  margin-top: 3px;
+}
+.review-hint {
+  font-size: 12px;
+  line-height: 1.6;
+}
+.profile-card {
+  max-width: 840px;
+}
+.form-section-title {
+  font-size: 17px;
+  margin-bottom: 0;
+}
+.account-security {
+  margin-top: 24px;
+}
+.section-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.section-heading > svg {
+  color: var(--green);
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.section-heading h2 {
+  margin-bottom: 8px;
+}
+.section-heading p {
+  font-size: 12px;
+  max-width: 550px;
+  margin-bottom: 0;
+}
+.chip-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.grade-chip {
+  min-width: 40px;
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--muted);
+}
+.grade-chip.active {
+  background: var(--green-soft);
+  color: var(--green);
+  border-color: #9cb38b;
+}
+.status-bar {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+.preview-block {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.preview-block pre {
+  white-space: pre-wrap;
+  font-family: Consolas, monospace;
+  font-size: 12px;
+  background: #f1f3ed;
+  padding: 12px;
+}
+.preview-block table {
+  border-collapse: collapse;
+  width: 100%;
+}
+.preview-block td,
+.preview-block th {
+  border: 1px solid var(--line);
+  padding: 8px;
+  text-align: left;
+}
+.preview-paper {
+  background: #fff;
+  padding: 30px;
+  border: 1px solid var(--line);
+  max-width: 760px;
+  margin: auto;
+  font-family: "Times New Roman", serif;
+  font-size: 18px;
+}
+.preview-paper h1 {
+  font-family: "Times New Roman", serif;
+  font-size: 26px;
+  letter-spacing: 0;
+}
+.preview-paper p {
+  color: var(--ink);
+}
+.toast {
+  position: fixed;
+  right: 28px;
+  bottom: 28px;
+  z-index: 50;
+  background: var(--green-dark);
+  color: #fff;
+  padding: 15px 22px;
+  border-radius: 12px;
+  box-shadow: 0 6px 24px #193e2f20;
+  font-size: 13px;
+}
+.site-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  padding: 22px 40px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 10px;
+}
+.site-footer > span {
+  margin-right: auto;
+}
+.site-footer a {
+  color: var(--muted);
+}
+.loading-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+}
+.loading-screen > div {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.loading-screen img {
+  box-sizing: content-box;
+  padding: 8px;
+  background: #f4f6ed;
+  border: 1px solid #d5dfce;
+  border-radius: 14px;
+}
+.session-retry {
+  padding: 20px;
+}
+.session-retry > section {
+  width: 100%;
+  max-width: 520px;
+}
+.session-retry h1 {
+  font-size: 24px;
+  line-height: 1.35;
+}
+.session-retry img {
+  background: #f4f6ed;
+  border-radius: 10px;
+  padding: 4px;
+}
+.inline-loading {
+  padding: 44px;
+  text-align: center;
+}

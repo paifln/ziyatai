@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { build } from "esbuild";
-import { readFile } from "node:fs/promises";
+import { stylesheet } from "./styles";
 import AxeBuilder from "@axe-core/playwright";
 import { syntheticDemo } from "../../packages/domain/demo";
 
@@ -65,7 +65,7 @@ for (const locale of ["ru", "kk"] as const) {
       `<html lang="${locale}"><head><title>Schedule</title></head><body><main style="padding:16px"><h1>Schedule</h1><div id="root"></div></main></body></html>`,
     );
     for (const path of ["app/globals.css", "app/theme.css", "app/review.css"])
-      await page.addStyleTag({ content: await readFile(path, "utf8") });
+      await page.addStyleTag({ content: await stylesheet(path) });
     await page.addScriptTag({ content: bundle.outputFiles[0].text });
     await page.locator(".plan-schedule > summary").click();
     await expect(page.locator(".plan-schedule-list li")).toHaveCount(3);

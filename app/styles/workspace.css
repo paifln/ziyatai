@@ -1,0 +1,252 @@
+/* Navigation is a quiet, dark spine; teaching materials get the light canvas. */
+.sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: var(--sidebar-width);
+  padding: 30px 16px 22px;
+  background: #1e3a2f;
+  color: #eef4e9;
+  display: flex;
+  flex-direction: column;
+  z-index: 20;
+  transition: width 0.2s ease;
+}
+.sidebar .brand {
+  padding: 0 12px;
+  color: #fff;
+  font-size: 24px;
+}
+.sidebar .brand img {
+  background: #f2f4e8;
+  border-radius: 12px;
+  padding: 5px;
+}
+.sidebar .brand-ai {
+  color: #c5d7ad;
+}
+.sidebar-label {
+  margin: 48px 14px 14px;
+  font-size: 10px;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: #b3c4b9;
+}
+.nav-list {
+  display: grid;
+  gap: 6px;
+}
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-height: 48px;
+  padding: 12px 14px;
+  width: 100%;
+  border: 0;
+  border-radius: 11px;
+  background: transparent;
+  color: #d5e1d7;
+  font-size: 13px;
+  text-align: left;
+  font-weight: 450;
+  transition: none;
+}
+.nav-link svg {
+  flex-shrink: 0;
+  opacity: 0.9;
+}
+.nav-link:hover {
+  background: #2b493c;
+  color: #fff;
+}
+.nav-link.active {
+  background: #e4ecd9;
+  color: #203d2d;
+  font-weight: 600;
+}
+.sidebar-collapse {
+  margin: auto 12px 0;
+  background: transparent;
+  border-color: #547162;
+  color: #d5e1d7;
+}
+.sidebar-collapse:hover {
+  background: #2b493c;
+  color: #fff;
+}
+.sidebar.collapsed {
+  width: 80px;
+  padding-left: 12px;
+  padding-right: 12px;
+}
+.sidebar.collapsed .brand {
+  padding: 0 8px;
+}
+.sidebar.collapsed .brand > span,
+.sidebar.collapsed .nav-link > span,
+.sidebar.collapsed .sidebar-label {
+  display: none;
+}
+.sidebar.collapsed .nav-list {
+  margin-top: 48px;
+}
+.sidebar.collapsed .nav-link {
+  justify-content: center;
+  padding: 12px;
+}
+.sidebar.collapsed .sidebar-collapse {
+  margin-left: 10px;
+}
+.main-shell {
+  margin-left: var(--sidebar-width);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  transition: margin-left 0.2s ease;
+}
+.main-shell.sidebar-collapsed {
+  margin-left: 80px;
+}
+.topbar {
+  min-height: 76px;
+  padding: 0 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--line);
+  background: #fbfcf9;
+}
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--muted);
+  min-width: 0;
+}
+.breadcrumb > span,
+.breadcrumb > svg {
+  display: none;
+}
+.breadcrumb strong {
+  font-weight: 500;
+}
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.topbar .help-button {
+  border: 0;
+  background: transparent;
+  font-size: 12px;
+  padding: 8px;
+  min-height: 36px;
+  color: var(--muted);
+}
+.topbar .lite-button {
+  border: 0;
+  background: transparent;
+}
+.profile-dropdown {
+  position: relative;
+}
+.profile-trigger {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px;
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+}
+.avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #dfe8d7;
+  color: #294d34;
+  font-size: 13px;
+  font-weight: 600;
+}
+.profile-menu {
+  position: absolute;
+  top: calc(100% + 14px);
+  right: 0;
+  width: 260px;
+  max-width: calc(100vw - 32px);
+  padding: 18px 8px 8px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 16px 50px #182b201a;
+  z-index: 40;
+}
+.profile-menu > strong,
+.profile-menu > small {
+  display: block;
+  margin: 0 12px 5px;
+  overflow-wrap: anywhere;
+}
+.profile-menu > small {
+  color: var(--muted);
+  font-size: 11px;
+  margin-bottom: 14px;
+}
+.profile-menu button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--ink);
+  text-align: left;
+  font-size: 13px;
+}
+.profile-menu button:hover {
+  background: var(--bg);
+}
+.menu-toggle,
+.sidebar-close,
+.mobile-overlay {
+  display: none;
+}
+.main-content {
+  width: 100%;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 44px 40px 64px;
+  flex: 1;
+}
+.page-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 30px;
+}
+.page-heading p {
+  max-width: 560px;
+  font-size: 13px;
+  margin: 12px 0 0;
+}
+.page-heading .actions {
+  margin-top: 0;
+}
+.eyebrow,
+.small-label {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
