@@ -20,3 +20,6 @@ max_frequency = "1s"
 
 [analytics]
 enabled = false
+
+[storage.s3_protocol]
+enabled = true

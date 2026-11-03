@@ -43,40 +43,61 @@ jobs:
       - run: python scripts/checks/scan-secrets.py
   integration:
     runs-on: ubuntu-24.04
+    timeout-minutes: 35
     env:
       HOSTNAME: 127.0.0.1
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: "24.22.0", cache: npm }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.13.8" }
       - uses: supabase/setup-cli@v1
         with: { version: "3.0.0" }
       - run: npm ci
+      - run: pip install -r apps/worker/requirements.lock.txt -r tests/requirements.txt
+      - run: npm run fixtures
       - run: supabase start
       - name: Prepare isolated local Supabase credentials
         run: |
           mkdir -p .local
           supabase status -o json > .local/supabase-status.json
-          npx tsx scripts/supabase/prepare-ci.ts
+          npx tsx scripts/supabase/prepare-ci.ts --documents
       - run: npm run migrate
+      - name: Prepare private local storage and document services
+        run: |
+          npx tsx scripts/supabase/check.ts .env.local --create-bucket --storage-probe
+          docker compose -f infra/compose.tools-local.yml --env-file .env.local up -d --build
+          npx tsx scripts/checks/wait-document-services.ts
+          npx tsx --env-file=.env.local scripts/checks/antivirus-check.ts
       - name: Check database transactions, migration and queue isolation
         run: |
           npx tsx --env-file=.env.local scripts/supabase/local-check.ts
           npx tsx --env-file=.env.local scripts/checks/db-resilience-check.ts
           npx tsx --env-file=.env.local scripts/checks/queue-idempotency-check.ts
           npx tsx --env-file=.env.local scripts/checks/session-read-budget-check.ts
-      - run: npm run build
+      - run: npm run build && npm run build:worker
       - run: npx playwright install --with-deps chromium
       - name: Exercise password authentication against local Supabase
         run: |
           node scripts/dev/qa-web-runtime.mjs start main > .local/qa-control.log 2>&1 &
           npx tsx scripts/supabase/auth-smoke.ts .env.local
+      - name: Import, scan, approve and export with a real local worker (no AI calls)
+        shell: bash
+        run: |
+          node --env-file=.env.local dist/worker.mjs > .local/worker-ci.log 2>&1 &
+          worker_pid=$!
+          trap 'kill "$worker_pid" 2>/dev/null || true; wait "$worker_pid" 2>/dev/null || true' EXIT
+          npx tsx scripts/supabase/workflow-smoke.ts .env.local --fixture-export
       - name: Stop owned QA processes
         if: always()
         run: node scripts/dev/qa-web-runtime.mjs finish
       - name: Stop local Supabase
         if: always()
         run: supabase stop
+      - name: Stop local document services
+        if: always()
+        run: docker compose -f infra/compose.tools-local.yml --env-file .env.local down
   railway-template:
     runs-on: ubuntu-24.04
     steps:
