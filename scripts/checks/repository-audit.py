@@ -45,7 +45,8 @@ def inventory(root):
                             "extensionlessImportReferences": [
                                 source_name for source_name, source in text.items()
                                 if source_name != name and re.search(
-                                    r"[\"'](?:[^\"'\n]*/)?" + re.escape(Path(name).stem) + r"[\"']", source
+                                    r"(?:\bfrom\s+|\bimport\s*\(\s*|\brequire\s*\(\s*|\bimport\s+)[\"'](?:[^\"'\n]*/)?"
+                                    + re.escape(Path(name).stem) + r"[\"']", source
                                 )
                             ]})
 

@@ -48,10 +48,6 @@ try {
     }
   }
   {
-    if (schema === "public")
-      throw new Error(
-        "Supabase application tables require a private DATABASE_SCHEMA",
-      );
     // Browser access goes through the server's ownership checks, never PostgREST.
     await c.query(`REVOKE ALL ON SCHEMA "${schema}" FROM anon, authenticated`);
     await c.query(
