@@ -17,6 +17,8 @@ def test_documenting_a_script_does_not_make_it_used(tmp_path):
     scripts.mkdir()
     (scripts / "manual.mjs").write_text("console.log('manual check');\n")
     (tmp_path / "README.md").write_text("Review scripts/manual.mjs before deletion.\n")
+    (tmp_path / "server").mkdir()
+    (tmp_path / "server/runtime.ts").write_text("console.log('structured event');\n")
     subprocess.run(["git", "-C", str(tmp_path), "add", "."], check=True)
     # inventory reports a HEAD, so use an isolated local commit without changing
     # the user's identity, configuration or actual repository history.
@@ -24,7 +26,11 @@ def test_documenting_a_script_does_not_make_it_used(tmp_path):
                     "-c", "user.email=audit@example.test", "commit", "--quiet",
                     "--no-gpg-sign", "-m", "fixture"], check=True)
 
-    assert audit.script_candidates(audit.inventory(tmp_path)) == ["scripts/manual.mjs"]
+    report = audit.inventory(tmp_path)
+    assert audit.script_candidates(report) == ["scripts/manual.mjs"]
+    assert report["runtimeMarkers"] == [{
+        "file": "server/runtime.ts", "line": 1, "kind": "runtime-output-or-marker"
+    }]
 
     (tmp_path / "package.json").write_text(json.dumps({
         "scripts": {"manual": "node scripts/manual.mjs"}

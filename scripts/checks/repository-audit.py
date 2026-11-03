@@ -65,7 +65,7 @@ def inventory(root):
     smells = []
     markers = []
     for name, source in text.items():
-        if name.startswith(("app/", "apps/", "packages/", "public/")):
+        if name.startswith(("app/", "apps/", "server/", "packages/", "public/")):
             for number, line in enumerate(source.splitlines(), 1):
                 if re.search(r"\b(?:TODO|FIXME|HACK|debugger)\b|console\.(?:debug|log)\(|\bprint\(", line):
                     markers.append({"file": name, "line": number, "kind": "runtime-output-or-marker"})

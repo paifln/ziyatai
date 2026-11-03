@@ -16,5 +16,5 @@
     "public/lite/*.js!",
     "server/**/*.ts!"
   ],
-  "ignore": ["apps/lite/*.part.js", "public/lite/draft-merge.js"]
+  "ignore": ["public/lite/draft-merge.js"]
 }
