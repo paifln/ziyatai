@@ -1,4 +1,4 @@
 @echo off
 cd /d "%~dp0"
-node scripts\laptop-backend.mjs start
+node scripts\deploy\laptop-backend.mjs start
 pause

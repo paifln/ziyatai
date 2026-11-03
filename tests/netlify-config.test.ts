@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createNetlifyRouting } from "../scripts/prepare-netlify.mjs";
+import { createNetlifyRouting } from "../scripts/build/prepare-netlify.mjs";
 import { onPreBuild } from "../infra/netlify-proxy/index.js";
 afterEach(() => vi.unstubAllEnvs());
 

@@ -23,5 +23,9 @@ public/licenses.txt
 .netlify/
 !apps/web/lib/auth/
 !apps/web/lib/auth/*.ts
+!scripts/lib/
+!scripts/lib/*.mjs
+!scripts/build/
+!scripts/build/*.mjs
 supabase/.temp/
 supabase/.branches/

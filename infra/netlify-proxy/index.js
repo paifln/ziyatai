@@ -1,4 +1,4 @@
-import { createNetlifyRouting } from "../../scripts/prepare-netlify.mjs";
+import { createNetlifyRouting } from "../../scripts/build/prepare-netlify.mjs";
 export function onPreBuild({ netlifyConfig }) {
   const { apiRedirect } = createNetlifyRouting(
     process.env.ZIYATAI_API_ORIGIN,

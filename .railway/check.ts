@@ -81,7 +81,7 @@ try {
   if (
     antivirus?.type !== "service" ||
     !antivirus.source?.image ||
-    !(await readFile("infra/compose.production.yml", "utf8")).includes(
+    !(await readFile("infra/compose.laptop.yml", "utf8")).includes(
       antivirus.source.image,
     )
   )

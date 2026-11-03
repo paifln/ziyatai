@@ -7,7 +7,7 @@ import {
   stopPhase,
   summarize,
   finishPhases,
-} from "../scripts/qa-web-runtime.mjs";
+} from "../scripts/dev/qa-web-runtime.mjs";
 
 async function directory() {
   const path = resolve(

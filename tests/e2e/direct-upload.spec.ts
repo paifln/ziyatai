@@ -61,7 +61,7 @@ test("active PDF content is rejected through multipart and stays quarantined aft
   expect(job.error.code).toBe("FILE_INVALID");
   expect((await request.get(`/api/uploads/${upload.id}`)).status()).toBe(409);
   await writeFile(
-    "docs/reports/passive-pdf.json",
+    ".local/reports/passive-pdf.json",
     JSON.stringify(
       {
         checkedAt: new Date().toISOString(),

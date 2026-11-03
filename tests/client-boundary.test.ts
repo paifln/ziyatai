@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { checkClientBoundary } from "../scripts/check-client-boundary.mjs";
+import { checkClientBoundary } from "../scripts/checks/check-client-boundary.mjs";
 
 it("keeps runtime server dependencies out of every browser entry point", async () => {
   expect(await checkClientBoundary()).toBeGreaterThan(20);

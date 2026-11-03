@@ -5,7 +5,7 @@ import subprocess
 import pytest
 
 
-spec = importlib.util.spec_from_file_location("secret_scan", Path(__file__).parents[2] / "scripts/scan-secrets.py")
+spec = importlib.util.spec_from_file_location("secret_scan", Path(__file__).parents[2] / "scripts/checks/scan-secrets.py")
 scan = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(scan)
 

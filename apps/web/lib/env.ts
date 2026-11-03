@@ -100,6 +100,12 @@ const schema = z.object({
   RENDERER_URL: z.string().default(""),
   RENDERER_TOKEN: z.string().default(""),
 });
+export const backendEnvironmentKeys = [
+  ...Object.keys(schema.shape),
+  "PARSER_CONTAINER_IMAGE",
+  "RENDER_CONTAINER_IMAGE",
+  "FONT_DIRECTORY",
+];
 let cache:
   | (z.infer<typeof schema> & {
       PARSER_CONTAINER_IMAGE: string;

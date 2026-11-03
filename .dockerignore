@@ -3,6 +3,8 @@ node_modules
 next-env.d.ts
 .git
 .env*
+!.env.example
+!.env.supabase.example
 .local
 .netlify
 test-results

@@ -1,9 +1,0 @@
-{
-  "date": "2026-10-15T19:36:21.452Z",
-  "scope": "Synthetic future queued import against the running local HTTP API",
-  "sourceCommit": "6dee156",
-  "httpStatus": 200,
-  "jobState": "cancelled",
-  "planState": "cancelled",
-  "noWorkerClaimPossibleBeforeCancellation": true
-}

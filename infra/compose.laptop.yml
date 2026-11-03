@@ -16,7 +16,9 @@ services:
   web:
     image: ziyatai-web:laptop
     restart: unless-stopped
-    env_file: ../.local/hosting/laptop-backend.env
+    env_file:
+      - path: ../.local/hosting/laptop-container.env
+        format: raw
     environment:
       HOSTNAME: 0.0.0.0
       PORT: 3000
@@ -30,7 +32,9 @@ services:
   worker:
     image: ziyatai-worker:laptop
     restart: unless-stopped
-    env_file: ../.local/hosting/laptop-backend.env
+    env_file:
+      - path: ../.local/hosting/laptop-container.env
+        format: raw
     read_only: true
     tmpfs: ["/tmp:size=512m,mode=1777"]
     cap_drop: [ALL]

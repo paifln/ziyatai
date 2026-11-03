@@ -1,8 +1,0 @@
-{
-  "date": "2026-10-15",
-  "environment": "Local PostgreSQL and private S3",
-  "expiredPendingReleased": true,
-  "failedStorageDeletionRetried": true,
-  "recentCompletePreserved": true,
-  "referencedSourcePreserved": true
-}

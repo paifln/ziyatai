@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { deploymentChecks } from "../scripts/deployment-config";
+import { deploymentChecks } from "../scripts/deploy/deployment-config";
 
 const backend = {
   APP_ENV: "production",

@@ -1,9 +1,0 @@
-{
-  "date": "2026-10-28T05:40:15.162Z",
-  "scope": "Local isolated renderer HTTP boundary; no private files used",
-  "unauthenticatedRejected": true,
-  "unknownOperationRejectedBeforeBody": true,
-  "malformedLengthRejected": true,
-  "oversizedBodyRejected": true,
-  "healthyAfterRejections": true
-}

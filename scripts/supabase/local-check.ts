@@ -59,7 +59,7 @@ async function run(
 try {
   await mkdir(".local", { recursive: true });
   for (const name of [source, target])
-    await run("scripts/migrate.ts", [], { DATABASE_SCHEMA: name });
+    await run("scripts/runtime/migrate.ts", [], { DATABASE_SCHEMA: name });
   await writeFile(
     files[0],
     `DATABASE_URL=${JSON.stringify(connection)}\nDATABASE_SCHEMA=${source}\n`,

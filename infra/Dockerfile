@@ -16,7 +16,7 @@ ENV LEGAL_OPERATOR_NAME="${LEGAL_OPERATOR_NAME}" LEGAL_CONTACT_EMAIL="${LEGAL_CO
 RUN npm run build
 
 FROM source AS worker-build
-RUN node scripts/build-worker.mjs
+RUN node scripts/build/build-worker.mjs
 
 FROM ubuntu:24.04@sha256:534baea6a22c03a63003dbc8dbe78fe34bc0d7e595d9a9dc9834884ff530eb55 AS base
 RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends ca-certificates libstdc++6 libatomic1 && rm -rf /var/lib/apt/lists/*

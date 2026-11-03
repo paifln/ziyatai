@@ -34,9 +34,9 @@ ZiyatAI предназначен для учителей Казахстана: �
 На подготовленном ноутбуке включите Docker Desktop и используйте `Start online.cmd` / `Stop online.cmd` либо команды:
 
 ```powershell
-node scripts/laptop-backend.mjs start
-node scripts/laptop-backend.mjs status
-node scripts/laptop-backend.mjs stop
+node scripts/deploy/laptop-backend.mjs start
+node scripts/deploy/laptop-backend.mjs status
+node scripts/deploy/laptop-backend.mjs stop
 ```
 
 Команды требуют подготовленных Docker-образов, локальных конфигураций размещения и авторизации Netlify CLI. Подробнее: [backend на ноутбуке](docs/laptop-hosting.md).
@@ -68,10 +68,9 @@ node scripts/laptop-backend.mjs stop
 ```powershell
 npm ci
 npm run local:setup
-New-Item -ItemType Directory -Force .local | Out-Null
 ```
 
-`local:setup` создаёт игнорируемый `.env.local` со случайным `AUTH_SECRET`. Существующий файл сохраняется.
+`local:setup` создаёт игнорируемый `.env.local`, каталоги `.local/` и общие случайные токены приложения и renderer. Повторный запуск сохраняет настроенные секреты и адреса. Локальные порты renderer и ClamAV подставляются автоматически.
 
 ### 2. Заполнить `.env.local`
 
@@ -96,12 +95,11 @@ DEFAULT_EXPORT_FONT=Liberation Serif
 - `STORAGE_LIFECYCLE_MODE=worker`: очисткой временных объектов занимается worker.
 - `OPENAI_API_KEY` и `OPENAI_MODEL`: нужны для настоящей генерации. Если провайдер пока не настроен, оставьте оба значения пустыми.
 
-При подготовке нового файла удалите шаблонные строки `RENDERER_URL` и `RENDERER_TOKEN`: следующая команда создаст локальный адрес и общий случайный токен для приложения и обработчика документов. В уже настроенном окружении сохраняйте действующие согласованные значения.
+Node загружает `.env.local` перед запуском Next.js, поэтому специальные символы паролей сохраняются без подстановки переменных. Секреты заполняйте только в локальном файле.
 
 ### 3. Подготовить сервисы и базу
 
 ```powershell
-npx tsx scripts/enable-local-renderer.ts
 npm run infra:up
 npm run migrate
 npm run supabase:check -- .env.local --create-bucket --storage-probe
@@ -138,13 +136,18 @@ npm run worker
 | `packages/` | Общие контракты, предметная логика и формирование документов |
 | `migrations/` | SQL-миграции с контрольными суммами |
 | `public/lite/` | Лёгкая версия без React |
-| `scripts/` | Запуск, сборка и диагностика |
+| `scripts/dev/` | Подготовка локального окружения и тестовых данных |
+| `scripts/build/` | Сборка web/worker/Lite и уведомления о лицензиях |
+| `scripts/runtime/` | Запуск готового web, preflight и миграции |
+| `scripts/deploy/` | Конфигурация размещения и управление backend |
+| `scripts/checks/` | Проверки границ, безопасности и эксплуатации |
+| `scripts/lib/` | Общая безопасная работа с файлами окружения |
 | `scripts/supabase/` | Проверка Supabase, перенос и интеграционные проверки |
 | `infra/` | Docker-образы, Compose и настройки прокси |
 | `tests/` | Модульные, браузерные и интеграционные проверки |
 | `.railway/` | Отдельный пакет будущего размещения Railway |
 
-Стек: **Next.js, React, TypeScript, Supabase Auth/PostgreSQL/Storage, Python, LibreOffice, ClamAV и Docker**.
+Стек: **Next.js, React, TypeScript, Supabase Auth/PostgreSQL/Storage, Python, LibreOffice, ClamAV и Docker**. Границы модулей описаны в [архитектуре](docs/architecture.md); инструкции собраны в [документации](docs/README.md).
 
 ## Проверки
 
@@ -158,7 +161,7 @@ npm run check:client
 npm run check:unused
 npm test
 npm run test:browser
-python scripts/scan-secrets.py
+python scripts/checks/scan-secrets.py
 npm run build
 ```
 
@@ -180,7 +183,7 @@ npx tsx scripts/supabase/workflow-smoke.ts .env.local --fixture-export
 
 Эти команды создают отдельные синтетические аккаунты и очищают свои данные. Первая проверяет регистрацию, пароль, cookies и отзыв сессий; восстановление проверяется только если включено. Вторая проверяет загрузку, антивирус, импорт КТП, одобрение и DOCX/PDF на явно помеченном тестовом задании **без обращения к AI**.
 
-Дополнительные сценарии находятся в `tests/e2e/`; часть требует подготовленных демоданных или почтового окружения. Настоящая AI-проверка запускается отдельно флагом `--live-ai` и расходует квоту провайдера.
+Дополнительные сценарии находятся в `tests/e2e/`; часть требует подготовленных демоданных или включённого восстановления пароля. Отчёты создаются в игнорируемом `.local/reports/`. Настоящая AI-проверка запускается отдельно флагом `--live-ai` и расходует квоту провайдера.
 
 ## Размещение, перенос и секреты
 

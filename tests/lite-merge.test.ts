@@ -22,7 +22,7 @@ it("keeps every Lite runtime script valid ES5", () => {
 });
 
 it("ships the same safe merge algorithm as ES5 without recent object/array APIs", () => {
-  execFileSync(process.execPath, ["scripts/build-lite.mjs", "--check"], {
+  execFileSync(process.execPath, ["scripts/build/build-lite.mjs", "--check"], {
     windowsHide: true,
   });
   const code = readFileSync("public/lite/draft-merge.js", "utf8");

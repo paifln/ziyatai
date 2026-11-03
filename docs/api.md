@@ -16,21 +16,21 @@
 
 GET передаёт поток из S3 через очередь Web Streams в 64 KiB; весь файл в памяти API не собирается. Отмена потребителем и разрыв запроса прерывают upstream. Ожидание заголовков ограничено 30 секундами, передача upstream — 15 минутами. Это ограничения приложения, а не обещание лимитов будущего Netlify gateway. Внутренние импорт/рендеринг по-прежнему получают ограниченный целый документ.
 
-`GET /api/public-config` доступен до входа и возвращает только `{localMailbox: boolean}`. Флаг включается для локальной Mailpit-конфигурации, а интерфейсы показывают ссылку на тестовую почту только на loopback адресе. В production значение false. Hostnames, credentials и содержимое писем не возвращаются; при Netlify gateway подпись proxy всё равно обязательна.
+`GET /api/public-config` возвращает только публичные настройки авторизации: `authProvider: "supabase"`, `authMode: "password"`, `emailVerificationRequired: false` и `passwordResetAvailable`. Последний флаг управляет видимостью восстановления письмом; секретов в ответе нет.
 
-Регистрация `/api/auth/sign-up/email` принимает `teachingSubject` (строка до 120 символов). Подтверждение: `POST /api/auth/email-otp/verify-email` с `{email, otp}`; повторная отправка: `POST /api/auth/email-otp/send-verification-otp` с `{email, type: "email-verification"}`. Код содержит 6 цифр, действует 600 секунд, хранится хешированным; действуют ограничение попыток и rate limit. После подтверждения создаётся сессия. Сброс пароля сохраняет отдельный одноразовый link flow.
+Регистрация `/api/auth/sign-up/email` принимает имя, email, пароль и необязательный `teachingSubject` (до 120 символов). Сервер создаёт пользователя через Supabase Admin API с подтверждённым email и открывает сессию. Отправки кода или письма подтверждения нет. Совпадение email с импортированным владельцем не присваивает его материалы.
 
 `GET /api/profile` возвращает `teachingSubject`; `PATCH /api/profile` позволяет изменить его. Предмет попадает в immutable source snapshot новых AI-заданий. Уже созданные задания не меняются при редактировании профиля.
 
-Все бизнес endpoints требуют подтверждённого email, cookie сессии и проверки владельца. Для POST/PATCH/DELETE необходим Origin, равный APP_URL. Ответы не кешируются. Ошибка: code, безопасное message, requestId, необязательные fieldErrors. Чужой ресурс даёт 404, конфликт revision — 409.
+Все бизнес endpoints требуют действующей сессии Supabase, локальной проверки её отзыва и проверки владельца. Для POST/PATCH/DELETE необходим Origin, равный APP_URL. Ответы не кешируются. Ошибка: code, безопасное message, requestId, необязательные fieldErrors. Чужой ресурс даёт 404, конфликт revision — 409.
 
-Типизированные runtime контракты находятся в packages/contracts. Один catch-all Route Handler маршрутизирует фиксированный набор ресурсов. Auth endpoints обслуживает Better Auth.
+Типизированные runtime контракты находятся в packages/contracts. Один catch-all Route Handler маршрутизирует фиксированный набор ресурсов. Auth endpoints обслуживает серверный адаптер Supabase в `apps/web/lib/auth/server.ts`.
 
 | Метод и путь | Контракт |
 | --- | --- |
-| POST /api/auth/sign-up/email | name, email, password минимум 12 символов; verification email |
+| POST /api/auth/sign-up/email | name, email, password минимум 12 символов; сессия без подтверждения |
 | POST /api/auth/sign-in/email; /sign-out | Обычная email/password сессия |
-| POST /api/auth/request-password-reset; /reset-password | Восстановление через одноразовый токен в письме; успешный сброс отзывает все старые сессии |
+| POST /api/auth/request-password-reset; /reset-password | Только при PASSWORD_RESET_ENABLED=true и настроенном Supabase SMTP; callback и одноразовый токен, отзыв прежних сессий |
 | GET /api/health; /api/health/ready | Liveness; БД/storage/worker readiness; без секретов |
 | POST /api/uploads | multipart file; локальный резервный путь при DIRECT_UPLOADS=false, максимум 25MiB |
 | POST /api/uploads/init | name, bytes; резервирование квоты и короткоживущий подписанный PUT в приватный quarantine; MIME определяется сервером по расширению |
@@ -59,10 +59,10 @@ GET передаёт поток из S3 через очередь Web Streams в
 | DELETE /api/account | Немедленное прекращение доступа, отзыв сессий, фоновое физическое удаление |
 | POST /api/demo | Только явно включённый local/test demo; отдельная маркировка synthetic/no OpenAI; идемпотентно на пользователя и язык |
 
-При DIRECT_UPLOADS=true браузер отправляет bytes непосредственно в S3: init → PUT → complete → import. Подпись ограничивает ключ, тип, размер и срок. Worker проверяет сигнатуру, архив/XML и антивирус, затем копирует проверенные bytes в новый неизменяемый ключ: повтор PUT по ещё действующей подписи не изменит чистый источник. Пока проверка не завершилась, download/preview запрещены. Для quarantine настраивается удаление через сутки; CORS допускает только APP_URL. Это позволяет не пропускать большие файлы через ограничения Netlify proxy, см. [инструкцию](netlify.md).
+При DIRECT_UPLOADS=true браузер отправляет bytes непосредственно в S3: init → PUT → complete → import. Подпись ограничивает ключ, тип, размер и срок. Worker проверяет сигнатуру, архив/XML и антивирус, затем копирует проверенные bytes в новый неизменяемый ключ: повтор PUT по ещё действующей подписи не изменит чистый источник. Пока проверка не завершилась, download/preview запрещены. Для quarantine настраивается удаление через сутки; CORS допускает только APP_URL. Это позволяет не пропускать большие файлы через ограничения Netlify proxy, см. [инструкцию](laptop-hosting.md).
 
 teacherReviewed=true — явное подтверждение учителя для конкретного экспорта. Сервер повторно проверяет документ и отвергает подтверждение при структурных замечаниях (REVIEW_REQUIRED); без подтверждения экспорт сохраняет надпись «Черновик». Подтверждение не меняет needs_review у AI и не является автоматической педагогической экспертизой. Поле сохраняется в exports и возвращается библиотекой. JSON body ограничен 2MiB независимо от Content-Length; AST имеет отдельные ограничения количества заданий, блоков, ячеек и текста.
 
 Renderer — внутренний сервис: POST /inspect, /parse, /render. Требует длинный bearer token; принимает ограниченные bytes + X-Format, X-Font, X-Include-Hidden. Публичный ingress для него запрещён. В нём отсутствуют пользовательская БД, storage ключи и OpenAI key.
 
-При API_GATEWAY=netlify все auth/business endpoints дополнительно требуют действующую Netlify HS256 подпись нужного site ID. Проверенный provider IP используется для auth rate limit; клиентский `x-ziyatai-client-ip` перезаписывается. Health не требует подписи. Standalone Compose сохраняет API_GATEWAY=direct и доверяет только заголовкам своего reverse proxy. [Настройка](netlify.md).
+При API_GATEWAY=netlify все auth/business endpoints дополнительно требуют действующую Netlify HS256 подпись нужного site ID. Проверенный provider IP используется для auth rate limit; клиентский `x-ziyatai-client-ip` перезаписывается. Health не требует подписи. Локальная разработка использует API_GATEWAY=direct; публичный hybrid backend требует API_GATEWAY=netlify. [Настройка](laptop-hosting.md).

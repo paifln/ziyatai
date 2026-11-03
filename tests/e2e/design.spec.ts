@@ -298,7 +298,7 @@ test("large plans and assignment tables keep a bounded DOM and preserve edits ac
   expect(saved.rows.every((row: string[]) => row.length === 19)).toBe(true);
   expect(saved.rows[99][9]).toBe("r101c11");
   await writeFile(
-    "docs/reports/large-table.json",
+    ".local/reports/large-table.json",
     JSON.stringify(
       {
         date: new Date().toISOString().slice(0, 10),

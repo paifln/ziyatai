@@ -28,7 +28,7 @@ jobs:
       - run: npm run lint && npm run typecheck && npm test && npm run test:parser && npm run test:security
       - run: npx playwright install --with-deps chromium
       - run: npm run test:browser
-      - run: npm run build && node scripts/build-worker.mjs
+      - run: npm run build && npm run build:worker
       - name: Package Next.js with the Netlify adapter (offline, synthetic origins)
         env:
           NETLIFY_SITE_ID: b0f3e39e-36bd-4d5e-bd5f-6c938fdc81bc
@@ -38,7 +38,7 @@ jobs:
           DO_NOT_TRACK: "1"
         run: npx --yes netlify-cli@27.12.1 build --offline
       - run: npm audit --audit-level=moderate
-      - run: python scripts/scan-secrets.py
+      - run: python scripts/checks/scan-secrets.py
   integration:
     runs-on: ubuntu-24.04
     env:
@@ -60,18 +60,18 @@ jobs:
       - name: Check database transactions, migration and queue isolation
         run: |
           npx tsx --env-file=.env.local scripts/supabase/local-check.ts
-          npx tsx --env-file=.env.local scripts/db-resilience-check.ts
-          npx tsx --env-file=.env.local scripts/queue-idempotency-check.ts
-          npx tsx --env-file=.env.local scripts/session-read-budget-check.ts
+          npx tsx --env-file=.env.local scripts/checks/db-resilience-check.ts
+          npx tsx --env-file=.env.local scripts/checks/queue-idempotency-check.ts
+          npx tsx --env-file=.env.local scripts/checks/session-read-budget-check.ts
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - name: Exercise password authentication against local Supabase
         run: |
-          node scripts/qa-web-runtime.mjs start main > .local/qa-control.log 2>&1 &
+          node scripts/dev/qa-web-runtime.mjs start main > .local/qa-control.log 2>&1 &
           npx tsx scripts/supabase/auth-smoke.ts .env.local
       - name: Stop owned QA processes
         if: always()
-        run: node scripts/qa-web-runtime.mjs finish
+        run: node scripts/dev/qa-web-runtime.mjs finish
       - name: Stop local Supabase
         if: always()
         run: supabase stop

@@ -2,7 +2,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, it } from "vitest";
-import { checkPublicArtifacts } from "../scripts/check-public-artifacts.mjs";
+import { checkPublicArtifacts } from "../scripts/checks/check-public-artifacts.mjs";
 
 it("finds leaked raw and encoded credentials without returning their values", async () => {
   const directory = await mkdtemp(join(tmpdir(), "ziyatai-public-"));
