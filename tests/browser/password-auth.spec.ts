@@ -29,6 +29,11 @@ for (const locale of ["ru", "kk"] as const) {
       const path = new URL(route.request().url()).pathname;
       if (path === "/api/public-config")
         return route.fulfill({ json: { authProvider: "supabase" } });
+      if (path === "/fonts/onest.woff2")
+        return route.fulfill({
+          contentType: "font/woff2",
+          body: await readFile("public/fonts/onest.woff2"),
+        });
       if (path.startsWith("/api/auth/")) {
         requests.push({ path, body: route.request().postDataJSON() });
         return route.fulfill({ json: { success: true } });
@@ -45,7 +50,9 @@ for (const locale of ["ru", "kk"] as const) {
       await page.addStyleTag({ content: await readFile(file, "utf8") });
     await page.addScriptTag({ content: bundle.outputFiles[0].text });
     await expect(page.locator('input[type="password"]')).toHaveCount(1);
+    await page.evaluate(() => document.fonts.ready);
     for (const [width, height] of [
+      [1366, 640],
       [1366, 768],
       [390, 844],
       [320, 800],
