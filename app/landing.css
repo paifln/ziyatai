@@ -96,20 +96,17 @@
 }
 .hero-desk {
   position: relative;
-  padding: 68px 25px 58px;
-  background: #e5eadb;
-  border-radius: 42% 42% 16px 16px;
+  padding: 24px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
 }
 .desk-sheet {
   position: relative;
-  transform: rotate(-3deg);
   background: #fffdf6;
   color: #273a2f;
   border: 1px solid #d4d9c8;
   border-radius: 5px;
-  box-shadow:
-    8px 16px 0 #cdd6be,
-    0 15px 40px #273a2f14;
   padding: 32px;
 }
 .sheet-meta {
@@ -176,41 +173,6 @@
   color: #65705d;
   font-size: 9px;
   margin-top: 30px;
-}
-.desk-note {
-  position: absolute;
-  z-index: 1;
-  top: 4px;
-  right: 0;
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  background: #f3d997;
-  color: #594420;
-  padding: 14px 18px;
-  border-radius: 12px 12px 12px 0;
-  transform: rotate(4deg);
-  font-size: 11px;
-}
-.desk-note strong,
-.desk-stamp strong {
-  display: block;
-  font-weight: 600;
-}
-.desk-stamp {
-  position: absolute;
-  bottom: 12px;
-  left: 0;
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  background: #a94c37;
-  color: #fff9f0;
-  padding: 16px 22px;
-  border-radius: 14px;
-  transform: rotate(2deg);
-  font-size: 11px;
-  box-shadow: 0 7px 0 #87443215;
 }
 .landing-format-strip {
   display: flex;
@@ -666,9 +628,6 @@
   .desk-sheet h2 {
     font-size: 22px;
   }
-  .desk-note {
-    right: 5px;
-  }
   .landing-format-strip {
     justify-content: flex-start;
     gap: 12px 22px;
@@ -754,18 +713,9 @@
     padding: 20px 16px;
     border-radius: 20px;
   }
-  .desk-note,
-  .desk-stamp {
-    position: static;
-    transform: none;
-    padding: 14px;
-    border-radius: 12px;
-    box-shadow: none;
-  }
   .desk-sheet {
     transform: none;
     padding: 24px 18px;
-    box-shadow: 0 5px 0 #cdd6be;
   }
   .desk-sheet h2 {
     font-size: 22px;

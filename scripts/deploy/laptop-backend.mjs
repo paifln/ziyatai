@@ -11,10 +11,11 @@ import {
 
 process.chdir(resolve(dirname(fileURLToPath(import.meta.url)), "../.."));
 const action = process.argv[2] || "status";
+const railwayPublication = action === "publish-railway";
 const folder = ".local/hosting";
 const backendFile = `${folder}/laptop-backend.env`;
-const frontendFile = `${folder}/laptop-netlify.env`;
-const publishedFile = `${folder}/laptop-published.json`;
+const frontendFile = `${folder}/${railwayPublication ? "railway" : "laptop"}-netlify.env`;
+const publishedFile = `${folder}/${railwayPublication ? "railway" : "laptop"}-published.json`;
 const image =
   "cloudflare/cloudflared@sha256:4955524aeaa379e154023d5a027c250f7b35041a2e7e950cf13f144bc9b9c5ba";
 const tunnels = ["ziyatai-laptop-api-tunnel"];
@@ -272,7 +273,7 @@ async function publish(frontend) {
   );
 }
 try {
-  if (!["start", "stop", "status", "publish", "build"].includes(action))
+  if (!["start", "stop", "status", "publish", "publish-railway", "build"].includes(action))
     throw new Error(
       "Usage: node scripts/deploy/laptop-backend.mjs start|stop|status|publish|build",
     );
@@ -397,7 +398,9 @@ try {
       signal: AbortSignal.timeout(15000),
     });
     if (!configuration.ok) throw new Error("Netlify API proxy is unavailable");
-    console.log(`Open ${site} and keep this laptop and Docker running.`);
+    console.log(railwayPublication
+      ? `Open ${site}. Backend runs on Railway; the laptop is not required.`
+      : `Open ${site} and keep this laptop and Docker running.`);
   }
 } catch (error) {
   console.error(

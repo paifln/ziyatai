@@ -1,6 +1,6 @@
 import {
   defineRailway,
-  github,
+  empty,
   image,
   project,
   service,
@@ -10,11 +10,9 @@ import {
 // Desired infrastructure only. Evaluating this file creates no cloud resources.
 // Secrets are references to Railway Shared Variables, never literal values.
 export default defineRailway((ctx) => {
-  const source = github("paifln/ziyatai", {
-    branch: "main",
-    checkSuites: true,
-  });
-  const antivirusData = volume("antivirus-data", { sizeMB: 1024 });
+  // Release archives are uploaded with `railway up`; no GitHub App is required.
+  const source = empty();
+  const antivirusData = volume("antivirus-data", { sizeMB: 1024, region: "iad" });
   const privateNetworking = {
     serviceDomains: {},
     customDomains: {},

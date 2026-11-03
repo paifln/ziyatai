@@ -99,7 +99,6 @@ export default function AuthPanel({
       </div>
       <section className="auth-story">
         <a className="brand" href="/">
-          <img src="/brand-owl.png" alt="" width="46" height="46" />
           <span>
             Ziyat<span className="brand-ai">AI</span>
           </span>
@@ -114,15 +113,15 @@ export default function AuthPanel({
           <h1>
             {locale === "ru" ? (
               <>
-                Больше времени.
+                Материалы
                 <br />
-                Для вашего класса.
+                для ваших уроков.
               </>
             ) : (
               <>
-                Сыныбыңызға
+                Сабаққа арналған
                 <br />
-                уақыт табыңыз.
+                материалдар.
               </>
             )}
           </h1>

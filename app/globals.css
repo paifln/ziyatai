@@ -836,7 +836,6 @@ input[type="checkbox"] {
   background: #f3f6e9;
   border: 1px solid #dde5ce;
   border-radius: 14px;
-  transform: rotate(-4deg);
 }
 .first-plan-art > span:first-child {
   color: #6b8254;

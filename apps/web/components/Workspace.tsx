@@ -393,7 +393,6 @@ function WorkspaceContent({
           <X size={18} />
         </button>
         <a href="/" className="brand">
-          <img src="/brand-owl.png" width="40" height="40" alt="" />
           <span>
             Ziyat<span className="brand-ai">AI</span>
           </span>

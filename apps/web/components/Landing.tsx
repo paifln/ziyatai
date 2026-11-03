@@ -28,7 +28,6 @@ export default function Landing({
       </a>
       <header className="landing-nav">
         <a className="brand" href="/" aria-label="ZiyatAI">
-          <img src="/brand-owl.png" width="40" height="40" alt="" />
           <span>
             Ziyat<span className="brand-ai">AI</span>
           </span>
@@ -74,19 +73,15 @@ export default function Landing({
             <h1>
               {ru ? (
                 <>
-                  Ваш план.
+                  Ваш план и задания
                   <br />
-                  Ваш класс.
-                  <br />
-                  <em>Время для главного.</em>
+                  <em>в одном месте.</em>
                 </>
               ) : (
                 <>
-                  Өз жоспарыңыз.
+                  Жоспар мен тапсырмалар
                   <br />
-                  Өз сыныбыңыз.
-                  <br />
-                  <em>Маңыздыға уақыт.</em>
+                  <em>бір жерде.</em>
                 </>
               )}
             </h1>
@@ -122,13 +117,6 @@ export default function Landing({
                 : "ZiyatAI арқылы сабаққа дайындық"
             }
           >
-            <div className="desk-note">
-              <Sparkles size={18} />
-              <span>
-                {ru ? "Помощник в подготовке." : "Дайындықтағы көмекші."}
-                <strong>{ru ? "Учитель — вы." : "Мұғалім — сіз."}</strong>
-              </span>
-            </div>
             <div className="desk-sheet">
               <div className="sheet-meta">
                 <span>ZIYATAI / {ru ? "РАБОЧИЙ ЛИСТ" : "ЖҰМЫС ПАРАҒЫ"}</span>
@@ -171,15 +159,6 @@ export default function Landing({
                   ? "Проверьте, отредактируйте и скачайте"
                   : "Тексеріңіз, өңдеңіз және жүктеңіз"}
               </div>
-            </div>
-            <div className="desk-stamp">
-              <CheckCheck size={22} />
-              <span>
-                {ru ? "Сначала ваша проверка." : "Алдымен сіздің тексеруіңіз."}
-                <strong>
-                  {ru ? "Потом — печать." : "Содан кейін — басып шығару."}
-                </strong>
-              </span>
             </div>
           </div>
         </section>

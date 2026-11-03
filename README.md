@@ -25,11 +25,11 @@ ZiyatAI предназначен для учителей Казахстана: �
 | --- | --- |
 | Интерфейс и подписанный прокси API | Netlify |
 | Аккаунты, PostgreSQL и приватные файлы | Supabase |
-| API, worker, обработчик документов и антивирус | Docker на ноутбуке |
-| HTTPS-доступ к API | Cloudflare Quick Tunnel |
-| Будущее размещение backend | Отдельный шаблон Railway в `.railway/` |
+| API, worker, обработчик документов и антивирус | Railway |
+| HTTPS-доступ к API | Постоянный домен Railway |
+| Резервный запуск backend | Docker на ноутбуке |
 
-**Для работы текущего backend ноутбук, Docker Desktop и интернет должны оставаться включёнными.** После остановки ноутбука интерфейс Netlify остаётся доступен, но вход и серверные операции недоступны. Адрес временного туннеля может измениться после перезапуска; скрипт запуска обновляет размещение Netlify. Публикации используют квоту Netlify, настоящая генерация — квоту OpenAI API.
+**После публикации через `npm run publish:railway` сайт работает без включённого ноутбука.** Backend использует Railway, данные — Supabase. Старый профиль ноутбука остаётся резервным. Публикации используют квоту Netlify, генерация — квоту OpenAI API.
 
 На подготовленном ноутбуке включите Docker Desktop и используйте `Start online.cmd` / `Stop online.cmd` либо команды:
 
@@ -145,7 +145,7 @@ npm run worker
 | `scripts/supabase/` | Проверка Supabase, перенос и интеграционные проверки |
 | `infra/` | Docker-образы, Compose и настройки прокси |
 | `tests/` | Модульные, браузерные и интеграционные проверки |
-| `.railway/` | Отдельный пакет будущего размещения Railway |
+| `.railway/` | Конфигурация production backend Railway |
 
 Стек: **Next.js, React, TypeScript, Supabase Auth/PostgreSQL/Storage, Python, LibreOffice, ClamAV и Docker**. Границы модулей описаны в [архитектуре](docs/architecture.md); инструкции собраны в [документации](docs/README.md).
 
@@ -187,8 +187,8 @@ npx tsx scripts/supabase/workflow-smoke.ts .env.local --fixture-export
 
 ## Размещение, перенос и секреты
 
-- Текущий запуск: [Netlify + backend на ноутбуке](docs/laptop-hosting.md).
-- Будущий Railway: [отдельная инструкция](.railway/README.md). `npm run check:railway` устанавливает зависимости этого пакета и проверяет конфигурацию без создания облачных ресурсов.
+- Production backend: [Railway](.railway/README.md). Резервный запуск: [backend на ноутбуке](docs/laptop-hosting.md).
+- Проверка Railway: [инструкция](.railway/README.md). `npm run check:railway` устанавливает зависимости этого пакета и проверяет конфигурацию без создания облачных ресурсов.
 - Перенос базы и файлов: [инструкция Supabase](docs/supabase.md). Перед переносом нужны резервные копии и остановка записывающих web/worker.
 - Проверка параметров размещения: `npm run check:deploy` с загруженными переменными соответствующего окружения.
 

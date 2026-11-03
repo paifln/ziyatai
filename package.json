@@ -25,6 +25,7 @@
     "online:stop": "node scripts/deploy/laptop-backend.mjs stop",
     "online:status": "node scripts/deploy/laptop-backend.mjs status",
     "online:publish": "node scripts/deploy/laptop-backend.mjs publish",
+    "publish:railway": "node scripts/deploy/laptop-backend.mjs publish-railway",
     "lint": "eslint .",
     "test": "vitest run",
     "test:parser": "python -m pytest tests/parser -q",
